@@ -7858,6 +7858,12 @@ function toggleRosterStar(rowId, name) {
   if (starInput) starInput.value = row.starCount;
 }
 
+const editingFinishedCounts = new Set(); // تتبع مؤقت (بالجلسة الحالية بس): أي بطاقات دورة منتهية فاتحة وضع تعديل عدد الطالبات
+function toggleFinishedCountEdit(id) {
+  if (editingFinishedCounts.has(id)) editingFinishedCounts.delete(id);
+  else editingFinishedCounts.add(id);
+  renderSchedule();
+}
 function renderFinishedRow(row, idx, finishedList) {
   const isFirst = idx === 0;
   const isLast  = idx === finishedList.length - 1;
@@ -7872,8 +7878,10 @@ function renderFinishedRow(row, idx, finishedList) {
         <span class="sched-badge" style="background:var(--surface2);color:var(--muted);margin-right:auto;">✓ منتهية</span>
         <button class="sched-del" onclick="deleteSchedRow(${row.id})">✕</button>
       </div>
-      <div class="sched-finished-dates">📅 ${formatHijriGregorian(row.startDate)} ← ${formatHijriGregorian(row.endDate)}</div>
-      ${row.hasVacation ? `<div class="sched-finished-dates" style="color:var(--muted);">🪫 إجازة: ${formatHijriGregorian(row.vacStartDate)} ← ${formatHijriGregorian(row.vacEndDate)}</div>` : ''}
+      <div class="sched-finished-dates">📅 ${formatGregorianArabic(row.startDate)} ← ${formatGregorianArabic(row.endDate)}</div>
+      <div class="sched-finished-dates">${formatHijriGregorian(row.startDate)} ← ${formatHijriGregorian(row.endDate)}</div>
+      ${row.hasVacation ? `<div class="sched-finished-dates" style="color:var(--muted);">🪫 إجازة: ${formatGregorianArabic(row.vacStartDate)} ← ${formatGregorianArabic(row.vacEndDate)} (${formatHijriGregorian(row.vacStartDate)} ← ${formatHijriGregorian(row.vacEndDate)})</div>` : ''}
+      ${editingFinishedCounts.has(row.id) ? `
       <div class="sched-finished-count">
         <span>👩‍🎓 عدد الطالبات في البداية:</span>
         <input type="number" class="sched-count-input" value="${row.startCount != null ? row.startCount : ''}" oninput="editFinishedCount(${row.id}, 'startCount', this.value)">
@@ -7882,7 +7890,13 @@ function renderFinishedRow(row, idx, finishedList) {
         <span>🏁 عدد الطالبات في النهاية:</span>
         <input type="number" class="sched-count-input" value="${row.endCount != null ? row.endCount : (row.studentCount != null ? row.studentCount : '')}" oninput="editFinishedCount(${row.id}, 'endCount', this.value)">
       </div>
-      ${(row.startCount && row.endCount) ? `<div class="sched-finished-dates" style="color:var(--muted);">📈 نسبة الإكمال: ${Math.round((parseInt(row.endCount,10)/parseInt(row.startCount,10))*100)}%</div>` : ''}
+      <button class="icon-btn-sm accent" style="width:100%;margin-bottom:0.5rem;" onclick="toggleFinishedCountEdit(${row.id})">✓ تم التعديل</button>
+      ` : `
+      <div class="sched-finished-count">
+        <span>👩‍🎓 عدد الطالبات (بداية ← نهاية): ${row.startCount != null ? row.startCount : '—'} ← ${row.endCount != null ? row.endCount : (row.studentCount != null ? row.studentCount : '—')}</span>
+        <button class="icon-btn-sm accent" style="padding:0.25rem 0.5rem;font-size:0.72rem;" onclick="toggleFinishedCountEdit(${row.id})" title="تعديل الأرقام">✏️</button>
+      </div>
+      `}
       <div class="sched-finished-count">
         <span>🌟 متميزات الدورة:</span>
         <input type="number" id="starCountInput_${row.id}" class="sched-count-input" value="${row.starCount != null ? row.starCount : ''}" oninput="editFinishedCount(${row.id}, 'starCount', this.value)">
