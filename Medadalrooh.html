@@ -8163,6 +8163,9 @@ async function initAppData() {
   await loadFinance();
   renderFinance();
 
+  // إعادة رسم تبويب الطالبات بعد اكتمال بيانات المواعيد والحاسبة (كانت تترسم مبكرًا قبل وصول هالبيانات فيطلع تحذير عمر مؤقت ويختفي رمز نوع التسجيل)
+  renderStudents();
+
   await loadIdeas('tajweed');
   renderIdeas('tajweed');
   await loadIdeas('tamkeen');
