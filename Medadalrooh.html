@@ -7880,7 +7880,10 @@ function renderFinishedRow(row, idx, finishedList) {
       </div>
       <div class="sched-finished-dates">📅 ${formatGregorianArabic(row.startDate)} ← ${formatGregorianArabic(row.endDate)}</div>
       <div class="sched-finished-dates">${formatHijriGregorian(row.startDate)} ← ${formatHijriGregorian(row.endDate)}</div>
-      ${row.hasVacation ? `<div class="sched-finished-dates" style="color:var(--muted);">🪫 إجازة: ${formatGregorianArabic(row.vacStartDate)} ← ${formatGregorianArabic(row.vacEndDate)} (${formatHijriGregorian(row.vacStartDate)} ← ${formatHijriGregorian(row.vacEndDate)})</div>` : ''}
+      ${row.hasVacation ? `
+      <div class="sched-finished-dates" style="color:var(--muted);margin-top:0.5rem;">🪫 إجازة: ${formatGregorianArabic(row.vacStartDate)} ← ${formatGregorianArabic(row.vacEndDate)}</div>
+      <div class="sched-finished-dates" style="color:var(--muted);">${formatHijriGregorian(row.vacStartDate)} ← ${formatHijriGregorian(row.vacEndDate)}</div>
+      ` : ''}
       ${editingFinishedCounts.has(row.id) ? `
       <div class="sched-finished-count">
         <span>👩‍🎓 عدد الطالبات في البداية:</span>
@@ -7890,19 +7893,22 @@ function renderFinishedRow(row, idx, finishedList) {
         <span>🏁 عدد الطالبات في النهاية:</span>
         <input type="number" class="sched-count-input" value="${row.endCount != null ? row.endCount : (row.studentCount != null ? row.studentCount : '')}" oninput="editFinishedCount(${row.id}, 'endCount', this.value)">
       </div>
-      <button class="icon-btn-sm accent" style="width:100%;margin-bottom:0.5rem;" onclick="toggleFinishedCountEdit(${row.id})">✓ تم التعديل</button>
-      ` : `
-      <div class="sched-finished-count">
-        <span>👩‍🎓 عدد الطالبات (بداية ← نهاية): ${row.startCount != null ? row.startCount : '—'} ← ${row.endCount != null ? row.endCount : (row.studentCount != null ? row.studentCount : '—')}</span>
-        <button class="icon-btn-sm accent" style="padding:0.25rem 0.5rem;font-size:0.72rem;" onclick="toggleFinishedCountEdit(${row.id})" title="تعديل الأرقام">✏️</button>
-      </div>
-      `}
       <div class="sched-finished-count">
         <span>🌟 متميزات الدورة:</span>
         <input type="number" id="starCountInput_${row.id}" class="sched-count-input" value="${row.starCount != null ? row.starCount : ''}" oninput="editFinishedCount(${row.id}, 'starCount', this.value)">
         <button class="icon-btn-sm accent" style="padding:0.25rem 0.5rem;font-size:0.72rem;" onclick="copyCourseStarNames(${row.id})" title="نسخ أسماء المتميزات">🎨</button>
       </div>
-      <div id="regTypeSummary_${row.id}">${renderRegTypeSummary(row)}</div>
+      <button class="icon-btn-sm accent" style="width:100%;margin-bottom:0.5rem;" onclick="toggleFinishedCountEdit(${row.id})">✓ تم التعديل</button>
+      ` : `
+      <div class="sched-finished-count">
+        <span>👩‍🎓 عدد الطالبات (بداية ← نهاية): ${row.startCount != null ? row.startCount : '—'} ← ${row.endCount != null ? row.endCount : (row.studentCount != null ? row.studentCount : '—')}</span>
+      </div>
+      <div class="sched-finished-count">
+        <span>🌟 متميزات الدورة: ${row.starCount != null ? row.starCount : '—'}</span>
+        <button class="icon-btn-sm accent" style="padding:0.25rem 0.5rem;font-size:0.72rem;" onclick="toggleFinishedCountEdit(${row.id})" title="تعديل الأرقام">✏️</button>
+        <button class="icon-btn-sm accent" style="padding:0.25rem 0.5rem;font-size:0.72rem;" onclick="copyCourseStarNames(${row.id})" title="نسخ أسماء المتميزات">🎨</button>
+      </div>
+      `}
       <button class="icon-btn-sm accent" style="width:100%;margin-top:0.5rem;" onclick="toggleAttendReportsPanel(${row.id})">📋 تقارير الحضور الأسبوعية</button>
       <div id="attendReportsPanel_${row.id}" style="display:none;margin-top:0.5rem;border:1px solid var(--border);border-radius:10px;padding:0.5rem;">
         <div style="font-size:0.72rem;color:var(--muted);margin-bottom:0.4rem;">الصقي نص دلالة الرموز الكامل لهذي الدورة (تُستخرج منه رموز: تأخير / نقص / غياب بعذر / غياب بدون عذر / عدم إنجاز الكبرى):</div>
