@@ -6265,7 +6265,7 @@ async function runWaPlanImportAnalysis() {
 
     const cardAlerts = [];
     if (!planMatch) cardAlerts.push('الخطة غير موجودة');
-    if (!starEntry) cardAlerts.push('بدون نجوم تقييم');
+    if (!starEntry && computedWeek !== 0) cardAlerts.push('بدون نجوم تقييم');
     if (planMatch) {
       const filledDays = planMatch.days.filter(d => d && d.trim()).length;
       if (filledDays > 0 && filledDays < 4) cardAlerts.push(`الخطة ناقصة (${toAr(filledDays)} أيام بس)`);
@@ -6395,30 +6395,34 @@ function renderWaPlanReviewQueue() {
   queue.forEach((item, i) => {
     if (item.committed) return;
     const planEditor = item.plan
-      ? `<div style="margin-top:0.4rem;">
+      ? `<div>
           <label style="font-size:0.72rem;color:var(--muted);">📖 المقرر:</label>
           <input id="waPlanEditHifz_${i}" value="${escapeHTML(item.plan.hifz || '')}" style="width:100%;font-family:'Cairo';font-size:0.75rem;border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.5rem;background:#fff;box-sizing:border-box;margin-bottom:0.3rem;">
           ${dayLabels4.map((d, idx) => `<label style="font-size:0.7rem;color:var(--muted);">${d}:</label>
             <input id="waPlanEditDay_${i}_${idx}" value="${escapeHTML(item.plan.days[idx] || '')}" style="width:100%;font-family:'Cairo';font-size:0.72rem;border:1px solid var(--border);border-radius:8px;padding:0.3rem 0.5rem;background:#fff;box-sizing:border-box;margin-bottom:0.25rem;">`).join('')}
         </div>`
-      : `<div style="color:#c0392b;font-size:0.75rem;margin-top:0.3rem;">⚠️ ما فيه خطة مستلمة</div>`;
+      : `<div style="color:#c0392b;font-size:0.75rem;">⚠️ ما فيه خطة مستلمة</div>`;
     const kubraEditor = item.kubraPlan
-      ? `<div style="margin-top:0.5rem;border-top:1px dashed var(--border);padding-top:0.4rem;">
-          <label style="font-size:0.72rem;color:var(--wine);font-weight:700;">⭐ تقسيم المراجعة الكبرى:</label>
-          ${item.kubraWarning ? `<div style="color:#b3691f;font-size:0.7rem;margin:0.2rem 0;">⚠️ ${escapeHTML(item.kubraWarning)}</div>` : ''}
+      ? `<div>
+          ${item.kubraWarning ? `<div style="color:#b3691f;font-size:0.7rem;margin-bottom:0.3rem;">⚠️ ${escapeHTML(item.kubraWarning)}</div>` : ''}
           <label style="font-size:0.7rem;color:var(--muted);">المقرر:</label>
           <input id="waPlanEditKubraMain_${i}" value="${escapeHTML(item.kubraPlan.mainText || '')}" style="width:100%;font-family:'Cairo';font-size:0.75rem;border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.5rem;background:#fff;box-sizing:border-box;margin-bottom:0.3rem;">
           ${dayLabels4.map((d, idx) => `<label style="font-size:0.7rem;color:var(--muted);">${d}:</label>
             <input id="waPlanEditKubraDay_${i}_${idx}" value="${escapeHTML(item.kubraPlan.days[idx] || '')}" style="width:100%;font-family:'Cairo';font-size:0.72rem;border:1px solid var(--border);border-radius:8px;padding:0.3rem 0.5rem;background:#fff;box-sizing:border-box;margin-bottom:0.25rem;">`).join('')}
         </div>`
-      : '';
+      : `<div style="color:var(--muted);font-size:0.75rem;">— ما فيه تقسيم مراجعة كبرى مستلم —</div>`;
+    const defaultTab = item.plan ? 'plan' : 'kubra';
     html += `<div id="waPlanReviewCard_${i}" style="border:1px solid var(--border);border-radius:10px;padding:0.6rem;margin-bottom:0.6rem;background:var(--surface2);">
       <div style="font-size:0.68rem;color:var(--accent);font-weight:700;margin-bottom:0.2rem;">📍 ${escapeHTML(item.sourceTag)}</div>
       <div style="font-weight:700;color:var(--wine);margin-bottom:0.3rem;">${escapeHTML(item.stu.name)}</div>
-      ${item.plan || item.kubraPlan ? `<div style="white-space:pre-wrap;background:#fff;border-radius:8px;padding:0.5rem;font-size:0.72rem;color:var(--ink);max-height:150px;overflow-y:auto;">${escapeHTML(item.body)}</div>` : ''}
-      ${planEditor}
-      ${kubraEditor}
-      <label style="font-size:0.75rem;color:var(--muted);margin-top:0.4rem;display:block;">التقييم:</label>
+      ${item.plan || item.kubraPlan ? `<div style="white-space:pre-wrap;background:#fff;border-radius:8px;padding:0.5rem;font-size:0.72rem;color:var(--ink);max-height:150px;overflow-y:auto;margin-bottom:0.4rem;">${escapeHTML(item.body)}</div>` : ''}
+      <div style="display:flex;gap:0.9rem;margin-bottom:0.5rem;">
+        <div class="group-tab wpTabBtn_${i}_plan${defaultTab==='plan'?' active':''}" style="padding:0.25rem 0;font-size:0.72rem;" onclick="showWaPlanCardTab(${i},'plan')">📖 الخطة</div>
+        <div class="group-tab wpTabBtn_${i}_kubra${defaultTab==='kubra'?' active':''}" style="padding:0.25rem 0;font-size:0.72rem;" onclick="showWaPlanCardTab(${i},'kubra')">⭐ الكبرى</div>
+      </div>
+      <div id="wpPlanSec_${i}" style="${defaultTab==='plan'?'':'display:none;'}">${planEditor}</div>
+      <div id="wpKubraSec_${i}" style="${defaultTab==='kubra'?'':'display:none;'}">${kubraEditor}</div>
+      <label style="font-size:0.75rem;color:var(--muted);margin-top:0.5rem;display:block;">التقييم:</label>
       <select id="waPlanReviewStars_${i}" style="font-family:'Cairo';font-size:0.75rem;">
         <option value="3" ${item.stars===3?'selected':''}>🌟🌟🌟 بدون خطأ</option>
         <option value="2" ${item.stars===2?'selected':''}>🌟🌟 خطأ أو خطأين</option>
@@ -6430,6 +6434,23 @@ function renderWaPlanReviewQueue() {
   });
   box.innerHTML = html;
 }
+
+// تبديل تبويب البطاقة (خطة/كبرى) بإظهار وإخفاء بس، بدون إعادة رسم القائمة كاملة — عشان ما تنمسح أي تعديلات غير معتمدة ببطاقات ثانية
+function showWaPlanCardTab(i, tab) {
+  const planSec = document.getElementById('wpPlanSec_' + i);
+  const kubraSec = document.getElementById('wpKubraSec_' + i);
+  if (planSec) planSec.style.display = (tab === 'plan') ? '' : 'none';
+  if (kubraSec) kubraSec.style.display = (tab === 'kubra') ? '' : 'none';
+  const card = document.getElementById('waPlanReviewCard_' + i);
+  if (card) {
+    const planBtn = card.querySelector('.wpTabBtn_' + i + '_plan');
+    const kubraBtn = card.querySelector('.wpTabBtn_' + i + '_kubra');
+    if (planBtn) planBtn.classList.toggle('active', tab === 'plan');
+    if (kubraBtn) kubraBtn.classList.toggle('active', tab === 'kubra');
+  }
+}
+
+
 
 function commitWaPlanReviewCard(i) {
   const queue = window._waPlanPendingReview || [];
