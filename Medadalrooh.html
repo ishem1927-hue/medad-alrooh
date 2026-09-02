@@ -2012,6 +2012,11 @@ function importGlobalData() {
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  if (id === 'talqeen') {
+    const activeTab = document.querySelector('#talqeen .tab.active');
+    const activePanel = document.querySelector('#talqeen .tab-panel.active');
+    if (activeTab && activePanel) setTalqeenTab(activeTab, activePanel.id);
+  }
 }
 let _homeBtnTapCount = 0;
 function handleHomeTabTap(el) {
