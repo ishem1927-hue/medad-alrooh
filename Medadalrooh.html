@@ -6201,6 +6201,7 @@ async function runWaPlanImportAnalysis() {
   // ===== ٢) رسائل الخطط: كل رسالة فيها "الطالبة" نعتبرها خطة مرسلة =====
   const planCards = []; // {rawName, hifz, days, body}
   msgsInRange.forEach(msg => {
+    if (/المراجعة\s*الكبرى/.test(normalizeForMatch2(msg.body))) return; // رسالة تقسيم كبرى — تُعالج بس بكاشف الكبرى تحت، مو هنا
     if (!/الطالب[ةه]/.test(normalizeForMatch2(msg.body)) && !/الاسم/.test(normalizeForMatch2(msg.body))) return;
     parseWeeklyPlanPaste2(msg.body).forEach(b => planCards.push(Object.assign({}, b, { body: msg.body })));
   });
@@ -6250,7 +6251,7 @@ async function runWaPlanImportAnalysis() {
     const planMatch = planMatchByStudentId[stu.id] || null;
     const kubraMatch = kubraMatchByStudentId[stu.id] || null;
     const hasFuzzyPending = planFuzzyQueue.some(f => f.suggested.id === stu.id);
-    const attended = !!starEntry || !!planMatch || hasFuzzyPending;
+    const attended = !!starEntry || !!planMatch || !!kubraMatch || hasFuzzyPending;
 
     if (!attended) { absentees.push(stu); return; }
 
