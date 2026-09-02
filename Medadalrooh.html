@@ -6879,18 +6879,6 @@ function copyCertQueueNames() {
   }
 }
 
-function copyCourseStarNames(rowId) {
-  const row = scheduleRows.find(r => r.id === rowId);
-  if (!row || !row.starNames || !row.starNames.length) { showToast('ما فيه متميزات مسجّلة لهذي الدورة'); return; }
-  const names = row.starNames.slice().sort((a, b) => a.localeCompare(b, 'ar'));
-  const txt = names.map((n, i) => toAr(i + 1) + '. ' + n).join('\n');
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(txt).then(() => showToast('✅ تم نسخ ' + names.length + ' اسم')).catch(() => showToast('تعذّر النسخ'));
-  } else {
-    prompt('', txt);
-  }
-}
-
 function copyCertQueueCanva() {
   const rows = computeCertQueue()
     .map(({s, newJuzNums}) => ({ name: s.name, juzLabel: newJuzNums.map(juzNameAr).join('، ') }))
@@ -7896,7 +7884,6 @@ function renderFinishedRow(row, idx, finishedList) {
       <div class="sched-finished-count">
         <span>🌟 متميزات الدورة:</span>
         <input type="number" id="starCountInput_${row.id}" class="sched-count-input" value="${row.starCount != null ? row.starCount : ''}" oninput="editFinishedCount(${row.id}, 'starCount', this.value)">
-        <button class="icon-btn-sm accent" style="padding:0.25rem 0.5rem;font-size:0.72rem;" onclick="copyCourseStarNames(${row.id})" title="نسخ أسماء المتميزات">🎨</button>
       </div>
       <button class="icon-btn-sm accent" style="width:100%;margin-bottom:0.5rem;" onclick="toggleFinishedCountEdit(${row.id})">✓ تم التعديل</button>
       ` : `
@@ -7906,7 +7893,6 @@ function renderFinishedRow(row, idx, finishedList) {
       <div class="sched-finished-count">
         <span>🌟 متميزات الدورة: ${row.starCount != null ? row.starCount : '—'}</span>
         <button class="icon-btn-sm accent" style="padding:0.25rem 0.5rem;font-size:0.72rem;" onclick="toggleFinishedCountEdit(${row.id})" title="تعديل الأرقام">✏️</button>
-        <button class="icon-btn-sm accent" style="padding:0.25rem 0.5rem;font-size:0.72rem;" onclick="copyCourseStarNames(${row.id})" title="نسخ أسماء المتميزات">🎨</button>
       </div>
       `}
       <button class="icon-btn-sm accent" style="width:100%;margin-top:0.5rem;" onclick="toggleAttendReportsPanel(${row.id})">📋 تقارير الحضور الأسبوعية</button>
