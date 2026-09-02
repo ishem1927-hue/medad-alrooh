@@ -4956,8 +4956,8 @@ function renderMissingStats() {
       { key: 'kubra', label: '⭐️ المراجعة الكبرى' },
       { key: 'taahud', label: '♾️ مراجعة التعاهد' },
     ];
-    tabsHtml = '<div style="display:flex;gap:0.9rem;overflow-x:auto;margin-bottom:0.6rem;padding:0 0.5rem;box-sizing:border-box;">' +
-      tabs.map(t => '<div class="group-tab' + (missingStatsActiveTab === t.key ? ' active' : '') + '" style="padding:0.3rem 0;font-size:0.72rem;flex-shrink:0;white-space:nowrap;" onclick="setMissingStatsTab(\'' + t.key + '\')">' + t.label + '</div>').join('') +
+    tabsHtml = '<div style="display:flex;justify-content:space-between;margin-bottom:0.6rem;padding:0 0.3rem;box-sizing:border-box;">' +
+      tabs.map(t => '<div class="group-tab' + (missingStatsActiveTab === t.key ? ' active' : '') + '" style="padding:0.3rem 0;font-size:0.62rem;white-space:nowrap;" onclick="setMissingStatsTab(\'' + t.key + '\')">' + t.label + '</div>').join('') +
       '</div>';
   } else if (missingStatsActiveTab !== 'attend') {
     missingStatsActiveTab = 'attend'; // الأيام العادية والجمعة-السبت ما فيها إلا قائمة التحضير
