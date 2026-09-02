@@ -863,8 +863,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     <button class="back-btn" onclick="showScreen('home')" style="font-size:0.8rem;padding:0.35rem 0.55rem;flex-shrink:0;">‹</button>
     <span id="talqeenTitleLabel" style="display:inline;font-weight:800;color:var(--wine);font-size:0.88rem;white-space:nowrap;flex-shrink:0;">🎙️ مداد التلقين</span>
     <span id="pinnedWeekBadge" onclick="unpinBoth()" style="cursor:pointer;display:none;font-size:0.62rem;font-weight:700;padding:0.2rem 0.45rem;border-radius:14px;color:#fff;white-space:nowrap;flex-shrink:0;"></span>
-    <button class="icon-btn-sm accent" id="adminTopBtn" onclick="handleLockedScreenTap('adminScreen','0011')" style="flex-shrink:0;margin-inline-start:auto;padding:0.3rem 0.55rem;font-size:0.72rem;" title="الإدارة">🗃️</button>
-    <span style="display:flex;gap:0.3rem;">
+    <span id="homeBarGroup" style="display:none;gap:0.3rem;margin-inline-start:auto;">
+      <button class="icon-btn-sm accent" id="adminTopBtn" onclick="handleLockedScreenTap('adminScreen','0011')" style="flex-shrink:0;padding:0.3rem 0.55rem;font-size:0.72rem;" title="الإدارة">🗃️</button>
+    </span>
+    <span id="curriculumBarGroup" style="display:none;gap:0.3rem;margin-inline-start:auto;">
       <button class="icon-btn-sm accent" id="curriculumBackTopBtn" onclick="showCurriculumChoiceScreen()" style="display:none;padding:0.3rem 0.55rem;font-size:0.72rem;" title="رجوع للاختيار">↪️</button>
       <button class="icon-btn-sm accent" id="attendAlertsTopBtn" onclick="openAlertsPanel()" style="display:none;position:relative;padding:0.3rem 0.55rem;font-size:0.72rem;">🔔<span id="attendAlertsCount" style="display:none;position:absolute;top:-4px;left:-4px;background:#c0392b;color:#fff;font-size:0.62rem;font-weight:700;min-width:16px;height:16px;border-radius:8px;align-items:center;justify-content:center;padding:0 3px;"></span></button>
       <button class="icon-btn-sm accent" id="attendAlertsExpandedBtn" onclick="openExpandedAlertsPanel()" style="display:none;padding:0.3rem 0.55rem;font-size:0.72rem;" title="التنبيهات الموسّعة">🛎️</button>
@@ -2227,8 +2229,10 @@ function setTalqeenTab(el, panelId) {
   if (badge) badge.style.display = (panelId === 'panel-curriculum' && pinnedWeek !== null) ? 'inline-block' : 'none';
   const settingsTopBtn = document.getElementById('attendSettingsTopBtn');
   if (settingsTopBtn) settingsTopBtn.style.display = (panelId === 'panel-curriculum' && curriculumActiveRole === 'admin') ? '' : 'none';
-  const adminBtn = document.getElementById('adminTopBtn');
-  if (adminBtn) adminBtn.style.display = (panelId === 'panel-home') ? '' : 'none';
+  const homeBarGroup = document.getElementById('homeBarGroup');
+  if (homeBarGroup) homeBarGroup.style.display = (panelId === 'panel-home') ? 'flex' : 'none';
+  const curriculumBarGroup = document.getElementById('curriculumBarGroup');
+  if (curriculumBarGroup) curriculumBarGroup.style.display = (panelId === 'panel-curriculum') ? 'flex' : 'none';
   if (typeof updateAlertsBadge === 'function') { try { updateAlertsBadge(); } catch(e) {} }
 }
 
