@@ -4923,7 +4923,7 @@ function buildGroupedHtml(title, students, groupKeyFn, groupLabelFn, excludedFn)
     if (!gmap[k]) { gmap[k] = []; gorder.push(k); }
     gmap[k].push(s);
   });
-  if (!gorder.length) return '<div style="margin-bottom:0.9rem;"><div style="font-weight:700;color:var(--wine);font-size:0.82rem;margin-bottom:0.4rem;">' + title + '</div><div style="color:var(--green);font-size:0.78rem;">✅ كل الطالبات مكتملة</div></div>';
+  if (!gorder.length) return title ? ('<div style="margin-bottom:0.9rem;"><div style="font-weight:700;color:var(--wine);font-size:0.82rem;margin-bottom:0.4rem;">' + title + '</div><div style="color:var(--green);font-size:0.78rem;">✅ كل الطالبات مكتملة</div></div>') : '<div style="margin-bottom:0.9rem;color:var(--green);font-size:0.78rem;">✅ كل الطالبات مكتملة</div>';
   const cols = gorder.map(k => {
     const names = gmap[k].map((s,i) => {
       const isExcluded = excludedFn && excludedFn(s);
@@ -4932,7 +4932,8 @@ function buildGroupedHtml(title, students, groupKeyFn, groupLabelFn, excludedFn)
     }).join('');
     return '<div style="flex:1;min-width:130px;"><div style="font-weight:700;color:var(--wine);font-size:0.78rem;margin-bottom:0.25rem;">' + groupLabelFn(k) + '</div>' + names + '</div>';
   }).join('');
-  return '<div style="margin-bottom:0.9rem;"><div style="font-weight:700;color:var(--wine);font-size:0.82rem;margin-bottom:0.5rem;">' + title + '</div><div style="display:flex;gap:1rem;flex-wrap:wrap;">' + cols + '</div></div>';
+  const titleHtml = title ? '<div style="font-weight:700;color:var(--wine);font-size:0.82rem;margin-bottom:0.5rem;">' + title + '</div>' : '';
+  return '<div style="margin-bottom:0.9rem;">' + titleHtml + '<div style="display:flex;gap:1rem;flex-wrap:wrap;">' + cols + '</div></div>';
 }
 
 let missingStatsActiveTab = 'attend';
@@ -4955,8 +4956,8 @@ function renderMissingStats() {
       { key: 'kubra', label: '⭐️ المراجعة الكبرى' },
       { key: 'taahud', label: '♾️ مراجعة التعاهد' },
     ];
-    tabsHtml = '<div style="display:flex;gap:0.9rem;margin-bottom:0.6rem;padding:0 0.35rem;">' +
-      tabs.map(t => '<div class="group-tab' + (missingStatsActiveTab === t.key ? ' active' : '') + '" style="padding:0.3rem 0;font-size:0.72rem;" onclick="setMissingStatsTab(\'' + t.key + '\')">' + t.label + '</div>').join('') +
+    tabsHtml = '<div style="display:flex;gap:0.9rem;overflow-x:auto;margin-bottom:0.6rem;padding:0 0.5rem;box-sizing:border-box;">' +
+      tabs.map(t => '<div class="group-tab' + (missingStatsActiveTab === t.key ? ' active' : '') + '" style="padding:0.3rem 0;font-size:0.72rem;flex-shrink:0;white-space:nowrap;" onclick="setMissingStatsTab(\'' + t.key + '\')">' + t.label + '</div>').join('') +
       '</div>';
   } else if (missingStatsActiveTab !== 'attend') {
     missingStatsActiveTab = 'attend'; // الأيام العادية والجمعة-السبت ما فيها إلا قائمة التحضير
@@ -4977,20 +4978,20 @@ function renderMissingStats() {
     const missingAttend = maqAllStudents.filter(s => !getAttendVal(currentWeek, currentDay, s.name));
     html += buildGroupedHtml('☑️ التحضير اليومي', missingAttend, s => s.group && s.group.trim() ? s.group.trim() : 'بدون مجموعة', k => getGroupLabel(k), s => computeStudentDailyStatus(s.name, currentWeek, currentDay).excluded);
   } else {
-    // الخميس: تبويب واحد بس يظهر بكل مرة حسب الاختيار
+    // الخميس: تبويب واحد بس يظهر بكل مرة حسب الاختيار — بدون عنوان مكرر (التبويب فوق أصلاً يوضح الاسم)
     if (missingStatsActiveTab === 'attend') {
       const missingAttend = maqAllStudents.filter(s => !getAttendVal(currentWeek, currentDay, s.name));
-      html += buildGroupedHtml('☑️ التحضير اليومي', missingAttend, s => s.group && s.group.trim() ? s.group.trim() : 'بدون مجموعة', k => getGroupLabel(k), s => computeStudentDailyStatus(s.name, currentWeek, currentDay).excluded);
+      html += buildGroupedHtml('', missingAttend, s => s.group && s.group.trim() ? s.group.trim() : 'بدون مجموعة', k => getGroupLabel(k), s => computeStudentDailyStatus(s.name, currentWeek, currentDay).excluded);
     } else if (missingStatsActiveTab === 'kubra') {
       try {
         const kubraStudents = maqAllStudents.filter(s => studentHasKubraByName(s.name) && getAttendVal(currentWeek, currentDay, s.name + '_kubra') !== 'done');
-        html += buildGroupedHtml('⭐️ المراجعة الكبرى', kubraStudents, s => s.group && s.group.trim() ? s.group.trim() : 'بدون مجموعة', k => getGroupLabel(k));
+        html += buildGroupedHtml('', kubraStudents, s => s.group && s.group.trim() ? s.group.trim() : 'بدون مجموعة', k => getGroupLabel(k));
       } catch(e2) {}
     } else if (missingStatsActiveTab === 'taahud') {
       try {
         const taahudStudents = maqAllStudents.filter(s => studentHasTaahudByName(s.name) &&
           getAttendVal(currentWeek, 5, s.name + '_taahud') !== 'done');
-        html += buildGroupedHtml('♾️ مراجعة التعاهد', taahudStudents, s => s.group && s.group.trim() ? s.group.trim() : 'بدون مجموعة', k => getGroupLabel(k));
+        html += buildGroupedHtml('', taahudStudents, s => s.group && s.group.trim() ? s.group.trim() : 'بدون مجموعة', k => getGroupLabel(k));
       } catch(e2) {}
     }
   }
