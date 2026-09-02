@@ -4955,7 +4955,7 @@ function renderMissingStats() {
       { key: 'kubra', label: '⭐️ المراجعة الكبرى' },
       { key: 'taahud', label: '♾️ مراجعة التعاهد' },
     ];
-    tabsHtml = '<div style="display:flex;gap:0.9rem;margin-bottom:0.6rem;margin-right:-0.2rem;">' +
+    tabsHtml = '<div style="display:flex;gap:0.9rem;margin-bottom:0.6rem;padding:0 0.35rem;">' +
       tabs.map(t => '<div class="group-tab' + (missingStatsActiveTab === t.key ? ' active' : '') + '" style="padding:0.3rem 0;font-size:0.72rem;" onclick="setMissingStatsTab(\'' + t.key + '\')">' + t.label + '</div>').join('') +
       '</div>';
   } else if (missingStatsActiveTab !== 'attend') {
