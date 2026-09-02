@@ -109,43 +109,35 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .tab-icon { font-size: 1.15rem; }
 
   /* ===== أرشيف المقررات ===== */
-  .archive-wrap { display: flex; height: calc(100vh - 3.6rem - 60px); }
-  .archive-namecol { flex: none; width: 6.2rem; overflow-y: auto; border-left: 2px solid var(--wine); background: var(--surface); }
-  .archive-scroll { flex: 1; overflow-x: auto; overflow-y: auto; }
-  .archive-namecol::-webkit-scrollbar, .archive-scroll::-webkit-scrollbar { display: none; }
-  .archive-row-name {
-    height: 4.6rem; box-sizing: border-box; display: flex; align-items: center; padding: 0 0.5rem;
-    font-weight: 700; font-size: 0.72rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    border-bottom: 1px solid var(--border);
+  .archive-select-wrap { padding: 0.9rem 0.9rem 0.6rem; background: var(--surface); border-bottom: 2px solid var(--wine); position: sticky; top: 0; z-index: 2; }
+  .archive-select-label { font-size: 0.74rem; color: var(--muted); margin-bottom: 0.35rem; }
+  .archive-select {
+    width: 100%; padding: 0.6rem 0.75rem; border-radius: 12px; border: 1.5px solid var(--border);
+    background: var(--surface); color: var(--ink); font-size: 0.85rem; font-family: 'Cairo'; outline: none;
   }
-  .archive-head-row { display: flex; }
-  .archive-cyc-head {
-    width: 6.6rem; flex: none; height: 4.6rem; box-sizing: border-box; display: flex; align-items: center; justify-content: center;
-    font-weight: 800; font-size: 0.75rem; color: var(--wine); background: var(--card,#fff);
-    border-bottom: 2px solid var(--wine); border-left: 1px solid var(--border);
-    position: sticky; top: 0; z-index: 2;
+  .archive-select:focus { border-color: var(--wine-light); }
+  .archive-timeline { position: relative; padding: 1rem 1.5rem 1.5rem 0.9rem; }
+  .archive-timeline::before {
+    content: ''; position: absolute; right: 0.75rem; top: 0.3rem; bottom: 0.3rem; width: 2px; background: var(--border);
   }
-  .archive-data-row { display: flex; }
-  .archive-cell {
-    width: 6.6rem; flex: none; height: 4.6rem; box-sizing: border-box; padding: 0.2rem 0.3rem;
-    border-bottom: 1px solid var(--border); border-left: 1px solid var(--border);
-    display: flex; flex-direction: column; gap: 0.12rem; position: relative;
+  .archive-timeline-item { position: relative; margin-bottom: 1rem; }
+  .archive-timeline-dot {
+    position: absolute; right: -0.15rem; top: 0.2rem; width: 0.7rem; height: 0.7rem; border-radius: 50%;
+    background: var(--wine); border: 2px solid var(--surface);
   }
-  .archive-cell.locked { background: var(--surface2); opacity: 0.45; }
-  .archive-cell.excluded { background: #fdeaea; }
+  .archive-timeline-card {
+    margin-right: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 0.75rem 0.9rem;
+  }
+  .archive-timeline-card.excluded { background: #fdeaea; }
+  .archive-timeline-cycle { font-weight: 800; font-size: 0.85rem; color: var(--wine); margin-bottom: 0.5rem; }
+  .archive-field-row { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.45rem; }
   .archive-mini-input {
-    width: 100%; border: 1px solid var(--border); border-radius: 6px; background: var(--surface);
-    font-family: 'Cairo'; font-size: 0.66rem; padding: 0.1rem 0.3rem; outline: none; box-sizing: border-box;
+    flex: 1; border: 1px solid var(--border); border-radius: 8px; background: var(--surface);
+    font-family: 'Cairo'; font-size: 0.78rem; padding: 0.35rem 0.5rem; outline: none;
   }
   .archive-mini-input:focus { border-color: var(--wine-light); }
-  .archive-auto-line {
-    font-size: 0.6rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    padding: 0 0.1rem;
-  }
-  .archive-excl-btn {
-    position: absolute; top: 0.1rem; left: 0.1rem; font-size: 0.62rem; cursor: pointer;
-    filter: grayscale(1); opacity: 0.4; -webkit-tap-highlight-color: transparent;
-  }
+  .archive-auto-line { font-size: 0.74rem; color: var(--muted); margin-bottom: 0.15rem; }
+  .archive-excl-btn { font-size: 0.85rem; cursor: pointer; filter: grayscale(1); opacity: 0.4; flex-shrink: 0; -webkit-tap-highlight-color: transparent; }
   .archive-excl-btn.on { filter: none; opacity: 1; }
 
   /* ===== قسم الطالبات (منقول وحقيقي) ===== */
@@ -1318,10 +1310,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     <!-- تبويب: تقرير مداد (مخفي، يظهر مع الحاسبة) -->
     <div class="tab-panel" id="panel-archive">
       <div class="students-header"><span class="header-title">🗄️ أرشيف المقررات</span></div>
-      <div class="archive-wrap">
-        <div class="archive-namecol" id="archiveNameCol"></div>
-        <div class="archive-scroll" id="archiveScrollCol"></div>
-      </div>
+      <div id="archiveNameCol"></div>
+      <div id="archiveScrollCol"></div>
     </div>
     <div class="tab-panel" id="panel-report">
       <div style="padding:0.4rem 0.2rem;">
@@ -4744,6 +4734,11 @@ supabaseClient
   })
   .subscribe();
 
+let archiveSelectedStudentId = null;
+function selectArchiveStudent(id) {
+  archiveSelectedStudentId = parseInt(id, 10);
+  renderArchiveTab();
+}
 function renderArchiveTab() {
   const nameEl = document.getElementById('archiveNameCol');
   const scrollEl = document.getElementById('archiveScrollCol');
@@ -4753,56 +4748,47 @@ function renderArchiveTab() {
     .filter(s => studentEnrolledInCycle(s, lastCycle) || studentEnrolledInCycle(s, lastCycle - 1))
     .sort((a, b) => a.name.trim().localeCompare(b.name.trim(), 'ar'));
 
+  if (!list.length) {
+    nameEl.innerHTML = '';
+    scrollEl.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--muted);font-size:0.8rem;">ما فيه طالبات لعرضهن حاليًا</div>';
+    return;
+  }
+  if (!archiveSelectedStudentId || !list.some(s => s.id === archiveSelectedStudentId)) {
+    archiveSelectedStudentId = list[0].id;
+  }
+
   nameEl.innerHTML = `
-    <div class="archive-row-name" style="height:4.6rem;background:var(--card,#fff);color:var(--wine);font-weight:800;border-bottom:2px solid var(--wine);position:sticky;top:0;z-index:2;">الاسم</div>
-    ${list.map(s => `<div class="archive-row-name" title="${s.name}">${s.name}</div>`).join('')}
+    <div class="archive-select-wrap">
+      <div class="archive-select-label">اختاري الطالبة:</div>
+      <select class="archive-select" onchange="selectArchiveStudent(this.value)">
+        ${list.map(s => `<option value="${s.id}" ${s.id === archiveSelectedStudentId ? 'selected' : ''}>${escapeHTML(s.name)}</option>`).join('')}
+      </select>
+    </div>
   `;
 
-  let headHtml = '<div class="archive-head-row">';
-  for (let c = 1; c <= lastCycle; c++) headHtml += `<div class="archive-cyc-head">دورة ${toAr(c)}</div>`;
-  headHtml += '</div>';
-
-  const rowsHtml = list.map(s => {
-    let row = '<div class="archive-data-row">';
-    for (let c = 1; c <= lastCycle; c++) {
-      const locked = !studentEnrolledInCycle(s, c);
-      if (locked) {
-        row += `<div class="archive-cell locked"></div>`;
-        continue;
-      }
-      const entry = getArchive(s.id, c);
-      const auto = computeArchiveKubraTaahud(s.id, c, s.joinCycle);
-      row += `<div class="archive-cell${entry.excluded ? ' excluded' : ''}">
-        <span class="archive-excl-btn${entry.excluded ? ' on' : ''}" onclick="toggleArchiveExcluded(${s.id},${c})" title="استثناء المقرر">🔀</span>
-        <input class="archive-mini-input" placeholder="📖 مقرر الحفظ" value="${escapeHTML(entry.hifz)}" onchange="setArchiveHifz(${s.id},${c},this.value)">
-        <div class="archive-auto-line">⭐ ${auto.kubra ? escapeHTML(auto.kubra) : '—'}</div>
-        <div class="archive-auto-line">♾️ ${auto.taahud ? escapeHTML(auto.taahud) : '—'}</div>
-      </div>`;
-    }
-    row += '</div>';
-    return row;
-  }).join('');
-
-  scrollEl.innerHTML = headHtml + rowsHtml;
-  linkArchiveScroll(nameEl, scrollEl);
-}
-let archiveScrollLinked = false;
-function linkArchiveScroll(nameEl, scrollEl) {
-  if (archiveScrollLinked) return; // نربطها مرة وحدة بس، مو مع كل رسم
-  archiveScrollLinked = true;
-  let syncing = false;
-  nameEl.addEventListener('scroll', () => {
-    if (syncing) return;
-    syncing = true;
-    scrollEl.scrollTop = nameEl.scrollTop;
-    syncing = false;
-  });
-  scrollEl.addEventListener('scroll', () => {
-    if (syncing) return;
-    syncing = true;
-    nameEl.scrollTop = scrollEl.scrollTop;
-    syncing = false;
-  });
+  const s = list.find(x => x.id === archiveSelectedStudentId);
+  let itemsHtml = '';
+  for (let c = lastCycle; c >= 1; c--) {
+    if (!studentEnrolledInCycle(s, c)) continue;
+    const entry = getArchive(s.id, c);
+    const auto = computeArchiveKubraTaahud(s.id, c, s.joinCycle);
+    itemsHtml += `
+      <div class="archive-timeline-item">
+        <div class="archive-timeline-dot"></div>
+        <div class="archive-timeline-card${entry.excluded ? ' excluded' : ''}">
+          <div class="archive-timeline-cycle">دورة ${toAr(c)}${c === lastCycle ? ' (الحالية)' : ''}</div>
+          <div class="archive-field-row">
+            <span class="archive-excl-btn${entry.excluded ? ' on' : ''}" onclick="toggleArchiveExcluded(${s.id},${c})" title="استثناء المقرر">🔀</span>
+            <input class="archive-mini-input" placeholder="📖 مقرر الحفظ" value="${escapeHTML(entry.hifz)}" onchange="setArchiveHifz(${s.id},${c},this.value)">
+          </div>
+          <div class="archive-auto-line">⭐ ${auto.kubra ? escapeHTML(auto.kubra) : '—'}</div>
+          <div class="archive-auto-line">♾️ ${auto.taahud ? escapeHTML(auto.taahud) : '—'}</div>
+        </div>
+      </div>
+    `;
+  }
+  scrollEl.innerHTML = itemsHtml ? `<div class="archive-timeline">${itemsHtml}</div>`
+    : '<div style="padding:1.5rem;text-align:center;color:var(--muted);font-size:0.8rem;">ما فيه دورات مسجّلة لهذي الطالبة</div>';
 }
 
 // تصحيح لمرة واحدة: مسح قيد قديم راجع بالخطأ من جهاز غير محدَّث (بيانات "الطلاق ١-٥" لمريم سالم من دورة سابقة)
@@ -7430,6 +7416,34 @@ function closeDoneModal() {
   document.getElementById('doneModal').classList.remove('open');
   pendingDoneId = null;
 }
+// تعبئة تلقائية لمقرر الحفظ بالأرشيف عند إنهاء الدورة: بداية أول أسبوع + نهاية آخر أسبوع حفظ فيه كل طالبة (نفس مبدأ المراجعة التراكمية)
+function autoFillArchiveHifzForCycle(cycleNum) {
+  students.filter(s => s.active !== false && s.group).forEach(s => {
+    const firstD = maqData[dk(s.group, 0, s.id)];
+    const firstTilawah = firstD && firstD.tilawah ? firstD.tilawah.trim() : '';
+    if (!firstTilawah) return;
+    let lastTilawah = '', lastWeekIdx = -1;
+    for (let w = 3; w >= 0; w--) {
+      const d = maqData[dk(s.group, w, s.id)];
+      if (d && d.tilawah && d.tilawah.trim() && d.type !== 'eada') { lastTilawah = d.tilawah.trim(); lastWeekIdx = w; break; }
+    }
+    if (!lastTilawah) return;
+    let mergedText;
+    if (lastWeekIdx === 0) {
+      mergedText = firstTilawah;
+    } else {
+      const start = getWeek1StartPoint(firstTilawah);
+      const end = getWeek4EndPoint(lastTilawah);
+      const startText = start.isStart ? start.surah : `${start.surah} ${toAr(start.ayah)}`;
+      const endText = end.isWhole ? end.surah : `${end.surah} ${toAr(end.ayah)}`;
+      mergedText = `${startText} - ${endText}`;
+    }
+    const k = archiveKey(s.id, cycleNum);
+    const cur = getArchive(s.id, cycleNum);
+    if (!cur.hifz) archiveData[k] = Object.assign({}, cur, { hifz: mergedText });
+  });
+  saveArchiveData();
+}
 function confirmDone() {
   const startCount = document.getElementById('doneStartCountInput').value.trim();
   const endCount = document.getElementById('doneCountInput').value.trim();
@@ -7453,6 +7467,8 @@ function confirmDone() {
       r.regTypes[s.name] = (h.pay === 'kafala') ? 'kafala' : 'paid';
     });
     saveSchedule();
+    const cycleNumForArchive = parseInt(toEnDigits(r.num), 10);
+    if (!isNaN(cycleNumForArchive)) autoFillArchiveHifzForCycle(cycleNumForArchive);
     resetCycleStarData(); // تصفير القائمة استعدادًا للدورة الجديدة
   }
   closeDoneModal();
