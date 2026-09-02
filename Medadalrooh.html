@@ -2642,7 +2642,7 @@ function renderStudentsTable() {
       ? '<span style="display:inline-block;padding:0.15rem 0.6rem;border-radius:8px;font-size:0.7rem;font-weight:700;background:#eee;color:#666;">منسحبة</span>'
       : `<span style="display:inline-block;padding:0.15rem 0.6rem;border-radius:8px;font-size:0.7rem;font-weight:700;${s.active === false ? 'background:#fdeaea;color:#c0392b;' : 'background:#e8f6ec;color:#1e8449;'}">${s.active === false ? 'متوقفة' : 'نشطة'}</span>`;
     return `<tr style="${rowStyle}">
-      <td style="${cellStyle}">${s.age ? toAr(s.age) : '—'}</td>
+      <td style="${cellStyle}">${s.age ? toAr(computeAutoAge(s).value) + (computeAutoAge(s).warning ? ' ⚠️' : '') : '—'}</td>
       <td style="${cellStyle}">${getJoinCycleEmoji(s) || '—'}</td>
       <td style="${cellStyle}">${prog.startSurah || '—'}</td>
       <td style="${cellStyle}">${totalCycles ? toAr(totalCycles) : '—'}</td>
@@ -3024,7 +3024,7 @@ function renderStudents() {
       <div class="student-top">
         <div class="student-name-display" style="cursor:pointer;" onclick="toggleHifzPanel(${s.id})">
           <span class="student-num">${toAr(idx + 1)}</span>
-          <span>${getJoinCycleEmoji(s) ? getJoinCycleEmoji(s) + ' ' : ''}${s.name}${s.age ? ` <span style="font-weight:400;color:var(--muted);font-size:0.85em;">(${s.age} سنة)</span>` : ''}${getPayTypeEmoji(s) ? ` ${getPayTypeEmoji(s)}` : ''}</span>
+          <span>${getJoinCycleEmoji(s) ? getJoinCycleEmoji(s) + ' ' : ''}${s.name}${s.age ? ` <span style="font-weight:400;color:var(--muted);font-size:0.85em;">(${computeAutoAge(s).value} سنة)</span>${computeAutoAge(s).warning ? ` <span title="ما قدرنا نحدّث عمرها تلقائيًا — تاريخ بداية دورة انضمامها ناقص بتبويب المواعيد" style="cursor:help;">⚠️</span>` : ''}` : ''}${getPayTypeEmoji(s) ? ` ${getPayTypeEmoji(s)}` : ''}</span>
         </div>
       </div>
       <div class="student-meta" style="cursor:pointer;" onclick="toggleHifzPanel(${s.id})">
@@ -3085,6 +3085,11 @@ function renderStudents() {
         ${filt === 'name' ? `
           <input class="edit-input" id="ename_${s.id}" placeholder="اسم الطالبة" value="${s.name || ''}" style="font-weight:700;" onchange="autoSaveStudentField(${s.id}, 'name', this.value)">
           <input class="edit-input" id="ea_${s.id}" placeholder="العمر (بالسنوات)" value="${s.age || ''}" onchange="autoSaveStudentField(${s.id}, 'age', this.value)">
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.5rem;">
+            <span style="font-size:0.72rem;color:var(--muted);">تظهر باسم:</span>
+            <button type="button" onclick="setNameDisplayStyle(${s.id}, 'ab')" style="font-size:0.75rem;padding:0.3rem 0.7rem;border-radius:16px;border:1.5px solid;cursor:pointer;font-family:inherit;${(s.nameDisplayStyle||'ab')==='ab'?'background:var(--wine);color:#fff;border-color:var(--wine);':'background:transparent;color:var(--ink);border-color:var(--border);'}">اسم + أب</button>
+            <button type="button" onclick="setNameDisplayStyle(${s.id}, 'laqab')" style="font-size:0.75rem;padding:0.3rem 0.7rem;border-radius:16px;border:1.5px solid;cursor:pointer;font-family:inherit;${s.nameDisplayStyle==='laqab'?'background:var(--wine);color:#fff;border-color:var(--wine);':'background:transparent;color:var(--ink);border-color:var(--border);'}">اسم + لقب</button>
+          </div>
         ` : ''}
 
         ${filt === 'nextcycle' ? `
@@ -5741,7 +5746,34 @@ function squashForMatch2(s) {
 function firstTwoWords(name) {
   if (!name) return name;
   const parts = name.trim().split(/\s+/);
+  const st = students.find(x => x.name === name);
+  if (st && st.nameDisplayStyle === 'laqab' && parts.length >= 2) {
+    return parts[0] + ' ' + parts[parts.length - 1];
+  }
   return parts.slice(0, 2).join(' ');
+}
+function setNameDisplayStyle(id, style) {
+  const st = students.find(x => x.id === id);
+  if (!st) return;
+  st.nameDisplayStyle = style;
+  saveStudents();
+  renderStudents();
+}
+
+// عمر تلقائي: يُحسب يوميًا من العمر المسجّل + عدد السنين الكاملة من تاريخ بداية دورة انضمامها (من تبويب المواعيد) لتاريخ اليوم
+function computeAutoAge(s) {
+  const base = parseInt(toEnDigits(s.age || ''), 10);
+  if (!s.age || isNaN(base)) return { value: '', warning: false };
+  if (!s.joinCycle) return { value: s.age, warning: true };
+  const row = scheduleRows.find(r => parseInt(toEnDigits(r.num), 10) === s.joinCycle);
+  if (!row || !row.startDate) return { value: s.age, warning: true };
+  const start = new Date(row.startDate + 'T00:00:00');
+  if (isNaN(start.getTime())) return { value: s.age, warning: true };
+  const now = new Date();
+  let years = now.getFullYear() - start.getFullYear();
+  if (now.getMonth() < start.getMonth() || (now.getMonth() === start.getMonth() && now.getDate() < start.getDate())) years--;
+  if (years < 0) years = 0;
+  return { value: String(base + years), warning: false };
 }
 function matchesNameLoose(pastedName, registeredName) {
   // كلمات وصل نسب شايعة ("بنت"/"بن"/"ابن") بعض الطالبات يضيفنها بالنسب بدون ما تكون جزء من الاسم المسجّل — نتجاهلها بالمطابقة
