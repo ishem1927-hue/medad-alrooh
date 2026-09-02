@@ -6794,7 +6794,8 @@ function computeMadadReportStats() {
 
   // نسبة استمرار الطالبات: بالاعتماد على أسماء الطالبات المحدّدة يدويًا لكل دورة منتهية
   // لكل طالبة: أول دورة ظهرت فيها بالقوائم، هل ظهرت بالدورة اللي بعدها مباشرة؟
-  const rosterCourses = scheduleRows.filter(r => r.done && r.rosterNames && r.rosterNames.length);
+  const rosterCourses = scheduleRows.filter(r => r.done && r.rosterNames && r.rosterNames.length)
+    .sort((a, b) => (parseInt(toEnDigits(a.num), 10) || 0) - (parseInt(toEnDigits(b.num), 10) || 0));
   let eligibleCount = 0, continuedCount = 0;
   if (rosterCourses.length >= 2) {
     const seen = new Set();
