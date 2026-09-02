@@ -6805,7 +6805,7 @@ function computeMadadReportStats() {
         if (seen.has(name)) return; // نحسبها بس أول ظهور لها
         seen.add(name);
         eligibleCount++;
-        if (next.includes(name)) continuedCount++;
+        if (next.some(n => matchesNameLoose(name, n))) continuedCount++;
       });
     }
   }
@@ -6920,7 +6920,7 @@ function renderCycleReport(num) {
   if (curIdx > 0) {
     const prevNames = finishedSorted[curIdx - 1].rosterNames;
     const curNames = row.rosterNames || [];
-    if (prevNames.length) retention = Math.round((prevNames.filter(n => curNames.includes(n)).length / prevNames.length) * 100);
+    if (prevNames.length) retention = Math.round((prevNames.filter(n => curNames.some(cn => matchesNameLoose(n, cn))).length / prevNames.length) * 100);
   }
 
   // المقاعد المجانية = 🪑 مجاني (يشمل القيمة القديمة "free" ترحيليًا) — يسقط مدفوع من العرض
