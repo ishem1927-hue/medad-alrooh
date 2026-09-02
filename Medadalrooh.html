@@ -1342,7 +1342,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     <div class="tab" id="calcTabBtn" data-tab="panel-calculator" onclick="setTalqeenTab(this,'panel-calculator')" style="display:none;"><span class="tab-icon">💰</span>الحاسبة</div>
     <div class="tab" id="reportTabBtn" data-tab="panel-report" onclick="handleLockedAction('report','0014',()=>{setTalqeenTab(this,'panel-report'); renderReportTab();})"><span class="tab-icon">📈</span>التقرير</div>
     <div class="tab" data-tab="panel-schedule" onclick="handleLockedAction('schedule','0015',()=>setTalqeenTab(this,'panel-schedule'))"><span class="tab-icon">📅</span>المواعيد</div>
-    <div class="tab" data-tab="panel-archive" onclick="setTalqeenTab(this,'panel-archive');renderArchiveTab()"><span class="tab-icon">🗄️</span>الأرشيف</div>
+    <div class="tab" data-tab="panel-archive" onclick="handleLockedAction('archive','0012',()=>{setTalqeenTab(this,'panel-archive');renderArchiveTab()})"><span class="tab-icon">🗄️</span>الأرشيف</div>
   </div>
 </div>
 
