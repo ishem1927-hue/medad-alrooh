@@ -927,7 +927,6 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
             <button class="icon-btn-sm accent" onclick="startNewCycle()">🔄</button>
             <button class="icon-btn-sm accent" onclick="toggleCycleStarPanel()">🌟</button>
             <button class="icon-btn-sm accent" onclick="toggleMissingStatsPanel()">🧩</button>
-            <button class="icon-btn-sm accent" onclick="openPastePlanModal2()" title="لصق الخطة">📋</button>
             <button class="icon-btn-sm accent" onclick="openContextualWaImport()" title="استيراد من واتساب">📥</button>
           </div>
         </div>
@@ -1582,38 +1581,6 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 </div>
 
 <!-- نافذة لصق الخطة (جديدة) -->
-<div class="result-overlay" id="pastePlan2Overlay" onclick="if(event.target===this)closePastePlanModal2()">
-  <div class="result-sheet">
-    <div class="result-head">
-      <span class="result-title">📋 لصق الخطة</span>
-      <button class="result-close" onclick="closePastePlanModal2()">✕</button>
-    </div>
-    <div class="result-body">
-      <div id="pastePlan2Choice" style="display:flex;gap:0.6rem;margin-bottom:1rem;">
-        <button class="icon-btn-sm accent" style="flex:1;" onclick="showPastePlan2Section('weekly')">📖 الخطة الأسبوعية</button>
-        <button class="icon-btn-sm accent" style="flex:1;" onclick="showPastePlan2Section('kubra')">⭐ المراجعة الكبرى</button>
-      </div>
-      <div id="pastePlan2Weekly" style="display:none;">
-        <div style="font-size:0.8rem;color:var(--muted);margin-bottom:0.7rem;">
-          الصقي خطة طالبة واحدة أو عدة طالبات مع بعض. كل خطة جديدة تبدأ بسطر فيه "الطالبة"، وبعده سطر "المقرر"، وبعده أسطر الأيام (الأحد/الاثنين/الثلاثاء/الأربعاء) — الخميس يُتجاهل ويُملى تلقائيًا من "المقرر".
-        </div>
-        <textarea id="pastePlan2Text" placeholder="الصقي النص هنا..."
-          style="width:100%;min-height:180px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:0.7rem;font-family:'Cairo';color:var(--ink);resize:vertical;outline:none;margin-bottom:0.8rem;"></textarea>
-        <button class="add-btn" onclick="processPastedPlan2()" style="margin-bottom:1rem;">معالجة ✓</button>
-        <div id="pastePlan2Results"></div>
-      </div>
-      <div id="pastePlan2Kubra" style="display:none;">
-        <div style="font-size:0.8rem;color:var(--muted);margin-bottom:0.7rem;">
-          الصقي تقسيم مراجعة كبرى لطالبة وحدة أو أكثر مع بعض. كل تقسيم يبدأ بسطر فيه "الطالبة"، وبعده أسطر الأيام (الأحد-الأربعاء بس، بدون خميس).
-        </div>
-        <textarea id="pastePlan2KubraText" placeholder="الصقي النص هنا..."
-          style="width:100%;min-height:180px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:0.7rem;font-family:'Cairo';color:var(--ink);resize:vertical;outline:none;margin-bottom:0.8rem;"></textarea>
-        <button class="add-btn" onclick="processPastedKubra2()" style="margin-bottom:1rem;">معالجة ✓</button>
-        <div id="pastePlan2KubraResults"></div>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- نافذة استيراد بطاقات واتساب (جديدة) -->
 <!-- نافذة اختيار نوع الاستيراد (بطاقات يومية أو خطط قاعة التسميع) -->
@@ -5716,24 +5683,6 @@ function onDailyFieldBlur(id, val) {
   saveMaqData();
 }
 
-// ===================== لصق الخطة الأسبوعية (جديد) =====================
-function openPastePlanModal2() {
-  document.getElementById('pastePlan2Text').value = '';
-  document.getElementById('pastePlan2Results').innerHTML = '';
-  document.getElementById('pastePlan2KubraText').value = '';
-  document.getElementById('pastePlan2KubraResults').innerHTML = '';
-  document.getElementById('pastePlan2Weekly').style.display = 'none';
-  document.getElementById('pastePlan2Kubra').style.display = 'none';
-  document.getElementById('pastePlan2Overlay').classList.add('open');
-}
-function closePastePlanModal2() {
-  document.getElementById('pastePlan2Overlay').classList.remove('open');
-}
-function showPastePlan2Section(key) {
-  document.getElementById('pastePlan2Weekly').style.display = (key === 'weekly') ? 'block' : 'none';
-  document.getElementById('pastePlan2Kubra').style.display = (key === 'kubra') ? 'block' : 'none';
-}
-
 // تطبيع بسيط: يشيل الهمزات/التاء المربوطة/التشكيل/الرموز الزايدة عشان المطابقة تكون مرنة
 function normalizeForMatch2(s) {
   if (!s) return '';
@@ -5989,69 +5938,6 @@ function applyPlan2ToStudent(student, plan) {
   sd.dayPlan = plan.days.map(normalizePasteValue2);
   if (!sd.type) sd.type = 'jadeed';
   saveMaqData();
-}
-
-function processPastedPlan2() {
-  const text = document.getElementById('pastePlan2Text').value.trim();
-  if (!text) { showToast('الصقي النص أولاً'); return; }
-
-  const plans = parseWeeklyPlanPaste2(text);
-  if (plans.length === 0) { showToast('ما قدرت ألقط أي خطة من النص'); return; }
-
-  const resultsEl = document.getElementById('pastePlan2Results');
-  resultsEl.innerHTML = '';
-  let appliedCount = 0;
-
-  plans.forEach((plan, idx) => {
-    const matches = findMatchingStudents2(plan.rawName);
-
-    if (matches.length === 1) {
-      applyPlan2ToStudent(matches[0], plan);
-      appliedCount++;
-      resultsEl.innerHTML += `
-        <div class="paste-result-row paste-result-found">
-          ✅ ${escapeHTML(plan.rawName)} ← تم تطبيقها على <b>${escapeHTML(matches[0].name)}</b>
-        </div>`;
-    } else if (matches.length === 0) {
-      resultsEl.innerHTML += `
-        <div class="paste-result-row paste-result-warn">
-          ⚠️ لم يتم التعرف على "<b>${escapeHTML(plan.rawName)}</b>" — اختاري الطالبة الصحيحة يدوياً:
-          <select id="paste2ManualSelect_${idx}">
-            <option value="">— اختاري —</option>
-            ${maqAllStudents.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
-          </select>
-          <button onclick="applyManualPastePlan2(${idx})">تطبيق</button>
-        </div>`;
-    } else {
-      resultsEl.innerHTML += `
-        <div class="paste-result-row paste-result-warn">
-          ⚠️ "<b>${escapeHTML(plan.rawName)}</b>" يتشابه مع أكثر من طالبة — اختاري الصحيحة:
-          <select id="paste2ManualSelect_${idx}">
-            <option value="">— اختاري —</option>
-            ${matches.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
-          </select>
-          <button onclick="applyManualPastePlan2(${idx})">تطبيق</button>
-        </div>`;
-    }
-    window[`_pastePlan2_${idx}`] = plan;
-  });
-
-  renderMaqStudents();
-  if (appliedCount > 0) showToast(`تم تطبيق ${toAr(appliedCount)} خطة تلقائياً ✅`);
-}
-
-function applyManualPastePlan2(idx) {
-  const sel = document.getElementById(`paste2ManualSelect_${idx}`);
-  const id = parseInt(sel.value);
-  if (!id) { showToast('اختاري الطالبة أولاً'); return; }
-  const student = maqAllStudents.find(s => s.id === id);
-  const plan = window[`_pastePlan2_${idx}`];
-  if (!student || !plan) return;
-  applyPlan2ToStudent(student, plan);
-  renderMaqStudents();
-  showToast(`تم تطبيق الخطة على ${student.name} ✅`);
-  sel.closest('.paste-result-row').classList.replace('paste-result-warn', 'paste-result-found');
-  sel.closest('.paste-result-row').innerHTML = `✅ تم تطبيقها على <b>${student.name}</b>`;
 }
 
 // ===================== استيراد خطط قاعة التسميع (خطة + تقييم نجوم) =====================
@@ -6319,6 +6205,21 @@ async function runWaPlanImportAnalysis() {
     parseWeeklyPlanPaste2(msg.body).forEach(b => planCards.push(Object.assign({}, b, { body: msg.body })));
   });
 
+  // ===== ٣) رسائل تقسيم المراجعة الكبرى: رسائل فيها "المراجعة الكبرى" (بس بالأسبوع الأول من الدورة) =====
+  const kubraCards = []; // {rawName, days, mainText, body}
+  msgsInRange.forEach(msg => {
+    if (!/المراجعة\s*الكبرى/.test(normalizeForMatch2(msg.body))) return;
+    parseKubraDayPaste2(msg.body).forEach(b => kubraCards.push(Object.assign({}, b, { body: msg.body })));
+  });
+  const kubraMatchByStudentId = {};
+  const kubraUnmatched = []; // تقسيمات ما لقينا لها ولا احتمال بهالقاعة
+  kubraCards.forEach(p => {
+    const exact = findMatchingStudents2(p.rawName).filter(s => halqaStudents.some(h => h.id === s.id));
+    if (exact.length === 1) kubraMatchByStudentId[exact[0].id] = p;
+    else if (exact.length === 0) kubraUnmatched.push(p.rawName);
+    else kubraUnmatched.push(p.rawName + ' (تطابق أكثر من طالبة)');
+  });
+
   const waSourceTag = `${WEEK_NAMES[computedWeek] || (computedWeek+1)} — ${expectedDayLabel} — ${getHalqaLabel(halqaVal)}`;
   const checkDayIdx = expectedDayIdx;
 
@@ -6347,6 +6248,7 @@ async function runWaPlanImportAnalysis() {
   halqaStudents.forEach(stu => {
     const starEntry = starsList.find(e => matchesNameLoose(e.rawName, stu.name)) || null;
     const planMatch = planMatchByStudentId[stu.id] || null;
+    const kubraMatch = kubraMatchByStudentId[stu.id] || null;
     const hasFuzzyPending = planFuzzyQueue.some(f => f.suggested.id === stu.id);
     const attended = !!starEntry || !!planMatch || hasFuzzyPending;
 
@@ -6369,11 +6271,26 @@ async function runWaPlanImportAnalysis() {
     }
     cardAlerts.forEach(reason => alerts.push({ name: stu.name, reason }));
 
+    // مقارنة مرنة (مش حرفية) بين المقرر الملصوق ومقرر الكبرى المتوقع من الأرشيف — تنبيه بس، ما توقف الاعتماد
+    let kubraWarning = null;
+    if (kubraMatch && kubraMatch.mainText) {
+      const auto = computeArchiveKubraTaahud(stu.id, currentCycleNumber, stu.joinCycle);
+      if (auto.kubra) {
+        const a = normalizeForMatch2(kubraMatch.mainText).replace(/\s+/g, '');
+        const b = normalizeForMatch2(auto.kubra).replace(/\s+/g, '');
+        const maxLen = Math.max(a.length, b.length, 1);
+        const similarity = 1 - waLevenshtein(a, b) / maxLen;
+        if (similarity < 0.5) kubraWarning = `المقرر المكتوب ("${kubraMatch.mainText}") يختلف كثير عن مقرر الأرشيف المتوقع ("${auto.kubra}") — تأكدي منه قبل الاعتماد`;
+      }
+    }
+
     pendingReview.push({
       stu,
       plan: planMatch,
+      kubraPlan: kubraMatch,
+      kubraWarning,
       stars: starEntry ? starEntry.stars : null,
-      body: planMatch ? planMatch.body : '— ما فيه رسالة خطة مستلمة —',
+      body: planMatch ? planMatch.body : (kubraMatch ? kubraMatch.body : '— ما فيه رسالة خطة مستلمة —'),
       sourceTag: waSourceTag,
     });
   });
@@ -6402,6 +6319,10 @@ async function runWaPlanImportAnalysis() {
   if (planUnmatched.length) {
     html += `<div style="font-weight:700;color:#c0392b;margin:0.6rem 0 0.3rem;">❓ خطط ما قدرنا نطابقها بأي طالبة بهالقاعة (${planUnmatched.length}):</div>`;
     html += `<div style="font-size:0.78rem;">${planUnmatched.map((n, i) => `<div>${i+1}. ${escapeHTML(n)}</div>`).join('')}</div>`;
+  }
+  if (kubraUnmatched.length) {
+    html += `<div style="font-weight:700;color:#c0392b;margin:0.6rem 0 0.3rem;">❓ تقسيمات كبرى ما قدرنا نطابقها بأي طالبة بهالقاعة (${kubraUnmatched.length}):</div>`;
+    html += `<div style="font-size:0.78rem;">${kubraUnmatched.map((n, i) => `<div>${i+1}. ${escapeHTML(n)}</div>`).join('')}</div>`;
   }
   if (alerts.length) {
     html += `<div style="font-weight:700;color:#b3691f;margin:0.6rem 0 0.3rem;">🔔 تنبيهات (${alerts.length}):</div>`;
@@ -6468,18 +6389,34 @@ function renderWaPlanReviewQueue() {
   if (!box) return;
   const queue = window._waPlanPendingReview || [];
   if (!queue.length) { box.innerHTML = ''; return; }
-  let html = `<div style="font-weight:700;color:var(--wine);margin:0.8rem 0 0.4rem;border-top:2px solid var(--border);padding-top:0.6rem;">📝 مراجعة الخطط (${queue.length}) — اعتمدي كل بطاقة لحالها</div>`;
+  let html = `<div style="font-weight:700;color:var(--wine);margin:0.8rem 0 0.4rem;border-top:2px solid var(--border);padding-top:0.6rem;">📝 مراجعة الخطط (${queue.length}) — راجعي كل بطاقة، صحّحي أي خطأ لو لقيتيه، وبعدين اعتمديها</div>`;
+  const dayLabels4 = ['الأحد','الاثنين','الثلاثاء','الأربعاء'];
   queue.forEach((item, i) => {
     if (item.committed) return;
-    const planDisplay = item.plan
-      ? `<div style="font-size:0.72rem;color:var(--ink);margin-top:0.3rem;"><b>المقرر:</b> ${escapeHTML(item.plan.hifz || '—')}</div>
-         <div style="font-size:0.72rem;color:var(--ink);margin-top:0.2rem;">${['الأحد','الاثنين','الثلاثاء','الأربعاء'].map((d, idx) => `${d}: ${escapeHTML(item.plan.days[idx] || '—')}`).join('<br>')}</div>`
+    const planEditor = item.plan
+      ? `<div style="margin-top:0.4rem;">
+          <label style="font-size:0.72rem;color:var(--muted);">📖 المقرر:</label>
+          <input id="waPlanEditHifz_${i}" value="${escapeHTML(item.plan.hifz || '')}" style="width:100%;font-family:'Cairo';font-size:0.75rem;border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.5rem;background:#fff;box-sizing:border-box;margin-bottom:0.3rem;">
+          ${dayLabels4.map((d, idx) => `<label style="font-size:0.7rem;color:var(--muted);">${d}:</label>
+            <input id="waPlanEditDay_${i}_${idx}" value="${escapeHTML(item.plan.days[idx] || '')}" style="width:100%;font-family:'Cairo';font-size:0.72rem;border:1px solid var(--border);border-radius:8px;padding:0.3rem 0.5rem;background:#fff;box-sizing:border-box;margin-bottom:0.25rem;">`).join('')}
+        </div>`
       : `<div style="color:#c0392b;font-size:0.75rem;margin-top:0.3rem;">⚠️ ما فيه خطة مستلمة</div>`;
+    const kubraEditor = item.kubraPlan
+      ? `<div style="margin-top:0.5rem;border-top:1px dashed var(--border);padding-top:0.4rem;">
+          <label style="font-size:0.72rem;color:var(--wine);font-weight:700;">⭐ تقسيم المراجعة الكبرى:</label>
+          ${item.kubraWarning ? `<div style="color:#b3691f;font-size:0.7rem;margin:0.2rem 0;">⚠️ ${escapeHTML(item.kubraWarning)}</div>` : ''}
+          <label style="font-size:0.7rem;color:var(--muted);">المقرر:</label>
+          <input id="waPlanEditKubraMain_${i}" value="${escapeHTML(item.kubraPlan.mainText || '')}" style="width:100%;font-family:'Cairo';font-size:0.75rem;border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.5rem;background:#fff;box-sizing:border-box;margin-bottom:0.3rem;">
+          ${dayLabels4.map((d, idx) => `<label style="font-size:0.7rem;color:var(--muted);">${d}:</label>
+            <input id="waPlanEditKubraDay_${i}_${idx}" value="${escapeHTML(item.kubraPlan.days[idx] || '')}" style="width:100%;font-family:'Cairo';font-size:0.72rem;border:1px solid var(--border);border-radius:8px;padding:0.3rem 0.5rem;background:#fff;box-sizing:border-box;margin-bottom:0.25rem;">`).join('')}
+        </div>`
+      : '';
     html += `<div id="waPlanReviewCard_${i}" style="border:1px solid var(--border);border-radius:10px;padding:0.6rem;margin-bottom:0.6rem;background:var(--surface2);">
       <div style="font-size:0.68rem;color:var(--accent);font-weight:700;margin-bottom:0.2rem;">📍 ${escapeHTML(item.sourceTag)}</div>
       <div style="font-weight:700;color:var(--wine);margin-bottom:0.3rem;">${escapeHTML(item.stu.name)}</div>
-      ${item.plan ? `<div style="white-space:pre-wrap;background:#fff;border-radius:8px;padding:0.5rem;font-size:0.72rem;color:var(--ink);max-height:150px;overflow-y:auto;">${escapeHTML(item.body)}</div>` : ''}
-      ${planDisplay}
+      ${item.plan || item.kubraPlan ? `<div style="white-space:pre-wrap;background:#fff;border-radius:8px;padding:0.5rem;font-size:0.72rem;color:var(--ink);max-height:150px;overflow-y:auto;">${escapeHTML(item.body)}</div>` : ''}
+      ${planEditor}
+      ${kubraEditor}
       <label style="font-size:0.75rem;color:var(--muted);margin-top:0.4rem;display:block;">التقييم:</label>
       <select id="waPlanReviewStars_${i}" style="font-family:'Cairo';font-size:0.75rem;">
         <option value="3" ${item.stars===3?'selected':''}>🌟🌟🌟 بدون خطأ</option>
@@ -6499,11 +6436,31 @@ function commitWaPlanReviewCard(i) {
   if (!item || item.committed) { showToast('اتحفظت هالبطاقة أصلًا'); return; }
   waSetIfChanged(setAttendSat, item.stu.name, 'attend');
   if (item.plan) {
-    applyPlan2ToStudent(item.stu, item.plan);
+    // نقرأ القيم من خانات التعديل (بعد أي تصحيح سويتيه وقت المراجعة) بدل القيم الخام الملصوقة مباشرة
+    const hifzInput = document.getElementById('waPlanEditHifz_' + i);
+    const editedPlan = Object.assign({}, item.plan, {
+      hifz: hifzInput ? hifzInput.value.trim() : item.plan.hifz,
+      days: item.plan.days.map((d, idx) => {
+        const dayInput = document.getElementById('waPlanEditDay_' + i + '_' + idx);
+        return dayInput ? dayInput.value.trim() : d;
+      }),
+    });
+    applyPlan2ToStudent(item.stu, editedPlan);
     const sg = item.stu.group && item.stu.group.trim() ? item.stu.group.trim() : '';
     const sd = getStudentData(sg, currentWeek, item.stu.id);
-    sd.tilawah = normalizePasteValue2(item.plan.hifz);
+    sd.tilawah = normalizePasteValue2(editedPlan.hifz);
     saveMaqData();
+  }
+  if (item.kubraPlan) {
+    const mainInput = document.getElementById('waPlanEditKubraMain_' + i);
+    const editedKubra = Object.assign({}, item.kubraPlan, {
+      mainText: mainInput ? mainInput.value.trim() : item.kubraPlan.mainText,
+      days: item.kubraPlan.days.map((d, idx) => {
+        const dayInput = document.getElementById('waPlanEditKubraDay_' + i + '_' + idx);
+        return dayInput ? dayInput.value.trim() : d;
+      }),
+    });
+    applyKubra2ToStudent(item.stu, editedKubra);
   }
   const starsSel = document.getElementById('waPlanReviewStars_' + i);
   const starsVal = starsSel ? starsSel.value : '';
@@ -6582,69 +6539,6 @@ function parseKubraDayPaste2(text) {
 function applyKubra2ToStudent(student, plan) {
   kubraSplits['k' + student.id] = plan.days.map(normalizePasteValue2);
   saveKubraSplits();
-}
-
-function processPastedKubra2() {
-  const text = document.getElementById('pastePlan2KubraText').value.trim();
-  if (!text) { showToast('الصقي النص أولاً'); return; }
-
-  const plans = parseKubraDayPaste2(text);
-  if (plans.length === 0) { showToast('ما قدرت ألقط أي تقسيم من النص'); return; }
-
-  const resultsEl = document.getElementById('pastePlan2KubraResults');
-  resultsEl.innerHTML = '';
-  let appliedCount = 0;
-
-  plans.forEach((plan, idx) => {
-    const matches = findMatchingStudents2(plan.rawName);
-
-    if (matches.length === 1) {
-      applyKubra2ToStudent(matches[0], plan);
-      appliedCount++;
-      resultsEl.innerHTML += `
-        <div class="paste-result-row paste-result-found">
-          ✅ ${escapeHTML(plan.rawName)} ← تم تطبيقها على <b>${escapeHTML(matches[0].name)}</b>
-        </div>`;
-    } else if (matches.length === 0) {
-      resultsEl.innerHTML += `
-        <div class="paste-result-row paste-result-warn">
-          ⚠️ لم يتم التعرف على "<b>${escapeHTML(plan.rawName)}</b>" — اختاري الطالبة الصحيحة يدوياً:
-          <select id="paste2KubraManualSelect_${idx}">
-            <option value="">— اختاري —</option>
-            ${maqAllStudents.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
-          </select>
-          <button onclick="applyManualPasteKubra2(${idx})">تطبيق</button>
-        </div>`;
-    } else {
-      resultsEl.innerHTML += `
-        <div class="paste-result-row paste-result-warn">
-          ⚠️ "<b>${escapeHTML(plan.rawName)}</b>" يتشابه مع أكثر من طالبة — اختاري الصحيحة:
-          <select id="paste2KubraManualSelect_${idx}">
-            <option value="">— اختاري —</option>
-            ${matches.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
-          </select>
-          <button onclick="applyManualPasteKubra2(${idx})">تطبيق</button>
-        </div>`;
-    }
-    window[`_pasteKubra2_${idx}`] = plan;
-  });
-
-  renderMaqStudents();
-  if (appliedCount > 0) showToast(`تم تطبيق ${toAr(appliedCount)} تقسيم تلقائياً ✅`);
-}
-
-function applyManualPasteKubra2(idx) {
-  const sel = document.getElementById(`paste2KubraManualSelect_${idx}`);
-  const id = parseInt(sel.value);
-  if (!id) { showToast('اختاري الطالبة أولاً'); return; }
-  const student = maqAllStudents.find(s => s.id === id);
-  const plan = window[`_pasteKubra2_${idx}`];
-  if (!student || !plan) return;
-  applyKubra2ToStudent(student, plan);
-  renderMaqStudents();
-  showToast(`تم تطبيق التقسيم على ${student.name} ✅`);
-  sel.closest('.paste-result-row').classList.replace('paste-result-warn', 'paste-result-found');
-  sel.closest('.paste-result-row').innerHTML = `✅ تم تطبيقها على <b>${student.name}</b>`;
 }
 
 function toggleKharji(id) {
