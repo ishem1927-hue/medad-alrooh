@@ -4944,18 +4944,6 @@ function buildGroupedHtml(title, students, groupKeyFn, groupLabelFn, excludedFn)
   return '<div style="margin-bottom:0.9rem;"><div style="font-weight:700;color:var(--wine);font-size:0.82rem;margin-bottom:0.5rem;">' + title + '</div><div style="display:flex;gap:1rem;flex-wrap:wrap;">' + cols + '</div></div>';
 }
 
-function checkTaahudReview(id) {
-  const st = maqAllStudents.find(x => x.id === id);
-  if (!st) return;
-  setAttendVal(currentWeek, 5, st.name + '_taahud_check', 'yes');
-  saveAttendData(); renderMissingStats();
-}
-function checkAllTaahudReview() {
-  maqAllStudents.filter(s => studentHasTaahudByName(s.name)).forEach(s => {
-    setAttendVal(currentWeek, 5, s.name + '_taahud_check', 'yes');
-  });
-  saveAttendData(); renderMissingStats();
-}
 function renderMissingStats() {
   const el = document.getElementById('missingStatsContent');
   if (!el) return;
@@ -4987,24 +4975,11 @@ function renderMissingStats() {
         html += buildGroupedHtml('🌟 طالبات المراجعة الكبرى بدون تقسيم', noSplitStudents, s => s.group && s.group.trim() ? s.group.trim() : 'بدون مجموعة', k => getGroupLabel(k));
       } catch(e2) {}
 
-      // قائمة مراجعة التعاهد الأسبوعية (متابعة عبر واتساب، تتصفّر تلقائيًا كل أسبوع)
-      // بالأسبوع الأخير (الحلقة الختامية) تصير تلقائية: ترتبط بزر "تعاهد ✓/✗" الحقيقي بدل الزر اليدوي
+      // قائمة طالبات مراجعة التعاهد اللي لسا ما سجّلن "تعاهد ✓" هالأسبوع — تلقائية بالكامل، مبنية على زر "تعاهد ✓/✗"
       try {
-        const isFinalTaahudWeek = (currentWeek === WEEK_NAMES.length - 1);
         const taahudStudents = maqAllStudents.filter(s => studentHasTaahudByName(s.name) &&
-          (isFinalTaahudWeek ? !getAttendVal(currentWeek, 5, s.name + '_taahud') : getAttendVal(currentWeek, 5, s.name + '_taahud_check') !== 'yes'));
-        if (taahudStudents.length) {
-          const rows = taahudStudents.map(s =>
-            '<div style="display:flex;align-items:center;justify-content:space-between;font-size:0.78rem;color:var(--ink);padding:0.25rem 0;border-bottom:1px solid var(--border);">' +
-              '<span>' + firstTwoWords(s.name) + '</span>' +
-              (isFinalTaahudWeek ? '' : '<button onclick="checkTaahudReview(' + s.id + ')" style="border:1px solid var(--green);background:rgba(46,125,90,0.1);color:var(--green);border-radius:8px;padding:0.2rem 0.6rem;font-size:0.75rem;font-family:\'Cairo\';cursor:pointer;">✓ راجعت</button>') +
-            '</div>'
-          ).join('');
-          html += '<div style="margin-bottom:0.9rem;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem;">' +
-            '<div style="font-weight:700;color:var(--wine);font-size:0.82rem;">📿 متابعة مراجعة التعاهد (واتساب)</div>' +
-            (isFinalTaahudWeek ? '' : '<button onclick="checkAllTaahudReview()" style="border:1px solid var(--wine-light);background:transparent;color:var(--wine);border-radius:8px;padding:0.2rem 0.6rem;font-size:0.72rem;font-family:\'Cairo\';cursor:pointer;">تحديد الكل</button>') +
-            '</div>' + rows + '</div>';
-        }
+          getAttendVal(currentWeek, 5, s.name + '_taahud') !== 'done');
+        html += buildGroupedHtml('♾️ طالبات مراجعة التعاهد', taahudStudents, s => s.group && s.group.trim() ? s.group.trim() : 'بدون مجموعة', k => getGroupLabel(k));
       } catch(e2) {}
     }
   }
@@ -5090,8 +5065,8 @@ function eventConditionsPass(id) {
     }
   }
 
-  // ♾️ مراجعة التعاهد — تُشترط بس بالحلقة الختامية (آخر أسبوع بالدورة)
-  if (currentWeek === WEEK_NAMES.length - 1 && getTaahud(id).hasTaahud) {
+  // ♾️ مراجعة التعاهد — تُشترط كل أسبوع (خميس)
+  if (getTaahud(id).hasTaahud) {
     if (getAttendVal(currentWeek, 5, s.name + '_taahud') === 'miss') return false;
   }
 
@@ -5266,8 +5241,8 @@ function buildDayEvalHTML(name, hasKubra, hasSplit, hasTaahud) {
       <button class="thu-btn ${valK==='done'?'sel-done':''}" onclick="setAttendThuKubra('${name}','done')">${EMOJIS.kubra_done} كبرى ✓</button>
       <button class="thu-btn ${valK==='miss'?'sel-miss':''}" onclick="setAttendThuKubra('${name}','miss')">${EMOJIS.kubra_miss} كبرى ✗</button>`;
     }
-    // ♾️ مراجعة التعاهد: زر تقييم يظهر بس بخميس الحلقة الختامية (آخر أسبوع بالدورة)
-    if (hasTaahud && currentWeek === WEEK_NAMES.length - 1) {
+    // ♾️ مراجعة التعاهد: زر تقييم يظهر كل خميس
+    if (hasTaahud) {
       const valT = getAttendVal(currentWeek, currentDay, name + '_taahud');
       html += `
       <button class="thu-btn ${valT==='done'?'sel-done':''}" onclick="setAttendThuTaahud('${name}','done')">${EMOJIS.taahud_done} تعاهد ✓</button>
@@ -5651,7 +5626,7 @@ function renderMaqStudents() {
           </div>`;
         })()}
 
-        ${(th.hasTaahud && currentDay === 5 && currentWeek === WEEK_NAMES.length - 1) ? `
+        ${(th.hasTaahud && currentDay === 5) ? `
         <div class="maq-field-group" style="margin-top:0.55rem;margin-bottom:0;">
           <div class="maq-field-label">♾️ مراجعة التعاهد</div>
           <textarea class="maq-field-input" id="taahud_${s.id}" rows="1"
