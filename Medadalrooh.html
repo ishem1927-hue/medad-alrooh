@@ -6201,7 +6201,7 @@ async function runWaPlanImportAnalysis() {
   // ===== ٢) رسائل الخطط: كل رسالة فيها "الطالبة" نعتبرها خطة مرسلة =====
   const planCards = []; // {rawName, hifz, days, body}
   msgsInRange.forEach(msg => {
-    if (/المراجعة\s*الكبرى/.test(normalizeForMatch2(msg.body))) return; // رسالة تقسيم كبرى — تُعالج بس بكاشف الكبرى تحت، مو هنا
+    if (/المراجعه\s*الكبري/.test(normalizeForMatch2(msg.body))) return; // رسالة تقسيم كبرى — تُعالج بس بكاشف الكبرى تحت، مو هنا
     if (!/الطالب[ةه]/.test(normalizeForMatch2(msg.body)) && !/الاسم/.test(normalizeForMatch2(msg.body))) return;
     parseWeeklyPlanPaste2(msg.body).forEach(b => planCards.push(Object.assign({}, b, { body: msg.body })));
   });
@@ -6209,7 +6209,7 @@ async function runWaPlanImportAnalysis() {
   // ===== ٣) رسائل تقسيم المراجعة الكبرى: رسائل فيها "المراجعة الكبرى" (بس بالأسبوع الأول من الدورة) =====
   const kubraCards = []; // {rawName, days, mainText, body}
   msgsInRange.forEach(msg => {
-    if (!/المراجعة\s*الكبرى/.test(normalizeForMatch2(msg.body))) return;
+    if (!/المراجعه\s*الكبري/.test(normalizeForMatch2(msg.body))) return;
     parseKubraDayPaste2(msg.body).forEach(b => kubraCards.push(Object.assign({}, b, { body: msg.body })));
   });
   const kubraMatchByStudentId = {};
