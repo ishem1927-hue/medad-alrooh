@@ -6009,9 +6009,6 @@ function openWaPlanImportModal() {
   document.getElementById('waPlanImportStart').value = '';
   document.getElementById('waPlanImportEnd').value = '';
   document.getElementById('waPlanImportRangeBtn').textContent = 'حددي نطاق التاريخ';
-  window._waPlanPendingReview = []; // تصفير أي بطاقات مراجعة عالقة من فتحة سابقة
-  const qbox = document.getElementById('waPlanReviewQueueBox');
-  if (qbox) qbox.innerHTML = '';
   document.getElementById('waPlanImportOverlay').classList.add('open');
 }
 function closeWaPlanImportModal() {
