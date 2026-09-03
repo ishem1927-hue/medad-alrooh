@@ -1607,7 +1607,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         </div>
         <div style="flex:1;">
           <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">👥 المجموعة</label>
-          <select id="waImportGroup" class="wa-field-box"></select>
+          <div style="position:relative;">
+            <select id="waImportGroup" onchange="document.getElementById('waImportGroupLabel').textContent=this.options[this.selectedIndex]?this.options[this.selectedIndex].text:'';" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;"></select>
+            <div id="waImportGroupLabel" class="wa-field-box" style="pointer-events:none;position:relative;"></div>
+            <span style="position:absolute;left:0.5rem;top:50%;transform:translateY(-50%);font-size:0.7rem;color:var(--muted);pointer-events:none;">⌄</span>
+          </div>
         </div>
       </div>
 
@@ -1656,7 +1660,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         </div>
         <div style="flex:1;">
           <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📱 الحلقة المباشرة</label>
-          <select id="waPlanImportHalqa" class="wa-field-box"></select>
+          <div style="position:relative;">
+            <select id="waPlanImportHalqa" onchange="document.getElementById('waPlanImportHalqaLabel').textContent=this.options[this.selectedIndex]?this.options[this.selectedIndex].text:'';" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;"></select>
+            <div id="waPlanImportHalqaLabel" class="wa-field-box" style="pointer-events:none;position:relative;"></div>
+            <span style="position:absolute;left:0.5rem;top:50%;transform:translateY(-50%);font-size:0.7rem;color:var(--muted);pointer-events:none;">⌄</span>
+          </div>
         </div>
       </div>
 
@@ -6023,6 +6031,7 @@ function openWaPlanImportModal() {
   let opts = '';
   for (let i = 1; i <= HALQA_COUNT; i++) opts += `<option value="${i}">${getHalqaLabel(String(i))}</option>`;
   sel.innerHTML = opts || '<option value="">لا توجد حلقات</option>';
+  document.getElementById('waPlanImportHalqaLabel').textContent = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : '';
   document.getElementById('waPlanImportFile').value = '';
   updateWaFileLabel('waPlanImportFile','waPlanImportFileLabel');
   document.getElementById('waPlanImportResults').innerHTML = '';
@@ -9491,6 +9500,7 @@ function openWaImportModal() {
   const sel = document.getElementById('waImportGroup');
   const groups = getGroups();
   sel.innerHTML = groups.map(g => `<option value="${g}">${getGroupLabel(toEnDigits(g))}</option>`).join('') || '<option value="">لا توجد مجموعات</option>';
+  document.getElementById('waImportGroupLabel').textContent = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : '';
   document.getElementById('waImportFile').value = '';
   updateWaFileLabel('waImportFile','waImportFileLabel');
   document.getElementById('waImportStart').value = '';
