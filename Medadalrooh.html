@@ -6009,6 +6009,9 @@ function openWaPlanImportModal() {
   document.getElementById('waPlanImportStart').value = '';
   document.getElementById('waPlanImportEnd').value = '';
   document.getElementById('waPlanImportRangeBtn').textContent = 'حددي نطاق التاريخ';
+  window._waPlanPendingReview = []; // تصفير أي بطاقات مراجعة عالقة من فتحة سابقة
+  const qbox = document.getElementById('waPlanReviewQueueBox');
+  if (qbox) qbox.innerHTML = '';
   document.getElementById('waPlanImportOverlay').classList.add('open');
 }
 function closeWaPlanImportModal() {
@@ -6415,6 +6418,12 @@ function renderWaPlanReviewQueue() {
         </div>`
       : `<div style="color:var(--muted);font-size:0.75rem;">— ما فيه تقسيم مراجعة كبرى مستلم —</div>`;
     const defaultTab = item.plan ? 'plan' : 'kubra';
+    const showKubraTab = (item.week === 0); // تقسيم الكبرى بس بالأسبوع الأول، باقي الأسابيع ما له داعي
+    const tabsBarHtml = showKubraTab ? `
+      <div style="display:flex;gap:0.9rem;margin-bottom:0.5rem;">
+        <div class="group-tab wpTabBtn_${i}_plan${defaultTab==='plan'?' active':''}" style="padding:0.25rem 0;font-size:0.72rem;" onclick="showWaPlanCardTab(${i},'plan')">📖 الخطة</div>
+        <div class="group-tab wpTabBtn_${i}_kubra${defaultTab==='kubra'?' active':''}" style="padding:0.25rem 0;font-size:0.72rem;" onclick="showWaPlanCardTab(${i},'kubra')">⭐ الكبرى</div>
+      </div>` : '';
     const starsHtml = (item.week === 0) ? '' : `
       <label style="font-size:0.75rem;color:var(--muted);margin-top:0.5rem;display:block;">التقييم:</label>
       <select id="waPlanReviewStars_${i}" style="font-family:'Cairo';font-size:0.75rem;">
@@ -6426,17 +6435,26 @@ function renderWaPlanReviewQueue() {
     html += `<div id="waPlanReviewCard_${i}" style="border:1px solid var(--border);border-radius:10px;padding:0.6rem;margin-bottom:0.6rem;background:var(--surface2);">
       <div style="font-size:0.68rem;color:var(--accent);font-weight:700;margin-bottom:0.2rem;">📍 ${escapeHTML(item.sourceTag)}</div>
       <div style="font-weight:700;color:var(--wine);margin-bottom:0.4rem;">${escapeHTML(item.stu.name)}</div>
-      <div style="display:flex;gap:0.9rem;margin-bottom:0.5rem;">
-        <div class="group-tab wpTabBtn_${i}_plan${defaultTab==='plan'?' active':''}" style="padding:0.25rem 0;font-size:0.72rem;" onclick="showWaPlanCardTab(${i},'plan')">📖 الخطة</div>
-        <div class="group-tab wpTabBtn_${i}_kubra${defaultTab==='kubra'?' active':''}" style="padding:0.25rem 0;font-size:0.72rem;" onclick="showWaPlanCardTab(${i},'kubra')">⭐ الكبرى</div>
-      </div>
-      <div id="wpPlanSec_${i}" style="${defaultTab==='plan'?'':'display:none;'}">${planEditor}</div>
-      <div id="wpKubraSec_${i}" style="${defaultTab==='kubra'?'':'display:none;'}">${kubraEditor}</div>
+      ${tabsBarHtml}
+      <div id="wpPlanSec_${i}" style="${(!showKubraTab || defaultTab==='plan')?'':'display:none;'}">${planEditor}</div>
+      ${showKubraTab ? `<div id="wpKubraSec_${i}" style="${defaultTab==='kubra'?'':'display:none;'}">${kubraEditor}</div>` : ''}
       ${starsHtml}
-      <button class="icon-btn-sm accent" style="width:100%;padding:0.4rem;font-weight:700;margin-top:0.5rem;" onclick="commitWaPlanReviewCard(${i})">✅ اعتماد هذي البطاقة</button>
+      <div style="display:flex;gap:0.4rem;margin-top:0.5rem;">
+        <button class="icon-btn-sm accent" style="flex:1;padding:0.4rem;font-weight:700;" onclick="commitWaPlanReviewCard(${i})">✅ اعتماد هذي البطاقة</button>
+        <button class="icon-btn-sm" style="padding:0.4rem 0.7rem;background:var(--surface2);color:var(--muted);" onclick="dismissWaPlanReviewCard(${i})" title="تجاهل بدون اعتماد">✕</button>
+      </div>
     </div>`;
   });
   box.innerHTML = html;
+}
+
+function dismissWaPlanReviewCard(i) {
+  const queue = window._waPlanPendingReview || [];
+  const item = queue[i];
+  if (!item) return;
+  item.committed = true; // نعلّمها "منتهية" بدون ما نحفظ أي بيانات، عشان تختفي من القائمة
+  const cardEl = document.getElementById('waPlanReviewCard_' + i);
+  if (cardEl) cardEl.remove();
 }
 
 // تبديل تبويب البطاقة (خطة/كبرى) بإظهار وإخفاء بس، بدون إعادة رسم القائمة كاملة — عشان ما تنمسح أي تعديلات غير معتمدة ببطاقات ثانية
