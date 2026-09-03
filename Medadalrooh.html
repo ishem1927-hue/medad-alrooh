@@ -9329,17 +9329,150 @@ function openContextualWaImport() {
   if (curriculumViewMode === 'live') { openWaPlanImportModal(); }
   else { openWaImportModal(); } // الأسبوعية (وأي حالة ثانية) → البطاقات اليومية افتراضيًا
 }
+// ===== حفظ/تحميل حالة استيراد بطاقات الإنجاز اليومية من localStorage (تبقى محفوظة حتى لو تحدّثت الصفحة بالغلط) =====
+const WA_IMPORT_STORAGE_KEY = 'madad_wa_import_state';
+
+function waSaveCaches() {
+  try {
+    const seenKeysObj = {};
+    Object.keys(window._waSeenKeys || {}).forEach(k => { seenKeysObj[k] = [...window._waSeenKeys[k]]; });
+    const state = {
+      pendingReview: (window._waPendingReview || []).map(it => it ? { ...it, stu: it.stu.id } : null),
+      unknownCache: window._waUnknownCache || [],
+      fuzzyCache: (window._waFuzzyConfirmCache || []).map(f => f ? { ...f, suggested: f.suggested.id } : null),
+      needsConfirmCache: (window._waNeedsConfirmCache || []).map(c => c ? { ...c, student: c.student.id } : null),
+      duplicateCache: (window._waDuplicateCache || []).map(g => g ? { stu: g.stu.id, dayKey: g.dayKey, cards: g.cards.map(c => ({ ...c, stu: c.stu.id })) } : null),
+      seenKeys: seenKeysObj,
+      sourceTag: window._waSourceTag || '',
+    };
+    localStorage.setItem(WA_IMPORT_STORAGE_KEY, JSON.stringify(state));
+  } catch(e) {}
+}
+
+function waLoadCaches() {
+  if (window._waCachesLoaded) return; // نحمّل مرة وحدة بس بالجلسة
+  window._waCachesLoaded = true;
+  try {
+    const raw = localStorage.getItem(WA_IMPORT_STORAGE_KEY);
+    if (!raw) return;
+    const state = JSON.parse(raw);
+    const findStu = id => maqAllStudents.find(s => s.id === id);
+    window._waPendingReview = (state.pendingReview || []).map(it => it ? { ...it, stu: findStu(it.stu) } : null).filter(it => !it || it.stu);
+    window._waUnknownCache = state.unknownCache || [];
+    window._waFuzzyConfirmCache = (state.fuzzyCache || []).map(f => f ? { ...f, suggested: findStu(f.suggested) } : null).filter(f => !f || f.suggested);
+    window._waNeedsConfirmCache = (state.needsConfirmCache || []).map(c => c ? { ...c, student: findStu(c.student) } : null).filter(c => !c || c.student);
+    window._waDuplicateCache = (state.duplicateCache || []).map(g => g ? { stu: findStu(g.stu), dayKey: g.dayKey, cards: g.cards.map(c => ({ ...c, stu: findStu(c.stu) })) } : null).filter(g => !g || g.stu);
+    window._waSeenKeys = {};
+    Object.keys(state.seenKeys || {}).forEach(k => { window._waSeenKeys[k] = new Set(state.seenKeys[k]); });
+    window._waSourceTag = state.sourceTag || '';
+  } catch(e) {}
+}
+
+// يبني نفس أقسام "تحتاج قرار" من الكاش المحفوظ، بدون حاجة لإعادة تحليل ملف — يُستدعى فور فتح النافذة
+function waRenderPersistedSections() {
+  const resultsEl = document.getElementById('waImportResults');
+  if (!resultsEl) return;
+  const hasAny = (window._waUnknownCache || []).some(u => u) ||
+    (window._waFuzzyConfirmCache || []).some(f => f) ||
+    (window._waDuplicateCache || []).some(g => g) ||
+    (window._waNeedsConfirmCache || []).some(c => c);
+  if (!hasAny) return;
+
+  let html = `<div style="font-weight:700;color:var(--muted);margin-bottom:0.6rem;font-size:0.75rem;">📌 حالات محفوظة من جلسة سابقة لسا ما اتحلّت:</div>`;
+  const groupStudentsFor = gv => students.filter(s => s.group === gv && s.active !== false && !s.withdrawn);
+
+  if ((window._waUnknownCache || []).some(u => u)) {
+    html += `<div id="waUnknownSection">`;
+    html += `<div style="font-weight:700;color:#c0392b;margin:0.6rem 0 0.3rem;">⚠️ أسماء غير معروفة:</div>`;
+    window._waUnknownCache.forEach((u, i) => {
+      if (!u) return;
+      const gs = groupStudentsFor(u.groupVal);
+      html += `<div id="waUnknownRow_${i}" style="font-size:0.78rem;margin-bottom:0.4rem;">"${u.rawName}" <span style="color:var(--muted);">(المرسل: ${u.sender || 'غير معروف'})</span> —
+        <select id="waUnknownSel_${i}" style="font-family:'Cairo';font-size:0.75rem;">
+          <option value="">تجاهل</option>
+          ${gs.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+        </select>
+        <button class="icon-btn-sm accent" style="padding:0.15rem 0.5rem;" onclick="resolveWaUnknown(${i},'${u.dayKey}')">تطبيق</button>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  if ((window._waFuzzyConfirmCache || []).some(f => f)) {
+    html += `<div id="waFuzzySection">`;
+    html += `<div style="font-weight:700;color:#8a6d3b;margin:0.6rem 0 0.3rem;">🔍 مطابقة تقريبية (تأكدي منها):</div>`;
+    window._waFuzzyConfirmCache.forEach((f, i) => {
+      if (!f) return;
+      const gs = groupStudentsFor(f.groupVal);
+      html += `<div id="waFuzzy_${i}" style="font-size:0.78rem;margin-bottom:0.5rem;border:1px solid var(--border);border-radius:8px;padding:0.5rem;">
+        <div>"${f.rawName}" <span style="color:var(--muted);font-size:0.7rem;">(المرسل: ${f.sender || 'غير معروف'})</span> ← <b>${f.suggested.name}</b>؟</div>
+        <div style="margin-top:0.3rem;">
+          <button class="icon-btn-sm accent" style="padding:0.15rem 0.5rem;" onclick="resolveWaFuzzy(${i}, true, '${f.dayKey}')">✅ نعم نفسها</button>
+          <button class="icon-btn-sm" style="padding:0.15rem 0.5rem;" onclick="resolveWaFuzzy(${i}, false, '${f.dayKey}')">❌ لا</button>
+        </div>
+        <div id="waFuzzyAlt_${i}" style="display:none;margin-top:0.4rem;">
+          <select id="waFuzzySel_${i}" style="font-family:'Cairo';font-size:0.75rem;">
+            <option value="">اختاري الطالبة</option>
+            ${gs.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+          </select>
+          <button class="icon-btn-sm accent" style="padding:0.15rem 0.5rem;" onclick="resolveWaFuzzyAlt(${i}, '${f.dayKey}')">تطبيق</button>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  if ((window._waDuplicateCache || []).some(g => g)) {
+    html += `<div id="waDuplicatesSection">`;
+    html += `<div style="font-weight:700;color:#c0392b;margin:0.6rem 0 0.3rem;">🔁 بطاقات مكررة</div>`;
+    window._waDuplicateCache.forEach((g, i) => {
+      if (!g) return;
+      const sendersDiffer = new Set(g.cards.map(c => c.sender || '')).size > 1;
+      html += `<div id="waDupGroup_${i}" style="margin-bottom:0.6rem;">
+        <div style="font-weight:700;color:var(--wine);font-size:0.8rem;margin-bottom:0.2rem;">الاسم المكتوب بالبطاقة: ${g.stu.name} — ${toAr(g.cards.length)} بطاقات</div>
+        ${sendersDiffer ? `<div style="color:#b3691f;font-size:0.7rem;margin-bottom:0.4rem;">⚠️ المرسلين مختلفين — تأكدي هل إحدى الطالبات كتبت اسم صاحبتها بالغلط</div>` : ''}
+        <div style="display:flex;gap:0.5rem;overflow-x:auto;">
+          ${g.cards.map((c, ci) => `
+            <div style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:8px;padding:0.5rem;background:var(--surface2);">
+              <div style="font-size:0.68rem;color:var(--muted);margin-bottom:0.3rem;">المرسل: <b style="color:var(--ink);">${c.sender || 'غير معروف'}</b></div>
+              <div style="white-space:pre-wrap;background:#fff;border-radius:6px;padding:0.4rem;font-size:0.7rem;color:var(--ink);max-height:150px;overflow-y:auto;margin-bottom:0.4rem;">${c.body}</div>
+              <button class="icon-btn-sm accent" style="width:100%;padding:0.3rem;font-size:0.72rem;" onclick="resolveWaDuplicate(${i}, ${ci})">✅ استخدمي هذي</button>
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  if ((window._waNeedsConfirmCache || []).some(c => c)) {
+    html += `<div id="waNeedsConfirmSection">`;
+    html += `<div style="font-weight:700;color:#8a6d3b;margin:0.6rem 0 0.3rem;">📅 بطاقات بعنوان يوم مختلف (راجعيها وقرري):</div>`;
+    window._waNeedsConfirmCache.forEach((c, i) => {
+      if (!c) return;
+      const statusLabel = c.missingItems.length > 0 ? `ناقص: ${c.missingItems.join('، ')}` : (c.status === 'challenge' ? 'كامل مع التحدي' : 'كامل بدون تحدي');
+      html += `<div id="waConfirm_${i}" style="font-size:0.78rem;margin-bottom:0.5rem;border:1px solid var(--border);border-radius:8px;padding:0.5rem;">
+        <div><b>${c.student.name}</b> — كتبت "إنجاز ${c.actualDayLabel}" بدل "${WA_DAY_LABELS[c.dayKey]}"</div>
+        <div style="color:var(--muted);">${statusLabel}</div>
+        <div style="margin-top:0.3rem;">
+          <button class="icon-btn-sm accent" style="padding:0.15rem 0.5rem;" onclick="resolveWaNeedsConfirm(${i}, true, '${c.dayKey}')">✅ نعم، طبّقي البطاقة</button>
+          <button class="icon-btn-sm" style="padding:0.15rem 0.5rem;" onclick="resolveWaNeedsConfirm(${i}, false, '${c.dayKey}')">❌ لا، تجاهلي</button>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  resultsEl.innerHTML = html;
+}
+
 function openWaImportModal() {
   const sel = document.getElementById('waImportGroup');
   const groups = getGroups();
   sel.innerHTML = groups.map(g => `<option value="${g}">${getGroupLabel(toEnDigits(g))}</option>`).join('') || '<option value="">لا توجد مجموعات</option>';
   document.getElementById('waImportFile').value = '';
-  document.getElementById('waImportResults').innerHTML = '';
-  const footerEl0 = document.getElementById('waImportFooterResults');
-  if (footerEl0) footerEl0.innerHTML = '';
   document.getElementById('waImportStart').value = '';
   document.getElementById('waImportEnd').value = '';
   document.getElementById('waImportRangeBtn').textContent = 'حددي نطاق التاريخ';
+  waLoadCaches();
+  waRenderPersistedSections();
+  renderWaReviewQueue();
   document.getElementById('waImportOverlay').classList.add('open');
 }
 function closeWaImportModal() {
@@ -9715,7 +9848,7 @@ async function runWaImportAnalysis() {
       const rawKey = 'raw:(بدون اسم واضح):' + (msg.sender || '');
       if (seenSnapshot.has(rawKey)) return; // سبق ظهرت بتحليل سابق لنفس النطاق
       seenSet.add(rawKey);
-      unknown.push({ rawName: '(بدون اسم واضح)', body: msg.body, sender: msg.sender });
+      unknown.push({ rawName: '(بدون اسم واضح)', body: msg.body, sender: msg.sender, dayKey, groupVal });
       return;
     }
 
@@ -9732,12 +9865,12 @@ async function runWaImportAnalysis() {
           return;
         }
         seenSet.add('s:' + fuzzy[0].student.id);
-        fuzzyConfirm.push({ rawName: parsed.name, body: msg.body, suggested: fuzzy[0].student, sender: msg.sender });
+        fuzzyConfirm.push({ rawName: parsed.name, body: msg.body, suggested: fuzzy[0].student, sender: msg.sender, dayKey, groupVal });
       } else {
         const rawKey = 'raw:' + normalizeForMatch2(parsed.name);
         if (seenSnapshot.has(rawKey)) return;
         seenSet.add(rawKey);
-        unknown.push({ rawName: parsed.name, body: msg.body, sender: msg.sender });
+        unknown.push({ rawName: parsed.name, body: msg.body, sender: msg.sender, dayKey, groupVal });
       }
       return;
     }
@@ -9793,7 +9926,7 @@ async function runWaImportAnalysis() {
         matched.push({ student: stu, missingItems: [], kubraMissing: false, rawName: parsed.name });
         return;
       }
-      needsConfirm.push({ student: stu, missingItems: parsed.missingItems, status, actualDayLabel, parsed, rawName: parsed.name, body });
+      needsConfirm.push({ student: stu, missingItems: parsed.missingItems, status, actualDayLabel, parsed, rawName: parsed.name, body, dayKey });
       return;
     }
     if (waIsAlreadyCommitted(stu.name, computedWeek, checkDayIdx)) {
@@ -9929,6 +10062,7 @@ async function runWaImportAnalysis() {
     footerHtml += `<div id="waAbsenteesList" style="font-size:0.78rem;">${absentees.map((s, i) => `<div data-sid="${s.id}">${i+1}. ${s.name}</div>`).join('')}</div>`;
   }
   if (footerEl) footerEl.innerHTML = footerHtml;
+  waSaveCaches();
   renderWaReviewQueue();
   renderCurriculumTab();
 }
@@ -9985,6 +10119,7 @@ function dismissWaReviewCard(i) {
   item.committed = true;
   const cardEl = document.getElementById('waReviewCard_' + i);
   if (cardEl) cardEl.remove();
+  waSaveCaches();
 }
 
 // تشيل حاوية قسم كاملة (العنوان + الصفوف) لو ما بقي فيها أي صف بعد الحذف، عشان العنوان ما يضل عالق لحاله فاضي
@@ -10012,6 +10147,7 @@ function commitWaReviewCard(i) {
   const cardEl = document.getElementById('waReviewCard_' + i);
   if (cardEl) cardEl.outerHTML = `<div style="color:var(--green);font-weight:700;padding:0.5rem;border:1px solid var(--border);border-radius:10px;margin-bottom:0.6rem;">✅ ${item.stu.name} — تم الاعتماد والحفظ</div>`;
   showToast('تم اعتماد ' + item.stu.name + ' ✅');
+  waSaveCaches();
   renderCurriculumTab();
 }
 
@@ -10036,6 +10172,7 @@ function resolveWaUnknown(idx, dayKey) {
     waRemoveSectionIfEmpty('waUnknownSection');
     showToast(stu.name + ' معتمدة سابقًا ✓');
     window._waUnknownCache[idx] = null;
+    waSaveCaches();
     return;
   }
   const parsed = parseWaDailyCard(item.body, dayKey);
@@ -10062,6 +10199,7 @@ function resolveWaUnknown(idx, dayKey) {
     if (m) countEl.textContent = countEl.textContent.replace(m[1], parseInt(m[1]) + 1);
   }
   window._waUnknownCache[idx] = null; // يمنع إعادة التطبيق مرتين لنفس السطر
+  waSaveCaches();
   waRemoveFromAbsenteesDisplay(stu.id); // لو كانت ظاهرة بقائمة الغايبات، نشيلها لأنها الحين انفعّلت
   renderCurriculumTab();
 }
@@ -10096,6 +10234,7 @@ function resolveWaNeedsConfirm(idx, apply, dayKey) {
     waRemoveSectionIfEmpty('waNeedsConfirmSection');
   }
   window._waNeedsConfirmCache[idx] = null;
+  waSaveCaches();
   renderCurriculumTab();
 }
 
@@ -10107,6 +10246,7 @@ function resolveWaDuplicate(groupIdx, cardIdx) {
   const chosen = g.cards[cardIdx];
   waApplyCardToStudent(g.stu, chosen.body, g.dayKey);
   window._waDuplicateCache[groupIdx] = null;
+  waSaveCaches();
   const groupEl = document.getElementById('waDupGroup_' + groupIdx);
   if (groupEl) groupEl.remove();
   waRemoveSectionIfEmpty('waDuplicatesSection');
@@ -10146,6 +10286,7 @@ function resolveWaFuzzy(idx, isYes, dayKey) {
     waRemoveSectionIfEmpty('waFuzzySection');
     showToast('أُضيفت للمراجعة: ' + item.suggested.name + ' ✅');
     window._waFuzzyConfirmCache[idx] = null;
+    waSaveCaches();
   } else {
     const alt = document.getElementById('waFuzzyAlt_' + idx);
     if (alt) alt.style.display = 'block';
@@ -10168,6 +10309,7 @@ function resolveWaFuzzyAlt(idx, dayKey) {
   waRemoveSectionIfEmpty('waFuzzySection');
   showToast('أُضيفت للمراجعة: ' + stu.name + ' ✅');
   window._waFuzzyConfirmCache[idx] = null;
+  waSaveCaches();
   renderCurriculumTab();
 }
 
