@@ -35,6 +35,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     --border: rgba(131,61,90,0.16);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  .wa-field-box {
+    display: flex; align-items: center; justify-content: flex-end;
+    width: 100%; height: 40px; padding: 0 0.6rem; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--surface2); color: var(--ink);
+    font-family: 'Cairo'; font-size: 0.72rem; text-align: right; cursor: pointer;
+  }
+  select.wa-field-box { text-align-last: right; }
   body {
     background: var(--cream);
     color: var(--ink);
@@ -1591,28 +1598,29 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       <button class="result-close" onclick="closeWaImportModal()">✕</button>
     </div>
     <div class="result-body">
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0.9rem;margin-bottom:0.8rem;">
-      <div style="display:flex;gap:0.7rem;margin-bottom:0.8rem;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0.9rem;">
+      <div style="display:flex;gap:0.7rem;margin-bottom:0.7rem;">
         <div style="flex:1;">
           <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📎 ملف المحادثة</label>
-          <input type="file" id="waImportFile" accept=".zip,.txt" style="width:100%;font-family:'Cairo';font-size:0.72rem;">
+          <input type="file" id="waImportFile" accept=".zip,.txt" style="display:none;" onchange="updateWaFileLabel('waImportFile','waImportFileLabel')">
+          <label for="waImportFile" id="waImportFileLabel" class="wa-field-box">📎 اختيار ملف</label>
         </div>
         <div style="flex:1;">
           <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">👥 المجموعة</label>
-          <select id="waImportGroup" style="width:100%;padding:0.5rem;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--ink);font-family:'Cairo';"></select>
+          <select id="waImportGroup" class="wa-field-box"></select>
         </div>
       </div>
 
-      <div style="display:flex;gap:0.7rem;">
+      <div style="display:flex;gap:0.7rem;margin-bottom:0.9rem;">
         <div style="flex:1;">
           <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📅 نطاق التاريخ</label>
-          <button type="button" class="icon-btn-sm accent" id="waImportRangeBtn" onclick="openWaRangePicker('waImport')" style="width:100%;padding:0.55rem;text-align:center;">حددي نطاق التاريخ</button>
+          <button type="button" class="wa-field-box" id="waImportRangeBtn" onclick="openWaRangePicker('waImport')" style="justify-content:center;">حددي نطاق التاريخ</button>
           <input type="hidden" id="waImportStart">
           <input type="hidden" id="waImportEnd">
         </div>
         <div style="flex:1;">
           <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📅 اليوم المطلوب</label>
-          <select id="waImportDay" style="width:100%;padding:0.5rem;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--ink);font-family:'Cairo';">
+          <select id="waImportDay" class="wa-field-box">
             <option value="sun">الأحد</option>
             <option value="mon">الاثنين</option>
             <option value="tue">الثلاثاء</option>
@@ -1621,9 +1629,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
           </select>
         </div>
       </div>
-      </div>
 
-      <button class="add-btn" onclick="runWaImportAnalysis()" style="margin-bottom:1rem;">🔍 تحليل</button>
+      <button class="add-btn" onclick="runWaImportAnalysis()">🔍 تحليل</button>
+      </div>
       <div id="waImportResults"></div>
       <div id="waReviewQueueBox"></div>
       <div id="waImportFooterResults"></div>
@@ -1639,27 +1647,28 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       <button class="result-close" onclick="closeWaPlanImportModal()">✕</button>
     </div>
     <div class="result-body">
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0.9rem;margin-bottom:0.8rem;">
-      <div style="display:flex;gap:0.7rem;margin-bottom:0.8rem;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0.9rem;">
+      <div style="display:flex;gap:0.7rem;margin-bottom:0.7rem;">
         <div style="flex:1;">
           <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📎 ملف المحادثة</label>
-          <input type="file" id="waPlanImportFile" accept=".zip,.txt" style="width:100%;font-family:'Cairo';font-size:0.72rem;">
+          <input type="file" id="waPlanImportFile" accept=".zip,.txt" style="display:none;" onchange="updateWaFileLabel('waPlanImportFile','waPlanImportFileLabel')">
+          <label for="waPlanImportFile" id="waPlanImportFileLabel" class="wa-field-box">📎 اختيار ملف</label>
         </div>
         <div style="flex:1;">
           <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📱 الحلقة المباشرة</label>
-          <select id="waPlanImportHalqa" style="width:100%;padding:0.5rem;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--ink);font-family:'Cairo';"></select>
+          <select id="waPlanImportHalqa" class="wa-field-box"></select>
         </div>
       </div>
 
-      <div>
+      <div style="margin-bottom:0.9rem;">
         <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📅 نطاق التاريخ</label>
-        <button type="button" class="icon-btn-sm accent" id="waPlanImportRangeBtn" onclick="openWaRangePicker('waPlanImport')" style="width:100%;padding:0.55rem;text-align:center;">حددي نطاق التاريخ</button>
+        <button type="button" class="wa-field-box" id="waPlanImportRangeBtn" onclick="openWaRangePicker('waPlanImport')" style="justify-content:center;">حددي نطاق التاريخ</button>
         <input type="hidden" id="waPlanImportStart">
         <input type="hidden" id="waPlanImportEnd">
       </div>
-      </div>
 
-      <button class="add-btn" onclick="runWaPlanImportAnalysis()" style="margin-bottom:1rem;">🔍 تحليل</button>
+      <button class="add-btn" onclick="runWaPlanImportAnalysis()">🔍 تحليل</button>
+      </div>
       <div id="waPlanImportResults"></div>
       <div id="waPlanReviewQueueBox"></div>
     </div>
@@ -6013,6 +6022,7 @@ function openWaPlanImportModal() {
   for (let i = 1; i <= HALQA_COUNT; i++) opts += `<option value="${i}">${getHalqaLabel(String(i))}</option>`;
   sel.innerHTML = opts || '<option value="">لا توجد حلقات</option>';
   document.getElementById('waPlanImportFile').value = '';
+  updateWaFileLabel('waPlanImportFile','waPlanImportFileLabel');
   document.getElementById('waPlanImportResults').innerHTML = '';
   document.getElementById('waPlanImportStart').value = '';
   document.getElementById('waPlanImportEnd').value = '';
@@ -9469,11 +9479,18 @@ function waRenderPersistedSections() {
   resultsEl.innerHTML = html;
 }
 
+function updateWaFileLabel(inputId, labelId) {
+  const inp = document.getElementById(inputId);
+  const lbl = document.getElementById(labelId);
+  if (inp && lbl) lbl.textContent = (inp.files && inp.files[0]) ? '📎 ' + inp.files[0].name : '📎 اختيار ملف';
+}
+
 function openWaImportModal() {
   const sel = document.getElementById('waImportGroup');
   const groups = getGroups();
   sel.innerHTML = groups.map(g => `<option value="${g}">${getGroupLabel(toEnDigits(g))}</option>`).join('') || '<option value="">لا توجد مجموعات</option>';
   document.getElementById('waImportFile').value = '';
+  updateWaFileLabel('waImportFile','waImportFileLabel');
   document.getElementById('waImportStart').value = '';
   document.getElementById('waImportEnd').value = '';
   document.getElementById('waImportRangeBtn').textContent = 'حددي نطاق التاريخ';
