@@ -10117,9 +10117,8 @@ function dismissWaReviewCard(i) {
   const item = queue[i];
   if (!item) return;
   item.committed = true;
-  const cardEl = document.getElementById('waReviewCard_' + i);
-  if (cardEl) cardEl.remove();
   waSaveCaches();
+  renderWaReviewQueue();
 }
 
 // تشيل حاوية قسم كاملة (العنوان + الصفوف) لو ما بقي فيها أي صف بعد الحذف، عشان العنوان ما يضل عالق لحاله فاضي
@@ -10144,10 +10143,9 @@ function commitWaReviewCard(i) {
     waSetKubraIfChanged(item.stu.name, kVal);
   }
   item.committed = true;
-  const cardEl = document.getElementById('waReviewCard_' + i);
-  if (cardEl) cardEl.outerHTML = `<div style="color:var(--green);font-weight:700;padding:0.5rem;border:1px solid var(--border);border-radius:10px;margin-bottom:0.6rem;">✅ ${item.stu.name} — تم الاعتماد والحفظ</div>`;
   showToast('تم اعتماد ' + item.stu.name + ' ✅');
   waSaveCaches();
+  renderWaReviewQueue();
   renderCurriculumTab();
 }
 
