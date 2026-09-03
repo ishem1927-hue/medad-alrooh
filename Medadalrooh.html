@@ -1604,13 +1604,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
       <div style="display:flex;gap:0.7rem;margin-bottom:1rem;">
         <div style="flex:1;">
-          <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📅 نطاق التاريخ والوقت</label>
+          <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:flex;align-items:flex-end;min-height:2.3rem;margin-bottom:0.3rem;">📅 نطاق التاريخ والوقت</label>
           <button type="button" class="icon-btn-sm accent" id="waImportRangeBtn" onclick="openWaRangePicker('waImport')" style="width:100%;padding:0.55rem;text-align:center;">حددي نطاق التاريخ</button>
           <input type="hidden" id="waImportStart">
           <input type="hidden" id="waImportEnd">
         </div>
         <div style="flex:1;">
-          <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📅 اليوم المطلوب (كما يُكتب بعنوان البطاقة)</label>
+          <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:flex;align-items:flex-end;min-height:2.3rem;margin-bottom:0.3rem;">📅 اليوم المطلوب (كما يُكتب بعنوان البطاقة)</label>
           <select id="waImportDay" style="width:100%;padding:0.5rem;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--ink);font-family:'Cairo';">
             <option value="sun">الأحد</option>
             <option value="mon">الاثنين</option>
