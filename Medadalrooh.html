@@ -1591,6 +1591,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       <button class="result-close" onclick="closeWaImportModal()">✕</button>
     </div>
     <div class="result-body">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0.9rem;margin-bottom:0.8rem;">
       <div style="display:flex;gap:0.7rem;margin-bottom:0.8rem;">
         <div style="flex:1;">
           <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📎 ملف المحادثة</label>
@@ -1602,7 +1603,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         </div>
       </div>
 
-      <div style="display:flex;gap:0.7rem;margin-bottom:1rem;">
+      <div style="display:flex;gap:0.7rem;">
         <div style="flex:1;">
           <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📅 نطاق التاريخ</label>
           <button type="button" class="icon-btn-sm accent" id="waImportRangeBtn" onclick="openWaRangePicker('waImport')" style="width:100%;padding:0.55rem;text-align:center;">حددي نطاق التاريخ</button>
@@ -1619,6 +1620,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
             <option value="thu">الخميس</option>
           </select>
         </div>
+      </div>
       </div>
 
       <button class="add-btn" onclick="runWaImportAnalysis()" style="margin-bottom:1rem;">🔍 تحليل</button>
@@ -1637,6 +1639,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       <button class="result-close" onclick="closeWaPlanImportModal()">✕</button>
     </div>
     <div class="result-body">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0.9rem;margin-bottom:0.8rem;">
       <div style="display:flex;gap:0.7rem;margin-bottom:0.8rem;">
         <div style="flex:1;">
           <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📎 ملف المحادثة</label>
@@ -1648,11 +1651,12 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         </div>
       </div>
 
-      <div style="margin-bottom:1rem;">
+      <div>
         <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📅 نطاق التاريخ</label>
         <button type="button" class="icon-btn-sm accent" id="waPlanImportRangeBtn" onclick="openWaRangePicker('waPlanImport')" style="width:100%;padding:0.55rem;text-align:center;">حددي نطاق التاريخ</button>
         <input type="hidden" id="waPlanImportStart">
         <input type="hidden" id="waPlanImportEnd">
+      </div>
       </div>
 
       <button class="add-btn" onclick="runWaPlanImportAnalysis()" style="margin-bottom:1rem;">🔍 تحليل</button>
