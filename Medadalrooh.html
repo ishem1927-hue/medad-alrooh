@@ -9875,7 +9875,7 @@ function renderWaReviewQueue() {
   if (!box) return;
   const queue = window._waPendingReview || [];
   if (!queue.length) { box.innerHTML = ''; return; }
-  let html = `<div style="font-weight:700;color:var(--wine);margin:0.8rem 0 0.4rem;border-top:2px solid var(--border);padding-top:0.6rem;">📝 مراجعة البطاقات (${queue.length}) — اعتمدي كل بطاقة لحالها</div>`;
+  let html = `<div style="font-weight:700;color:var(--wine);margin:0.8rem 0 0.4rem;border-top:2px solid var(--border);padding-top:0.6rem;">📝 مراجعة البطاقات (${queue.length})</div>`;
   queue.forEach((item, i) => {
     if (item.committed) return; // اتحفظت، ما تنعرض
     const planText = getWaDayPlanText(item.stu, item.dayKey);
@@ -9902,10 +9902,23 @@ function renderWaReviewQueue() {
         <option value="full" ${item.status==='full'?'selected':''}>كامل بدون تحدي</option>
       </select>
       ${kubraOptions}
-      <button class="icon-btn-sm accent" style="width:100%;padding:0.4rem;font-weight:700;margin-top:0.5rem;" onclick="commitWaReviewCard(${i})">✅ اعتماد هذي البطاقة</button>
+      <div style="display:flex;gap:0.4rem;margin-top:0.5rem;">
+        <button class="icon-btn-sm accent" style="flex:1;padding:0.4rem;font-weight:700;" onclick="commitWaReviewCard(${i})">✅ اعتماد هذي البطاقة</button>
+        <button class="icon-btn-sm" style="padding:0.4rem 0.7rem;background:var(--surface2);color:var(--muted);" onclick="dismissWaReviewCard(${i})" title="تجاهل بدون اعتماد">✕</button>
+      </div>
     </div>`;
   });
   box.innerHTML = html;
+}
+
+// تجاهل بطاقة بدون اعتماد أو حفظ — تختفي نهائيًا وما ترجع تطلع
+function dismissWaReviewCard(i) {
+  const queue = window._waPendingReview || [];
+  const item = queue[i];
+  if (!item) return;
+  item.committed = true;
+  const cardEl = document.getElementById('waReviewCard_' + i);
+  if (cardEl) cardEl.remove();
 }
 
 // اعتماد بطاقة وحدة بمفردها — يقرأ القيم المختارة لها بس، ويحفظها فعليًا
@@ -9947,7 +9960,7 @@ function resolveWaUnknown(idx, dayKey) {
   // بعد ما تختارين الطالبة، نتحقق: هل عندها حضور مسجّل فعلاً بنفس اليوم/الأسبوع؟ (نطاق الاستيراد أصلاً لازم يطابق currentWeek، محقق مسبقًا)
   if (waIsAlreadyCommitted(stu.name, currentWeek, WA_DAY_TO_INDEX[dayKey])) {
     const alreadyRowEl = sel.closest('div');
-    if (alreadyRowEl) alreadyRowEl.innerHTML = `<span style="color:var(--green);font-weight:700;">✓ ${stu.name} — معتمدة سابقًا</span>`;
+    if (alreadyRowEl) alreadyRowEl.remove();
     showToast(stu.name + ' معتمدة سابقًا ✓');
     window._waUnknownCache[idx] = null;
     return;
@@ -9966,9 +9979,9 @@ function resolveWaUnknown(idx, dayKey) {
   renderWaReviewQueue();
   showToast('أُضيفت للمراجعة: ' + stu.name + ' ✅');
 
-  // تحديث واجهة النتائج: نعلّم هالسطر كـ"تم"، ونحدّث عداد المفعّلات بالأعلى
+  // نحذف السطر تمامًا من الشاشة بدل ما نستبدله بنص أخضر
   const rowEl = sel.closest('div');
-  if (rowEl) rowEl.innerHTML = `<span style="color:var(--green);font-weight:700;">✅ ${stu.name} — أُضيفت للمراجعة</span>`;
+  if (rowEl) rowEl.remove();
   const countEl = document.querySelector('#waImportResults > div:first-child');
   if (countEl) {
     const m = countEl.textContent.match(/(\d+)/);
@@ -9995,7 +10008,7 @@ function resolveWaNeedsConfirm(idx, apply, dayKey) {
       sourceTag: window._waSourceTag,
     });
     renderWaReviewQueue();
-    if (rowEl) rowEl.innerHTML = `<span style="color:var(--green);font-weight:700;">✅ ${stu.name} — أُضيفت للمراجعة</span>`;
+    if (rowEl) rowEl.remove();
     const countEl = document.querySelector('#waImportResults > div:first-child');
     if (countEl) {
       const m = countEl.textContent.match(/(\d+)/);
@@ -10004,7 +10017,7 @@ function resolveWaNeedsConfirm(idx, apply, dayKey) {
     waRemoveFromAbsenteesDisplay(stu.id);
     showToast('أُضيفت للمراجعة: ' + stu.name + ' ✅');
   } else {
-    if (rowEl) rowEl.innerHTML = `<span style="color:var(--muted);">تم التجاهل</span>`;
+    if (rowEl) rowEl.remove();
   }
   window._waNeedsConfirmCache[idx] = null;
   renderCurriculumTab();
@@ -10039,7 +10052,7 @@ function resolveWaFuzzy(idx, isYes, dayKey) {
   const rowEl = document.getElementById('waFuzzy_' + idx);
   if (isYes) {
     waApplyCardToStudent(item.suggested, item.body, dayKey);
-    if (rowEl) rowEl.innerHTML = `<span style="color:var(--green);font-weight:700;">✅ ${item.suggested.name} — أُضيفت للمراجعة</span>`;
+    if (rowEl) rowEl.remove();
     showToast('أُضيفت للمراجعة: ' + item.suggested.name + ' ✅');
     window._waFuzzyConfirmCache[idx] = null;
   } else {
@@ -10060,7 +10073,7 @@ function resolveWaFuzzyAlt(idx, dayKey) {
   if (!stu) return;
   waApplyCardToStudent(stu, item.body, dayKey);
   const rowEl = document.getElementById('waFuzzy_' + idx);
-  if (rowEl) rowEl.innerHTML = `<span style="color:var(--green);font-weight:700;">✅ ${stu.name} — أُضيفت للمراجعة</span>`;
+  if (rowEl) rowEl.remove();
   showToast('أُضيفت للمراجعة: ' + stu.name + ' ✅');
   window._waFuzzyConfirmCache[idx] = null;
   renderCurriculumTab();
