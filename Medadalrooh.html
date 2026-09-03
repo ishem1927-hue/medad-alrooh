@@ -9806,9 +9806,10 @@ async function runWaImportAnalysis() {
     html += `<div style="font-size:0.78rem;">${alreadyCommitted.map((s, i) => `<div>${i+1}. ${s.name} ✓</div>`).join('')}</div>`;
   }
   if (unknown.length) {
+    html += `<div id="waUnknownSection">`;
     html += `<div style="font-weight:700;color:#c0392b;margin:0.6rem 0 0.3rem;">⚠️ أسماء غير معروفة:</div>`;
     unknown.forEach((u, i) => {
-      html += `<div style="font-size:0.78rem;margin-bottom:0.4rem;">"${u.rawName}" <span style="color:var(--muted);">(المرسل: ${u.sender || 'غير معروف'})</span> —
+      html += `<div id="waUnknownRow_${i}" style="font-size:0.78rem;margin-bottom:0.4rem;">"${u.rawName}" <span style="color:var(--muted);">(المرسل: ${u.sender || 'غير معروف'})</span> —
         <select id="waUnknownSel_${i}" style="font-family:'Cairo';font-size:0.75rem;">
           <option value="">تجاهل</option>
           ${groupStudents.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
@@ -9816,8 +9817,10 @@ async function runWaImportAnalysis() {
         <button class="icon-btn-sm accent" style="padding:0.15rem 0.5rem;" onclick="resolveWaUnknown(${i},'${dayKey}')">تطبيق</button>
       </div>`;
     });
+    html += `</div>`;
   }
   if (fuzzyConfirm.length) {
+    html += `<div id="waFuzzySection">`;
     html += `<div style="font-weight:700;color:#8a6d3b;margin:0.6rem 0 0.3rem;">🔍 مطابقة تقريبية (تأكدي منها):</div>`;
     fuzzyConfirm.forEach((f, i) => {
       html += `<div id="waFuzzy_${i}" style="font-size:0.78rem;margin-bottom:0.5rem;border:1px solid var(--border);border-radius:8px;padding:0.5rem;">
@@ -9835,8 +9838,10 @@ async function runWaImportAnalysis() {
         </div>
       </div>`;
     });
+    html += `</div>`;
   }
   if (needsConfirm.length) {
+    html += `<div id="waNeedsConfirmSection">`;
     html += `<div style="font-weight:700;color:#8a6d3b;margin:0.6rem 0 0.3rem;">📅 بطاقات بعنوان يوم مختلف (راجعيها وقرري):</div>`;
     needsConfirm.forEach((c, i) => {
       const statusLabel = c.missingItems.length > 0 ? `ناقص: ${c.missingItems.join('، ')}` : (c.status === 'challenge' ? 'كامل مع التحدي' : 'كامل بدون تحدي');
@@ -9849,6 +9854,7 @@ async function runWaImportAnalysis() {
         </div>
       </div>`;
     });
+    html += `</div>`;
   }
   if (absentees.length) {
     html += `<div style="font-weight:700;color:var(--muted);margin:0.6rem 0 0.3rem;">👻 غايبات (${absentees.length}):</div>`;
@@ -9921,6 +9927,12 @@ function dismissWaReviewCard(i) {
   if (cardEl) cardEl.remove();
 }
 
+// تشيل حاوية قسم كاملة (العنوان + الصفوف) لو ما بقي فيها أي صف بعد الحذف، عشان العنوان ما يضل عالق لحاله فاضي
+function waRemoveSectionIfEmpty(sectionId) {
+  const section = document.getElementById(sectionId);
+  if (section && !section.querySelector('[id]')) section.remove();
+}
+
 // اعتماد بطاقة وحدة بمفردها — يقرأ القيم المختارة لها بس، ويحفظها فعليًا
 function commitWaReviewCard(i) {
   const queue = window._waPendingReview || [];
@@ -9961,6 +9973,7 @@ function resolveWaUnknown(idx, dayKey) {
   if (waIsAlreadyCommitted(stu.name, currentWeek, WA_DAY_TO_INDEX[dayKey])) {
     const alreadyRowEl = sel.closest('div');
     if (alreadyRowEl) alreadyRowEl.remove();
+    waRemoveSectionIfEmpty('waUnknownSection');
     showToast(stu.name + ' معتمدة سابقًا ✓');
     window._waUnknownCache[idx] = null;
     return;
@@ -9982,6 +9995,7 @@ function resolveWaUnknown(idx, dayKey) {
   // نحذف السطر تمامًا من الشاشة بدل ما نستبدله بنص أخضر
   const rowEl = sel.closest('div');
   if (rowEl) rowEl.remove();
+  waRemoveSectionIfEmpty('waUnknownSection');
   const countEl = document.querySelector('#waImportResults > div:first-child');
   if (countEl) {
     const m = countEl.textContent.match(/(\d+)/);
@@ -10009,6 +10023,7 @@ function resolveWaNeedsConfirm(idx, apply, dayKey) {
     });
     renderWaReviewQueue();
     if (rowEl) rowEl.remove();
+    waRemoveSectionIfEmpty('waNeedsConfirmSection');
     const countEl = document.querySelector('#waImportResults > div:first-child');
     if (countEl) {
       const m = countEl.textContent.match(/(\d+)/);
@@ -10018,6 +10033,7 @@ function resolveWaNeedsConfirm(idx, apply, dayKey) {
     showToast('أُضيفت للمراجعة: ' + stu.name + ' ✅');
   } else {
     if (rowEl) rowEl.remove();
+    waRemoveSectionIfEmpty('waNeedsConfirmSection');
   }
   window._waNeedsConfirmCache[idx] = null;
   renderCurriculumTab();
@@ -10053,6 +10069,7 @@ function resolveWaFuzzy(idx, isYes, dayKey) {
   if (isYes) {
     waApplyCardToStudent(item.suggested, item.body, dayKey);
     if (rowEl) rowEl.remove();
+    waRemoveSectionIfEmpty('waFuzzySection');
     showToast('أُضيفت للمراجعة: ' + item.suggested.name + ' ✅');
     window._waFuzzyConfirmCache[idx] = null;
   } else {
@@ -10074,6 +10091,7 @@ function resolveWaFuzzyAlt(idx, dayKey) {
   waApplyCardToStudent(stu, item.body, dayKey);
   const rowEl = document.getElementById('waFuzzy_' + idx);
   if (rowEl) rowEl.remove();
+  waRemoveSectionIfEmpty('waFuzzySection');
   showToast('أُضيفت للمراجعة: ' + stu.name + ' ✅');
   window._waFuzzyConfirmCache[idx] = null;
   renderCurriculumTab();
