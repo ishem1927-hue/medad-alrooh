@@ -1622,6 +1622,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       <button class="add-btn" onclick="runWaImportAnalysis()" style="margin-bottom:1rem;">🔍 تحليل</button>
       <div id="waImportResults"></div>
       <div id="waReviewQueueBox"></div>
+      <div id="waImportFooterResults"></div>
     </div>
   </div>
 </div>
@@ -9334,6 +9335,8 @@ function openWaImportModal() {
   sel.innerHTML = groups.map(g => `<option value="${g}">${getGroupLabel(toEnDigits(g))}</option>`).join('') || '<option value="">لا توجد مجموعات</option>';
   document.getElementById('waImportFile').value = '';
   document.getElementById('waImportResults').innerHTML = '';
+  const footerEl0 = document.getElementById('waImportFooterResults');
+  if (footerEl0) footerEl0.innerHTML = '';
   document.getElementById('waImportStart').value = '';
   document.getElementById('waImportEnd').value = '';
   document.getElementById('waImportRangeBtn').textContent = 'حددي نطاق التاريخ';
@@ -9614,6 +9617,13 @@ async function runWaImportAnalysis() {
   const allMsgs = parseWaMessages(text);
   const groupStudents = students.filter(s => s.group === groupVal && s.active !== false && !s.withdrawn);
 
+  // ===== تتبع دائم لكل نطاق (أسبوع+يوم+مجموعة): أي طالبة أو اسم سبق ظهر بتحليل سابق (حتى لو ما اعتُمد بعد)، نتجاهله بالكامل هالمرة =====
+  const scopeKey = `${computedWeek}_${dayKey}_${groupVal}`;
+  window._waSeenKeys = window._waSeenKeys || {};
+  if (!window._waSeenKeys[scopeKey]) window._waSeenKeys[scopeKey] = new Set();
+  const seenSet = window._waSeenKeys[scopeKey];
+  const seenSnapshot = new Set(seenSet); // نسخة من قبل هالتحليل، عشان تكرارات نفس الملف بنفس الجلسة تنحسب صح فيما بينها
+
   // ===== فحص سريع: هل المجموعة المختارة تطابق الملف أصلًا؟ =====
   // نعد كم بطاقة بالملف كامل تنطابق مطابقة دقيقة (بدون تقريب) مع طالبة بهالمجموعة.
   // لو صفر أو قريب من الصفر، يبدو إن المجموعة غلط — نوقف قبل ما نوصل لمرحلة المطابقة التقريبية (اللي ممكن توفّق أسماء عشوائية غلط)
@@ -9636,10 +9646,10 @@ async function runWaImportAnalysis() {
 
   const matched = [];      // {student, evalResult}
   const unknown = [];      // {rawName, body}
-  const weird = [];        // نصوص تنبيه
   const needsConfirm = []; // بطاقات عنوانها ما طابق اليوم المطلوب — تحتاج قرارك (نعم طبّقي / لا تجاهلي)
   const fuzzyConfirm = []; // مطابقة تقريبية — تحتاج تأكيدك قبل التفعيل
   const studentCandidates = new Map(); // stu.id -> أفضل بطاقة لحد الآن (لمقارنة التكرارات واختيار الأكمل)
+  const duplicateGroups = new Map(); // stu.id -> {stu, cards:[...], dayKey} — بطاقات متساوية بالاكتمال، تحتاج اختيارك
 
   // نطاق الأسبوع الكامل (للكبرى المنفصلة)
   const cur = scheduleRows.find(r => !r.done && isCurrentScheduleEntry(r.startDate, r.endDate));
@@ -9702,6 +9712,9 @@ async function runWaImportAnalysis() {
     }
     // ما فيه اسم واضح — بدل ما نكتفي بعرضها كملاحظة بس، نحطها بقائمة "اسم غير معروف" عشان تربطينها يدويًا بطالبة بضغطة (بدل ما تضيع)
     if (!parsed.name) {
+      const rawKey = 'raw:(بدون اسم واضح):' + (msg.sender || '');
+      if (seenSnapshot.has(rawKey)) return; // سبق ظهرت بتحليل سابق لنفس النطاق
+      seenSet.add(rawKey);
       unknown.push({ rawName: '(بدون اسم واضح)', body: msg.body, sender: msg.sender });
       return;
     }
@@ -9711,18 +9724,25 @@ async function runWaImportAnalysis() {
       // ما انطابقت مطابقة دقيقة — نجرب مطابقة "قريبة" (فرق حرف أو حرفين)، بس ما نطبّقها تلقائيًا، تنتظر تأكيدك
       const fuzzy = findWaFuzzyMatch(parsed.name, groupStudents);
       if (fuzzy.length === 1 || (fuzzy.length > 1 && fuzzy[0].dist < fuzzy[1].dist)) {
+        if (seenSnapshot.has('s:' + fuzzy[0].student.id)) return; // سبق ظهرت (سواء اتحلّت أو معلّقة) بتحليل سابق
         // لو سبق اعتمدت بطاقة هالطالبة المقترحة بنفس اليوم/الأسبوع (بيانات فعلية محفوظة)، ما نكرر السؤال عليها من جديد
         if (waIsAlreadyCommitted(fuzzy[0].student.name, computedWeek, WA_DAY_TO_INDEX[dayKey])) {
           matched.push({ student: fuzzy[0].student, missingItems: [], kubraMissing: false, rawName: parsed.name });
+          seenSet.add('s:' + fuzzy[0].student.id);
           return;
         }
+        seenSet.add('s:' + fuzzy[0].student.id);
         fuzzyConfirm.push({ rawName: parsed.name, body: msg.body, suggested: fuzzy[0].student, sender: msg.sender });
       } else {
+        const rawKey = 'raw:' + normalizeForMatch2(parsed.name);
+        if (seenSnapshot.has(rawKey)) return;
+        seenSet.add(rawKey);
         unknown.push({ rawName: parsed.name, body: msg.body, sender: msg.sender });
       }
       return;
     }
     const stu = hits[0];
+    if (seenSnapshot.has('s:' + stu.id)) return; // سبق ظهرت بتحليل سابق لنفس النطاق — ما نعالجها مرة ثانية إطلاقًا
 
     // تقييم البطاقة
     let status;
@@ -9731,8 +9751,13 @@ async function runWaImportAnalysis() {
 
     const candidate = { stu, parsed, status, dayMatches, actualDayLabel, body: msg.body };
 
-    // لو فيه بطاقة سابقة لنفس الطالبة، نقارن ونحتفظ بالأكمل (أقل نقص بالبنود، وعند التساوي: الأفضل بالتحدي، وبعدين الأفضل بالكبرى)
+    // لو فيه بطاقة سابقة لنفس الطالبة (بنفس هالتحليل)، نقارن: لو وحدة أكمل بوضوح نمسكها، ولو متساويتين تمامًا نحطهم بقائمة "بطاقات مكررة" تختارين بنفسك
     const prev = studentCandidates.get(stu.id);
+    const existingDup = duplicateGroups.get(stu.id);
+    if (existingDup) {
+      existingDup.cards.push(candidate);
+      return;
+    }
     if (prev) {
       const prevMissCount = prev.parsed.missingItems.length;
       const curMissCount = parsed.missingItems.length;
@@ -9746,7 +9771,8 @@ async function runWaImportAnalysis() {
       if (curIsBetter) {
         studentCandidates.set(stu.id, candidate);
       } else if (curMissCount === prevMissCount && parsed.challengeDone === prev.parsed.challengeDone && curKubra === prevKubra) {
-        weird.push(`تكرار بطاقة لنفس الطالبة (نفس الاكتمال، أُخذت الأولى): ${stu.name}`);
+        duplicateGroups.set(stu.id, { stu, cards: [prev, candidate], dayKey });
+        studentCandidates.delete(stu.id); // تنتظر اختيارك من قائمة "بطاقات مكررة" بدل الاختيار التلقائي
       }
       return;
     }
@@ -9760,6 +9786,7 @@ async function runWaImportAnalysis() {
   // نتحقق من البيانات الفعلية المحفوظة (مو ذاكرة مؤقتة) — لو الطالبة عندها تقييم مسجّل أصلاً بهذا اليوم/الأسبوع، معناته اعتُمدت قبل (يدوم حتى بعد إغلاق الصفحة)
   const checkDayIdx = WA_DAY_TO_INDEX[dayKey];
   studentCandidates.forEach(({ stu, parsed, status, dayMatches, actualDayLabel, body }) => {
+    seenSet.add('s:' + stu.id);
     if (!dayMatches) {
       // عنوان البطاقة ما يطابق اليوم المطلوب — لو سبق اعتمدتيها (بيانات فعلية محفوظة)، نتخطاها بصمت بدل ما نسألك عليها من جديد
       if (waIsAlreadyCommitted(stu.name, computedWeek, checkDayIdx)) {
@@ -9783,12 +9810,21 @@ async function runWaImportAnalysis() {
     });
     matched.push({ student: stu, missingItems: parsed.missingItems, kubraMissing: studentIsSplitKubra && parsed.kubraLine && !parsed.kubraDone, rawName: parsed.name });
   });
+  duplicateGroups.forEach(g => seenSet.add('s:' + g.stu.id));
 
-  // غايبات: طالبات المجموعة اللي ما انطابقت بطاقتهن، ومو موجودات بقائمة "تحتاج تأكيد" ولا "مطابقة تقريبية معلّقة"
+  // غايبات: طالبات المجموعة اللي ما انطابقت بطاقتهن، ومو موجودات بقائمة "تحتاج تأكيد" ولا "مطابقة تقريبية معلّقة" ولا "بطاقات مكررة"
   const matchedIds = new Set(matched.map(m => m.student.id));
   const needsConfirmIds = new Set(needsConfirm.map(m => m.student.id));
   const fuzzyConfirmIds = new Set(fuzzyConfirm.map(m => m.suggested.id));
-  const absentees = groupStudents.filter(s => !matchedIds.has(s.id) && !needsConfirmIds.has(s.id) && !fuzzyConfirmIds.has(s.id));
+  const dupIds = new Set(duplicateGroups.keys());
+  const absentees = groupStudents.filter(s => !matchedIds.has(s.id) && !needsConfirmIds.has(s.id) && !fuzzyConfirmIds.has(s.id) && !dupIds.has(s.id));
+
+  // نضيف بطاقات "بطاقات مكررة" الجديدة لقائمة دائمة (تتراكم عبر عمليات الاستيراد، زي بقية الأقسام)
+  window._waDuplicateCache = window._waDuplicateCache || [];
+  duplicateGroups.forEach(g => window._waDuplicateCache.push(g));
+  window._waUnknownCache = (window._waUnknownCache || []).concat(unknown);
+  window._waNeedsConfirmCache = (window._waNeedsConfirmCache || []).concat(needsConfirm);
+  window._waFuzzyConfirmCache = (window._waFuzzyConfirmCache || []).concat(fuzzyConfirm);
 
   // ===== الملخص =====
   let html = `<div style="font-weight:700;color:var(--green);margin-bottom:0.6rem;">📋 جاهزة للمراجعة: ${matched.length} طالبة — ما راح تنحفظ إلا بعد اعتمادك بالأسفل</div>`;
@@ -9801,14 +9837,11 @@ async function runWaImportAnalysis() {
       html += `<div style="font-size:0.78rem;margin-bottom:0.2rem;">${m.student.name} — ناقص: ${items.join('، ')}</div>`;
     });
   }
-  if (alreadyCommitted.length) {
-    html += `<div style="font-weight:700;color:var(--green);margin:0.6rem 0 0.3rem;">✓ معتمدة سابقًا لنفس النطاق (${alreadyCommitted.length}):</div>`;
-    html += `<div style="font-size:0.78rem;">${alreadyCommitted.map((s, i) => `<div>${i+1}. ${s.name} ✓</div>`).join('')}</div>`;
-  }
-  if (unknown.length) {
+  if (window._waUnknownCache.some(u => u)) {
     html += `<div id="waUnknownSection">`;
     html += `<div style="font-weight:700;color:#c0392b;margin:0.6rem 0 0.3rem;">⚠️ أسماء غير معروفة:</div>`;
-    unknown.forEach((u, i) => {
+    window._waUnknownCache.forEach((u, i) => {
+      if (!u) return;
       html += `<div id="waUnknownRow_${i}" style="font-size:0.78rem;margin-bottom:0.4rem;">"${u.rawName}" <span style="color:var(--muted);">(المرسل: ${u.sender || 'غير معروف'})</span> —
         <select id="waUnknownSel_${i}" style="font-family:'Cairo';font-size:0.75rem;">
           <option value="">تجاهل</option>
@@ -9819,10 +9852,11 @@ async function runWaImportAnalysis() {
     });
     html += `</div>`;
   }
-  if (fuzzyConfirm.length) {
+  if (window._waFuzzyConfirmCache.some(f => f)) {
     html += `<div id="waFuzzySection">`;
     html += `<div style="font-weight:700;color:#8a6d3b;margin:0.6rem 0 0.3rem;">🔍 مطابقة تقريبية (تأكدي منها):</div>`;
-    fuzzyConfirm.forEach((f, i) => {
+    window._waFuzzyConfirmCache.forEach((f, i) => {
+      if (!f) return;
       html += `<div id="waFuzzy_${i}" style="font-size:0.78rem;margin-bottom:0.5rem;border:1px solid var(--border);border-radius:8px;padding:0.5rem;">
         <div>"${f.rawName}" <span style="color:var(--muted);font-size:0.7rem;">(المرسل: ${f.sender || 'غير معروف'})</span> ← <b>${f.suggested.name}</b>؟</div>
         <div style="margin-top:0.3rem;">
@@ -9840,10 +9874,30 @@ async function runWaImportAnalysis() {
     });
     html += `</div>`;
   }
-  if (needsConfirm.length) {
+  if (window._waDuplicateCache.some(g => g)) {
+    html += `<div id="waDuplicatesSection">`;
+    html += `<div style="font-weight:700;color:#c0392b;margin:0.6rem 0 0.3rem;">🔁 بطاقات مكررة</div>`;
+    window._waDuplicateCache.forEach((g, i) => {
+      if (!g) return;
+      html += `<div id="waDupGroup_${i}" style="margin-bottom:0.6rem;">
+        <div style="font-weight:700;color:var(--wine);font-size:0.8rem;margin-bottom:0.4rem;">${g.stu.name} — أرسلت ${toAr(g.cards.length)} بطاقات:</div>
+        <div style="display:flex;gap:0.5rem;overflow-x:auto;">
+          ${g.cards.map((c, ci) => `
+            <div style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:8px;padding:0.5rem;background:var(--surface2);">
+              <div style="white-space:pre-wrap;background:#fff;border-radius:6px;padding:0.4rem;font-size:0.7rem;color:var(--ink);max-height:150px;overflow-y:auto;margin-bottom:0.4rem;">${c.body}</div>
+              <button class="icon-btn-sm accent" style="width:100%;padding:0.3rem;font-size:0.72rem;" onclick="resolveWaDuplicate(${i}, ${ci})">✅ استخدمي هذي</button>
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  if (window._waNeedsConfirmCache.some(c => c)) {
     html += `<div id="waNeedsConfirmSection">`;
     html += `<div style="font-weight:700;color:#8a6d3b;margin:0.6rem 0 0.3rem;">📅 بطاقات بعنوان يوم مختلف (راجعيها وقرري):</div>`;
-    needsConfirm.forEach((c, i) => {
+    window._waNeedsConfirmCache.forEach((c, i) => {
+      if (!c) return;
       const statusLabel = c.missingItems.length > 0 ? `ناقص: ${c.missingItems.join('، ')}` : (c.status === 'challenge' ? 'كامل مع التحدي' : 'كامل بدون تحدي');
       html += `<div id="waConfirm_${i}" style="font-size:0.78rem;margin-bottom:0.5rem;border:1px solid var(--border);border-radius:8px;padding:0.5rem;">
         <div><b>${c.student.name}</b> — كتبت "إنجاز ${c.actualDayLabel}" بدل "${WA_DAY_LABELS[dayKey]}"</div>
@@ -9856,20 +9910,22 @@ async function runWaImportAnalysis() {
     });
     html += `</div>`;
   }
-  if (absentees.length) {
-    html += `<div style="font-weight:700;color:var(--muted);margin:0.6rem 0 0.3rem;">👻 غايبات (${absentees.length}):</div>`;
-    html += `<div id="waAbsenteesList" style="font-size:0.78rem;">${absentees.map((s, i) => `<div data-sid="${s.id}">${i+1}. ${s.name}</div>`).join('')}</div>`;
-  }
-  if (weird.length) {
-    html += `<div style="font-weight:700;color:#c0392b;margin:0.6rem 0 0.3rem;">🔔 حالات غريبة:</div>`;
-    weird.forEach(w => html += `<div style="font-size:0.78rem;">${w}</div>`);
-  }
   resultsEl.innerHTML = html;
-  window._waUnknownCache = unknown;
-  window._waNeedsConfirmCache = needsConfirm;
-  window._waFuzzyConfirmCache = fuzzyConfirm;
   window._waSourceTag = waSourceTag;
   window._waPendingReview = (window._waPendingReview || []).concat(pendingReview);
+
+  // ===== قسم آخر الصفحة (إعلامي بس): معتمدة سابقًا + غايبات =====
+  const footerEl = document.getElementById('waImportFooterResults');
+  let footerHtml = '';
+  if (alreadyCommitted.length) {
+    footerHtml += `<div style="font-weight:700;color:var(--green);margin:0.6rem 0 0.3rem;">✓ معتمدة سابقًا لنفس النطاق (${alreadyCommitted.length}):</div>`;
+    footerHtml += `<div style="font-size:0.78rem;">${alreadyCommitted.map((s, i) => `<div>${i+1}. ${s.name} ✓</div>`).join('')}</div>`;
+  }
+  if (absentees.length) {
+    footerHtml += `<div style="font-weight:700;color:var(--muted);margin:0.6rem 0 0.3rem;">👻 غايبات (${absentees.length}):</div>`;
+    footerHtml += `<div id="waAbsenteesList" style="font-size:0.78rem;">${absentees.map((s, i) => `<div data-sid="${s.id}">${i+1}. ${s.name}</div>`).join('')}</div>`;
+  }
+  if (footerEl) footerEl.innerHTML = footerHtml;
   renderWaReviewQueue();
   renderCurriculumTab();
 }
@@ -9880,8 +9936,9 @@ function renderWaReviewQueue() {
   const box = document.getElementById('waReviewQueueBox');
   if (!box) return;
   const queue = window._waPendingReview || [];
-  if (!queue.length) { box.innerHTML = ''; return; }
-  let html = `<div style="font-weight:700;color:var(--wine);margin:0.8rem 0 0.4rem;border-top:2px solid var(--border);padding-top:0.6rem;">📝 مراجعة البطاقات (${queue.length})</div>`;
+  const activeCount = queue.filter(it => !it.committed).length;
+  if (!activeCount) { box.innerHTML = ''; return; }
+  let html = `<div style="font-weight:700;color:var(--wine);margin:0.8rem 0 0.4rem;border-top:2px solid var(--border);padding-top:0.6rem;">📝 مراجعة البطاقات (${activeCount})</div>`;
   queue.forEach((item, i) => {
     if (item.committed) return; // اتحفظت، ما تنعرض
     const planText = getWaDayPlanText(item.stu, item.dayKey);
@@ -10040,6 +10097,20 @@ function resolveWaNeedsConfirm(idx, apply, dayKey) {
 }
 
 // يضيف بطاقة طالبة لقائمة المراجعة (ما يحفظ شي مباشرة) — يُستخدم من مطابقة تقريبية سواء بالتأكيد أو الاختيار اليدوي البديل
+// اختيار بطاقة وحدة من بين بطاقات مكررة لنفس الطالبة — البطاقة المختارة تروح للمراجعة، والباقي يُتجاهل نهائيًا
+function resolveWaDuplicate(groupIdx, cardIdx) {
+  const g = window._waDuplicateCache && window._waDuplicateCache[groupIdx];
+  if (!g) { showToast('انحلّت هالحالة أصلًا'); return; }
+  const chosen = g.cards[cardIdx];
+  waApplyCardToStudent(g.stu, chosen.body, g.dayKey);
+  window._waDuplicateCache[groupIdx] = null;
+  const groupEl = document.getElementById('waDupGroup_' + groupIdx);
+  if (groupEl) groupEl.remove();
+  waRemoveSectionIfEmpty('waDuplicatesSection');
+  showToast('تم اختيار بطاقة ' + g.stu.name + ' ✅');
+  renderCurriculumTab();
+}
+
 function waApplyCardToStudent(stu, body, dayKey) {
   const parsed = parseWaDailyCard(body, dayKey);
   if (!parsed) return;
