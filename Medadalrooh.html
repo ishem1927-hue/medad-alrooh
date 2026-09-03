@@ -36,12 +36,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   .wa-field-box {
-    display: flex; align-items: center; justify-content: flex-end;
-    width: 100%; height: 40px; padding: 0 0.6rem; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; height: 40px; padding: 0 0.5rem; border-radius: 8px;
     border: 1px solid var(--border); background: var(--surface2); color: var(--ink);
-    font-family: 'Cairo'; font-size: 0.72rem; text-align: right; cursor: pointer;
+    font-family: 'Cairo'; font-size: 0.68rem; text-align: center; text-align-last: center; cursor: pointer;
   }
-  select.wa-field-box { text-align-last: right; }
   body {
     background: var(--cream);
     color: var(--ink);
@@ -1613,7 +1612,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
       <div style="display:flex;gap:0.7rem;margin-bottom:0.9rem;">
         <div style="flex:1;">
-          <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📅 نطاق التاريخ</label>
+          <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📅 التاريخ والوقت</label>
           <button type="button" class="wa-field-box" id="waImportRangeBtn" onclick="openWaRangePicker('waImport')" style="justify-content:center;">حددي نطاق التاريخ</button>
           <input type="hidden" id="waImportStart">
           <input type="hidden" id="waImportEnd">
@@ -1661,7 +1660,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       </div>
 
       <div style="margin-bottom:0.9rem;">
-        <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📅 نطاق التاريخ</label>
+        <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📅 التاريخ والوقت</label>
         <button type="button" class="wa-field-box" id="waPlanImportRangeBtn" onclick="openWaRangePicker('waPlanImport')" style="justify-content:center;">حددي نطاق التاريخ</button>
         <input type="hidden" id="waPlanImportStart">
         <input type="hidden" id="waPlanImportEnd">
@@ -6004,6 +6003,9 @@ function renderWaRangeGrid() {
   }
   grid.innerHTML = html;
 }
+function waRangeBtnDefaultText() {
+  return '📅 ' + formatGregorianArabic(new Date().toISOString().slice(0,10));
+}
 function confirmWaRange() {
   const st = waRangeState;
   if (!st.start) { showToast('حددي تاريخ أول'); return; }
@@ -6012,8 +6014,7 @@ function confirmWaRange() {
   const timeEnd = document.getElementById('waRangeTimeEnd').value || '23:59';
   document.getElementById(st.target + 'Start').value = st.start + 'T' + timeStart;
   document.getElementById(st.target + 'End').value = endDate + 'T' + timeEnd;
-  const label = (st.start === endDate) ? st.start : (st.start + ' → ' + endDate);
-  document.getElementById(st.target + 'RangeBtn').textContent = '📅 ' + label + ' (' + timeStart + ' - ' + timeEnd + ')';
+  document.getElementById(st.target + 'RangeBtn').textContent = '📅 ' + formatGregorianArabic(st.start);
   closeWaRangePicker();
 }
 function openWaPlanImportModal() {
@@ -6026,7 +6027,7 @@ function openWaPlanImportModal() {
   document.getElementById('waPlanImportResults').innerHTML = '';
   document.getElementById('waPlanImportStart').value = '';
   document.getElementById('waPlanImportEnd').value = '';
-  document.getElementById('waPlanImportRangeBtn').textContent = 'حددي نطاق التاريخ';
+  document.getElementById('waPlanImportRangeBtn').textContent = waRangeBtnDefaultText();
   document.getElementById('waPlanImportOverlay').classList.add('open');
 }
 function closeWaPlanImportModal() {
@@ -9493,7 +9494,7 @@ function openWaImportModal() {
   updateWaFileLabel('waImportFile','waImportFileLabel');
   document.getElementById('waImportStart').value = '';
   document.getElementById('waImportEnd').value = '';
-  document.getElementById('waImportRangeBtn').textContent = 'حددي نطاق التاريخ';
+  document.getElementById('waImportRangeBtn').textContent = waRangeBtnDefaultText();
   waLoadCaches();
   waRenderPersistedSections();
   renderWaReviewQueue();
