@@ -3189,7 +3189,6 @@ let EMOJIS = {
 };
 
 async function loadEmojis() {
-  await syncPullAll();
   try {
     const s = localStorage.getItem('madad_emojis');
     if (s) EMOJIS = { ...EMOJIS, ...JSON.parse(s) };
@@ -4536,7 +4535,6 @@ function saveAttendData() {
   syncPush('madad_data');
 }
 async function loadAttendData() {
-  await syncPullAll();
   try {
     const saved = localStorage.getItem('madad_data');
     if (saved) attendData = JSON.parse(saved);
@@ -4809,7 +4807,6 @@ function clearGroupsForInactiveStudentsOnce() {
 }
 
 async function loadMaqData() {
-  await syncPullAll();
   try {
     const d = localStorage.getItem(STORE_DATA);
     if (d) maqData = JSON.parse(d);
@@ -7016,7 +7013,6 @@ function copyReportText() {
 let talqeenTasks = [];
 
 async function loadTalqeenTasks() {
-  await syncPullAll();
   try {
     const s = localStorage.getItem('madad_talqeen_tasks');
     talqeenTasks = s ? JSON.parse(s) : [];
@@ -7093,7 +7089,6 @@ function addTalqeenTask() {
 let talqeenTeam = [];
 
 async function loadTalqeenTeam() {
-  await syncPullAll();
   try {
     const s = localStorage.getItem('madad_talqeen_team');
     talqeenTeam = s ? JSON.parse(s) : [{ role: 'المديرة', name: '' }];
@@ -7308,7 +7303,6 @@ async function manualRefreshSchedule(btn) {
 }
 
 async function loadSchedule() {
-  await syncPullAll();
   try {
     const s = localStorage.getItem('madad_talqeen_schedule');
     scheduleRows = s ? JSON.parse(s) : [];
@@ -8214,7 +8208,6 @@ function applyIdeasVisibility() {
 }
 
 async function loadIdeas(screen) {
-  await syncPullAll();
   try {
     const c = localStorage.getItem(`madad_ideas_categories_${screen}`);
     ideasState[screen].categories = c ? JSON.parse(c) : [];
@@ -8487,7 +8480,6 @@ const DEFAULT_OBLIGATIONS = [
 let obligations = [];
 
 async function loadObligations() {
-  await syncPullAll();
   try {
     const s = localStorage.getItem('hasibat_obligations');
     if (s) {
@@ -8644,7 +8636,6 @@ function saveHasib() {
   syncPush('hasibat_madad');
 }
 async function loadHasib() {
-  await syncPullAll();
   try {
     const s = localStorage.getItem('hasibat_madad');
     if (s) hasibStudents = JSON.parse(s);
@@ -8716,7 +8707,6 @@ function setHasibView(view) {
 }
 
 async function loadFinance() {
-  await syncPullAll();
   try {
     const t = localStorage.getItem('madad_finance_total');
     financeTotal = t ? JSON.parse(t) : 0;
