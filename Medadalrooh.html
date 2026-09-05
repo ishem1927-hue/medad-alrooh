@@ -871,7 +871,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       <button class="icon-btn-sm accent" id="attendAlertsExpandedBtn" onclick="openExpandedAlertsPanel()" style="display:none;padding:0.3rem 0.55rem;font-size:0.72rem;" title="التنبيهات الموسّعة">🛎️</button>
       <button class="icon-btn-sm accent" id="attendSettingsTopBtn" onclick="openContextualSettings()" style="display:none;padding:0.3rem 0.55rem;font-size:0.72rem;">⚙️</button>
     </span>
-    <button class="icon-btn-sm accent" id="studentsToolsBtn" onclick="showScreen('studentsTools'); renderCertTopRows();" style="flex-shrink:0;margin-inline-start:auto;display:none;" title="أدوات الطالبات">🗃️</button>
+    <button class="icon-btn-sm accent" id="studentsToolsBtn" onclick="showScreen('studentsTools'); renderCertTopRows(); const ci=document.getElementById('cycleNumberFixInput'); if(ci) ci.value=toAr(currentCycleNumber);" style="flex-shrink:0;margin-inline-start:auto;display:none;" title="أدوات الطالبات">🗃️</button>
     <button id="studentsRefreshTopBtn" onclick="manualRefreshStudents(this)" title="تحديث من السحاب" style="display:none;border:none;background:var(--surface2);color:var(--wine);font-family:inherit;font-weight:700;font-size:0.9rem;border-radius:14px;padding:0.4rem 0.7rem;cursor:pointer;">⟳</button>
   </div>
 
@@ -1006,17 +1006,6 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
             <div class="stitle" style="margin-top:1.2rem;">↔️ نقل طالبة لمجموعة ثانية</div>
             <div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.5rem;">استخدميها بس قبل بداية الحلقات — بعد ما تبدأ الحلقات ما تحتاجين تنقلين.</div>
             <div id="transferStudentContent"></div>
-
-            <div class="stitle" style="margin-top:1.2rem;">🔁 أول دورة لكل طالبة</div>
-            <div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.5rem;">يحسب أول دورة لكل طالبة من قوائم الدورات المنتهية (نادر الاستخدام — بس لو لاحظتِ رمز خاطئ).</div>
-            <button class="icon-btn-sm accent" onclick="recomputeJoinCycles()" title="حساب أول دورة لكل طالبة">🔁</button>
-
-            <div class="stitle" style="margin-top:1.2rem;">🔢 رقم الدورة الحالية (داخلي)</div>
-            <div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.5rem;">هذا الرقم يتحكم برمز دورة الانضمام، وبأشياء ثانية — عدّليه بس لو صار فرق بينه وبين دورتك الفعلية (زي دورات قديمة أضفتيها يدويًا بالمواعيد قبل ما تستخدمي زر "🔄 بداية دورة جديدة" لها).</div>
-            <div class="emoji-row">
-              <span style="font-size:0.8rem;">الرقم الحالي:</span>
-              <input type="text" inputmode="numeric" id="cycleNumberFixInput" style="width:60px;" placeholder="٦" onchange="fixCurrentCycleNumber(this.value)">
-            </div>
           </div>
 
           <div id="settingsSub_halqa" style="display:none;">
@@ -1514,6 +1503,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   <div style="padding:0 1.2rem 1.5rem;">
 
     <button class="add-toggle-btn" id="addStudentToggle" onclick="toggleAddStudentForm()" style="margin:1rem 0 0;width:100%;">➕ إضافة طالبة جديدة</button>
+
+    <div style="display:flex;align-items:center;gap:0.6rem;margin-top:0.7rem;">
+      <button class="icon-btn-sm accent" onclick="recomputeJoinCycles()" title="حساب أول دورة لكل طالبة">🔁</button>
+      <input type="text" inputmode="numeric" id="cycleNumberFixInput" style="width:50px;" placeholder="٦" onchange="fixCurrentCycleNumber(this.value)" title="رقم الدورة الحالية">
+    </div>
 
     <div class="add-form" id="addStudentForm" style="display:none;">
       <div class="form-grid">
@@ -2836,20 +2830,21 @@ function recomputeJoinCycles() {
   scheduleRows.forEach(r => {
     if (!r.done || !r.rosterNames || !r.rosterNames.length) return;
     const n = parseInt(toEnDigits(r.num), 10);
-    if (n >= 1 && n <= 5) rosterByNum[n] = r.rosterNames;
+    if (n >= 1) rosterByNum[n] = r.rosterNames;
   });
+  const doneCycleNums = Object.keys(rosterByNum).map(Number).sort((a, b) => a - b);
   let changed = 0;
   students.forEach(s => {
     let found = null;
-    for (let n = 1; n <= 5; n++) {
-      if (rosterByNum[n] && rosterByNum[n].some(rn => matchesNameLoose(rn, s.name))) { found = n; break; }
+    for (const n of doneCycleNums) {
+      if (rosterByNum[n].some(rn => matchesNameLoose(rn, s.name))) { found = n; break; }
     }
     if (found) {
       s.joinCycle = found;
-      s.joinCycleEmoji = CYCLE_JOIN_EMOJIS[found];
+      s.joinCycleEmoji = CYCLE_JOIN_EMOJIS[found] || EMOJIS.star || '';
     } else if (s.active !== false) {
-      s.joinCycle = 6;
-      s.joinCycleEmoji = EMOJIS.star || '';
+      s.joinCycle = currentCycleNumber;
+      s.joinCycleEmoji = CYCLE_JOIN_EMOJIS[currentCycleNumber] || EMOJIS.star || '';
     } else {
       return; // غير نشطة ومو موجودة بأي قائمة — لا تُلمس (حالة غير متوفرة حسب المؤكد سابقًا)
     }
@@ -3498,8 +3493,6 @@ function setSettingsSubTab(key) {
   });
   if (key === 'group') {
     renderTransferStudentTool();
-    const cycleInput = document.getElementById('cycleNumberFixInput');
-    if (cycleInput) cycleInput.value = toAr(currentCycleNumber);
   }
 }
 
