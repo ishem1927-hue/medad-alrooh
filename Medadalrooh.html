@@ -2223,6 +2223,15 @@ const CYCLE_JOIN_EMOJIS = { 1: '🛳️', 2: '🌴', 3: '🎈', 4: '🌊', 5: '�
 function getCycleEmoji(cycleNum) {
   const n = parseInt(toEnDigits(cycleNum), 10);
   if (CYCLE_JOIN_EMOJIS[n]) return CYCLE_JOIN_EMOJIS[n];
+  const row = scheduleRows.find(r => r.done && parseInt(toEnDigits(r.num), 10) === n);
+  if (row) {
+    if (!row.joinEmoji) {
+      const match = students.find(s => s.joinCycle === n && s.joinCycleEmoji);
+      row.joinEmoji = match ? match.joinCycleEmoji : (EMOJIS.star || '');
+      saveSchedule();
+    }
+    return row.joinEmoji;
+  }
   const match = students.find(s => s.joinCycle === n && s.joinCycleEmoji);
   return match ? match.joinCycleEmoji : '';
 }
