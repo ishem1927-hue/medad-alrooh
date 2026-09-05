@@ -2850,7 +2850,7 @@ function recomputeJoinCycles() {
     }
     if (found) {
       s.joinCycle = found;
-      s.joinCycleEmoji = CYCLE_JOIN_EMOJIS[found] || EMOJIS.star || '';
+      s.joinCycleEmoji = getCycleEmoji(found) || EMOJIS.star || '';
     } else if (s.active !== false) {
       s.joinCycle = currentCycleNumber;
       s.joinCycleEmoji = CYCLE_JOIN_EMOJIS[currentCycleNumber] || EMOJIS.star || '';
