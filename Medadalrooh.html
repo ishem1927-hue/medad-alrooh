@@ -1009,7 +1009,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
           </div>
 
           <div id="settingsSub_halqa" style="display:none;">
-            <div class="stitle">🎙️ الحلقات المباشرة (تظهر يوم الجمعة-السبت)</div>
+            <div class="stitle">🎙️ الحلقات المباشرة (كل حلقة باسم معلمتها، وتحتها فتراتها)</div>
             <div class="emoji-row"><span style="font-size:0.8rem;">عدد الحلقات:</span><input type="text" inputmode="numeric" id="halqaCountInput" style="width:50px;" oninput="onHalqaCountChange(this.value)"></div>
             <div id="halqaNamesRows" style="margin-top:0.4rem;"></div>
 
@@ -1655,8 +1655,16 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         <div style="flex:1;">
           <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📱 الحلقة المباشرة</label>
           <div style="position:relative;">
-            <select id="waPlanImportHalqa" onchange="document.getElementById('waPlanImportHalqaLabel').textContent=this.options[this.selectedIndex]?this.options[this.selectedIndex].text:'';" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;"></select>
+            <select id="waPlanImportHalqa" onchange="onWaPlanImportHalqaChange()" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;"></select>
             <div id="waPlanImportHalqaLabel" class="wa-field-box" style="pointer-events:none;position:relative;"></div>
+            <span style="position:absolute;left:0.5rem;top:50%;transform:translateY(-50%);font-size:0.7rem;color:var(--muted);pointer-events:none;">⌄</span>
+          </div>
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">🕐 الفترة</label>
+          <div style="position:relative;">
+            <select id="waPlanImportPeriod" onchange="document.getElementById('waPlanImportPeriodLabel').textContent=this.options[this.selectedIndex]?this.options[this.selectedIndex].text:'';" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;"></select>
+            <div id="waPlanImportPeriodLabel" class="wa-field-box" style="pointer-events:none;position:relative;"></div>
             <span style="position:absolute;left:0.5rem;top:50%;transform:translateY(-50%);font-size:0.7rem;color:var(--muted);pointer-events:none;">⌄</span>
           </div>
         </div>
@@ -1831,7 +1839,7 @@ const ALL_DATA_KEYS = [
   'madad_ideas_categories_tafsir', 'madad_ideas_list_tafsir',
   'madad_pinned_week', 'madad_pinned_day', 'madad_cycle_number',
   'madad_cycle_star_list', 'madad_cycle_star_weeks', 'madad_weekly_excellent',
-  'madad_group_names', 'madad_halqa_names', 'madad_group_count', 'madad_halqa_count',
+  'madad_group_names', 'madad_halqa_names', 'madad_group_count', 'madad_halqa_count', 'madad_halqa_periods',
   'madad_halqa_dist', 'madad_event_participants', 'madad_kubra_splits', 'madad_archive',
 ];
 const CALC_ONLY_KEYS = ['hasibat_madad', 'hasibat_custom_pay', 'hasibat_obligations'];
@@ -2189,10 +2197,9 @@ function enterCurriculumMode(mode) {
   curriculumViewMode = mode;
   document.getElementById('curriculumChoiceScreen').style.display = 'none';
   document.getElementById('curriculumMainWrap').style.display = '';
-  // نضبط اليوم الحالي على أول يوم متاح بالقسم المختار لو اليوم الحالي مو من ضمنه
-  const allowedTypes = mode === 'weekly' ? ['sw', 'thu'] : ['sat', 'sat2'];
-  if (!allowedTypes.includes(ATTEND_DAYS[currentDay].type)) {
-    currentDay = ATTEND_DAYS.findIndex(d => allowedTypes.includes(d.type));
+  // نضبط اليوم الحالي على أول يوم متاح بالمتابعة الأسبوعية لو اليوم الحالي مو من ضمنها (الحلقة المباشرة صار لها تنقلها الخاص: حلقة ← فترة)
+  if (mode === 'weekly' && !['sw', 'thu'].includes(ATTEND_DAYS[currentDay].type)) {
+    currentDay = ATTEND_DAYS.findIndex(d => ['sw', 'thu'].includes(d.type));
   }
   renderCurriculumTab();
 }
@@ -3276,7 +3283,9 @@ function renderHalqaNamesRows() {
   if (!el) return;
   let html = '';
   for (let i = 1; i <= HALQA_COUNT; i++) {
-    html += `<div class="emoji-row"><span style="width:2rem;font-size:0.8rem;">${i}</span><input id="hname_${i}" placeholder="اسم الحلقة ${i}" value="${HALQA_NAMES[i] || ''}" onchange="saveHalqaName(${i}, this.value)"></div>`;
+    html += `<div class="emoji-row"><span style="width:2rem;font-size:0.8rem;">${i}</span><input id="hname_${i}" placeholder="اسم الحلقة ${i}" value="${HALQA_NAMES[i] || ''}" onchange="saveHalqaName(${i}, this.value)">`
+      + `<span style="font-size:0.72rem;color:var(--muted);white-space:nowrap;">عدد الفترات:</span>`
+      + `<input type="text" inputmode="numeric" style="width:40px;" id="hperiods_${i}" value="${toAr(getHalqaPeriodsCount(String(i)))}" onchange="saveHalqaPeriods(${i}, this.value)"></div>`;
   }
   el.innerHTML = html;
 }
@@ -3288,6 +3297,13 @@ function saveGroupName(k, val) {
 function saveHalqaName(k, val) {
   if (val && val.trim()) HALQA_NAMES[k] = val.trim(); else delete HALQA_NAMES[k];
   saveSectionNames();
+  renderCurriculumTab();
+}
+function saveHalqaPeriods(k, val) {
+  const n = parseInt(toEnDigits(val), 10);
+  HALQA_PERIODS[String(k)] = (!n || n < 1) ? 1 : n;
+  saveSectionNames();
+  renderHalqaDistTool();
   renderCurriculumTab();
 }
 function onGroupCountChange(val) {
@@ -3349,12 +3365,18 @@ function renderHalqaDistTool() {
   }
   let boxes = '';
   for (let i = 1; i <= halqaDistCount; i++) {
-    boxes += `
-      <div style="margin-bottom:0.7rem;">
-        <div style="font-size:0.8rem;font-weight:700;color:var(--wine);margin-bottom:0.3rem;">${getHalqaLabel(String(i))}</div>
-        <textarea id="halqaPaste_${i}" class="form-input form-input-full" placeholder="الصقي أسماء طالبات هذي الحلقة، كل اسم بسطر" style="min-height:80px;"></textarea>
-      </div>
-    `;
+    boxes += `<div style="margin-bottom:0.9rem;padding-bottom:0.5rem;border-bottom:1px dashed #e8d5d5;">
+      <div style="font-size:0.82rem;font-weight:800;color:var(--wine);margin-bottom:0.4rem;">${getHalqaLabel(String(i))}</div>`;
+    const pCount = getHalqaPeriodsCount(String(i));
+    for (let p = 1; p <= pCount; p++) {
+      boxes += `
+        <div style="margin-bottom:0.5rem;">
+          <div style="font-size:0.76rem;font-weight:700;color:var(--muted);margin-bottom:0.2rem;">الفترة ${toAr(p)}</div>
+          <textarea id="halqaPaste_${i}_${p}" class="form-input form-input-full" placeholder="الصقي أسماء طالبات هذي الفترة، كل اسم بسطر" style="min-height:70px;"></textarea>
+        </div>
+      `;
+    }
+    boxes += `</div>`;
   }
   el.innerHTML = boxes + `
     <button class="add-btn" onclick="confirmHalqaDist()">✓ حفظ كل الحلقات</button>
@@ -3378,14 +3400,17 @@ function confirmHalqaDist() {
   let matched = 0;
   const unmatched = [];
   for (let i = 1; i <= halqaDistCount; i++) {
-    const box = document.getElementById('halqaPaste_' + i);
-    if (!box) continue;
-    const names = box.value.split('\n').map(n => stripNumbering(n)).filter(Boolean);
-    names.forEach(name => {
-      const s = students.find(x => x.active !== false && (squashForMatch2(x.name) === squashForMatch2(name) || matchesNameLoose(name, x.name)));
-      if (s) { halqaDist[s.id] = String(i); matched++; }
-      else unmatched.push(name);
-    });
+    const pCount = getHalqaPeriodsCount(String(i));
+    for (let p = 1; p <= pCount; p++) {
+      const box = document.getElementById('halqaPaste_' + i + '_' + p);
+      if (!box) continue;
+      const names = box.value.split('\n').map(n => stripNumbering(n)).filter(Boolean);
+      names.forEach(name => {
+        const s = students.find(x => x.active !== false && (squashForMatch2(x.name) === squashForMatch2(name) || matchesNameLoose(name, x.name)));
+        if (s) { halqaDist[s.id] = String(i) + ':' + String(p); matched++; }
+        else unmatched.push(name);
+      });
+    }
   }
   saveHalqaDist();
   const unmatchedEl = document.getElementById('halqaDistUnmatched');
@@ -3665,6 +3690,7 @@ let weekTapState = { index: null, count: 0, timer: null };
 // أسماء المجموعات والحلقات المباشرة (قابلة للتعديل) + عددها
 let GROUP_NAMES = {};   // {'1': 'بوابة المنجزات 1', ...}
 let HALQA_NAMES = {};   // {'1': 'الحلقة المباشرة ١', ...}
+let HALQA_PERIODS = {}; // {'1': 2, '2': 1, ...} — عدد فترات كل حلقة (مفتوح بدون حد أقصى)
 let GROUP_COUNT = 2;
 let HALQA_COUNT = 3;
 
@@ -3674,6 +3700,8 @@ function loadSectionNames() {
     if (g) GROUP_NAMES = JSON.parse(g);
     const h = localStorage.getItem('madad_halqa_names');
     if (h) HALQA_NAMES = JSON.parse(h);
+    const hp = localStorage.getItem('madad_halqa_periods');
+    if (hp) HALQA_PERIODS = JSON.parse(hp);
     const gc = localStorage.getItem('madad_group_count');
     if (gc) GROUP_COUNT = parseInt(gc, 10) || 2;
     const hc = localStorage.getItem('madad_halqa_count');
@@ -3684,8 +3712,28 @@ function loadSectionNames() {
 function saveSectionNames() {
   localStorage.setItem('madad_group_names', JSON.stringify(GROUP_NAMES));
   localStorage.setItem('madad_halqa_names', JSON.stringify(HALQA_NAMES));
+  localStorage.setItem('madad_halqa_periods', JSON.stringify(HALQA_PERIODS));
   syncPush('madad_group_names');
   syncPush('madad_halqa_names');
+  syncPush('madad_halqa_periods');
+}
+
+// عدد فترات حلقة معيّنة (١ افتراضيًا لو ما حُدد)
+function getHalqaPeriodsCount(k) {
+  const n = parseInt(HALQA_PERIODS[k], 10);
+  return (!n || n < 1) ? 1 : n;
+}
+// الحلقة والفترة اللي الطالبة موزّعة عليها — مخزّنة سوا بصيغة "حلقة:فترة" بنفس halqaDist القديم
+function getStudentHalqaId(sid) {
+  const v = halqaDist[sid];
+  if (!v) return null;
+  return String(v).split(':')[0];
+}
+function getStudentPeriod(sid) {
+  const v = halqaDist[sid];
+  if (!v) return null;
+  const parts = String(v).split(':');
+  return parts[1] || '1';
 }
 
 function saveSectionCounts() {
@@ -3703,7 +3751,9 @@ function getHalqaLabel(k) {
   return HALQA_NAMES[k] || ('الحلقة المباشرة ' + k);
 }
 var currentGroupTab = null;
-var currentSatTab = null;
+var currentLiveHalqa = null;   // تبويب الحلقة (المعلمة) المفتوح بشاشة الحلقة المباشرة
+var currentLivePeriod = null;  // تبويب الفترة المفتوح داخل الحلقة
+var liveClosingActive = false; // هل تبويب "الحلقة الختامية" هو المفتوح حاليًا بشاشة الحلقة المباشرة
 
 function loadPinnedWeek() {
   var v = localStorage.getItem('madad_pinned_week');
@@ -3776,7 +3826,7 @@ function updatePinnedBadge() {
       var parts = [];
       if (pinnedWeek !== null) parts.push(toAr(pinnedWeek + 1));
       if (pinnedDay !== null) {
-        var shortDayLabels = { 'الجمعة - السبت': 'جمعة-سبت', 'الحلقة الختامية': 'ختامية' };
+        var shortDayLabels = {};
         var fullLbl = (ATTEND_DAYS[pinnedDay] || {}).label || '';
         parts.push(shortDayLabels[fullLbl] || fullLbl);
       }
@@ -3896,7 +3946,7 @@ function updateAlertsBadge() {
   btn.style.display = '';
   if (expandedBtn) expandedBtn.style.display = (curriculumActiveRole === 'admin') ? '' : 'none';
   if (backBtn) backBtn.style.display = (curriculumActiveRole === 'admin' && curriculumViewMode) ? '' : 'none';
-  const count = getAlertsCount(currentWeek, currentDay);
+  const count = getAlertsCount(currentWeek, curriculumViewMode === 'live' ? liveAttendKey() : currentDay);
   const dot = document.getElementById('attendAlertsCount');
   if (dot) {
     if (count > 0) { dot.textContent = toAr(count); dot.style.display = 'inline-flex'; }
@@ -3905,10 +3955,11 @@ function updateAlertsBadge() {
 }
 
 function openAlertsPanel() {
-  const list = (attendAlerts[alertKey(currentWeek, currentDay)] || []).slice();
-  const dayLabel = (ATTEND_DAYS[currentDay] || {}).label || '';
+  const byHalqa = curriculumViewMode === 'live'; // الحلقة المباشرة → تجميع حسب الحلقة (المعلمة)
+  const alertsDayKey = byHalqa ? liveAttendKey() : currentDay;
+  const list = (attendAlerts[alertKey(currentWeek, alertsDayKey)] || []).slice();
+  const dayLabel = byHalqa ? (getHalqaLabel(currentLiveHalqa) + ' — الفترة ' + toAr(currentLivePeriod)) : ((ATTEND_DAYS[currentDay] || {}).label || '');
   const weekLabel = WEEK_NAMES[currentWeek] || '';
-  const byHalqa = ['sat', 'sat2'].includes((ATTEND_DAYS[currentDay] || {}).type); // الجمعة/السبت والحلقة الختامية → حسب الحلقة المباشرة
   let body = '';
   if (!list.length) {
     body = '<div style="color:var(--muted);font-size:0.85rem;padding:0.5rem 0;">لا توجد تنبيهات لهذا اليوم ✅</div>';
@@ -3919,7 +3970,7 @@ function openAlertsPanel() {
       const stu = maqAllStudents.find(x => x.id === a.studentId);
       let gKey, gLabel;
       if (byHalqa) {
-        const h = stu ? halqaDist[stu.id] : null;
+        const h = stu ? getStudentHalqaId(stu.id) : null;
         gKey = h || '_none';
         gLabel = h ? getHalqaLabel(h) : 'بدون حلقة محددة';
       } else {
@@ -3948,13 +3999,12 @@ function openAlertsPanel() {
   showInfoModal(`🔔 تنبيهات الأسبوع ${weekLabel} — ${dayLabel}`, `<div style="max-height:55vh;overflow-y:auto;text-align:right;">${body}</div>`);
 }
 
-// لوحة التنبيهات الموسّعة (للإدارة بس) — قسمين: المتابعة الأسبوعية (حركة المشرفة) والحلقة المباشرة (حركة المعلمة)
-function buildExpandedAlertsSectionHTML(allowedTypes) {
+function buildExpandedWeeklyAlertsHTML() {
   let html = '';
   let hasAny = false;
   WEEK_NAMES.forEach((weekName, w) => {
     ATTEND_DAYS.forEach((day, d) => {
-      if (!allowedTypes.includes(day.type)) return;
+      if (!['sw', 'thu'].includes(day.type)) return;
       const list = (attendAlerts[alertKey(w, d)] || []).slice();
       if (!list.length) return;
       hasAny = true;
@@ -3969,9 +4019,36 @@ function buildExpandedAlertsSectionHTML(allowedTypes) {
   if (!hasAny) html = '<div style="color:var(--muted);font-size:0.85rem;padding:0.5rem 0;">لا توجد تنبيهات ✅</div>';
   return html;
 }
+function buildExpandedLiveAlertsHTML() {
+  let html = '';
+  let hasAny = false;
+  const weekLabels = WEEK_NAMES.concat(['الحلقة الختامية']);
+  weekLabels.forEach((weekName, w) => {
+    const isClosingRow = (w === weekLabels.length - 1);
+    const weekIdx = isClosingRow ? WEEK_NAMES.length - 1 : w;
+    for (let h = 1; h <= HALQA_COUNT; h++) {
+      const pCount = getHalqaPeriodsCount(String(h));
+      for (let p = 1; p <= pCount; p++) {
+        const dayKey = liveKeyFor(h, p, isClosingRow);
+        const list = (attendAlerts[alertKey(weekIdx, dayKey)] || []).slice();
+        if (!list.length) continue;
+        hasAny = true;
+        list.sort((a, b) => a.studentName.localeCompare(b.studentName, 'ar'));
+        const label = `${weekName} — ${getHalqaLabel(String(h))} — الفترة ${toAr(p)}`;
+        html += `<div style="font-weight:800;color:var(--wine);font-size:0.85rem;margin:0.7rem 0 0.3rem;">📅 ${label}</div>`;
+        html += list.map(a => `<div style="display:flex;justify-content:space-between;gap:0.5rem;padding:0.45rem 0;border-bottom:1px solid var(--border);font-size:0.82rem;">
+          <span style="font-weight:700;color:var(--ink);">${firstTwoWords(a.studentName)}</span>
+          <span style="color:var(--wine);">${ALERT_LABELS[a.kind] || a.kind}</span>
+        </div>`).join('');
+      }
+    }
+  });
+  if (!hasAny) html = '<div style="color:var(--muted);font-size:0.85rem;padding:0.5rem 0;">لا توجد تنبيهات ✅</div>';
+  return html;
+}
 function openExpandedAlertsPanel() {
-  const weeklyHTML = buildExpandedAlertsSectionHTML(['sw', 'thu']);
-  const liveHTML = buildExpandedAlertsSectionHTML(['sat', 'sat2']);
+  const weeklyHTML = buildExpandedWeeklyAlertsHTML();
+  const liveHTML = buildExpandedLiveAlertsHTML();
   const body = `
     <div style="max-height:65vh;overflow-y:auto;text-align:right;">
       <div style="font-weight:900;color:var(--wine);font-size:0.9rem;margin-bottom:0.4rem;">📆 المتابعة الأسبوعية</div>
@@ -4034,12 +4111,13 @@ function goToStudentsTab() {
 }
 
 function setAttendSat(s, v) {
-  const cur = getAttendVal(currentWeek, currentDay, s);
+  const dayKey = liveAttendKey();
+  const cur = getAttendVal(currentWeek, dayKey, s);
   const newVal = cur === v ? null : v;
-  setAttendVal(currentWeek, currentDay, s, newVal);
+  setAttendVal(currentWeek, dayKey, s, newVal);
   const stu = maqAllStudents.find(x => x.name === s);
-  if (stu) setPrimaryAttendAlert(currentWeek, currentDay, stu.id, stu.name, newVal);
-  if ((ATTEND_DAYS[currentDay] || {}).type === 'sat') {
+  if (stu) setPrimaryAttendAlert(currentWeek, dayKey, stu.id, stu.name, newVal);
+  if (!liveClosingActive) {
     if (stu) {
       const sg = stu.group && stu.group.trim() ? stu.group.trim() : '';
       if (newVal === 'absent' || newVal === 'excused') {
@@ -4051,7 +4129,7 @@ function setAttendSat(s, v) {
         if (sd.type === 'eada') {
           sd.type = '';
           saveMaqData();
-          setSecondaryAttendAlert(currentWeek, currentDay, stu.id, stu.name, 'eada_auto', false);
+          setSecondaryAttendAlert(currentWeek, dayKey, stu.id, stu.name, 'eada_auto', false);
         }
       }
     }
@@ -4935,13 +5013,12 @@ function setMissingStatsTab(tab) {
 function renderMissingStats() {
   const el = document.getElementById('missingStatsContent');
   if (!el) return;
-  const isSat = ['sat', 'sat2'].includes((ATTEND_DAYS[currentDay] || {}).type);
-  const isThu = currentDay === 5;
-  const satLabels = {'1':getHalqaLabel('1'),'2':getHalqaLabel('2'),'3':getHalqaLabel('3')};
+  const isLive = curriculumViewMode === 'live';
+  const isThu = !isLive && currentDay === 5;
 
   // شريط التبويبات الأفقي (يظهر بس لما فيه أكثر من قائمة، يعني بالخميس)
   let tabsHtml = '';
-  if (isThu && !isSat) {
+  if (isThu) {
     const tabs = [
       { key: 'attend', label: '☑️ التحضير اليومي' },
       { key: 'kubra', label: '⭐️ المراجعة الكبرى' },
@@ -4951,19 +5028,21 @@ function renderMissingStats() {
       tabs.map(t => '<div class="group-tab' + (missingStatsActiveTab === t.key ? ' active' : '') + '" style="padding:0.3rem 0;font-size:0.62rem;white-space:nowrap;" onclick="setMissingStatsTab(\'' + t.key + '\')">' + t.label + '</div>').join('') +
       '</div>';
   } else if (missingStatsActiveTab !== 'attend') {
-    missingStatsActiveTab = 'attend'; // الأيام العادية والجمعة-السبت ما فيها إلا قائمة التحضير
+    missingStatsActiveTab = 'attend'; // الأيام العادية والحلقة المباشرة ما فيها إلا قائمة التحضير
   }
 
   let html = tabsHtml;
 
-  if (isSat) {
-    // الجمعة-السبت: الخطط والتحضير مقسّمين حسب نقاط العبور
-    if (currentDay !== 6) {
+  if (isLive) {
+    // الحلقة المباشرة: كل طالبة تُفحص بحلقتها وفترتها هي (مو التبويب المفتوح حاليًا فقط)
+    const studentDayKey = s => liveKeyFor(getStudentHalqaId(s.id) || '0', getStudentPeriod(s.id) || '1', liveClosingActive);
+    const groupLbl = k => getHalqaLabel(k);
+    if (!liveClosingActive) {
       const missingPlans = maqAllStudents.filter(s => { const sd = getStudentData(s.group&&s.group.trim()?s.group.trim():'', currentWeek, s.id); return !sd.hifz || !sd.hifz.trim(); });
-      html += buildGroupedHtml('📋 الخطط الناقصة', missingPlans, s => halqaDist[s.id] || 'غير محدد', k => satLabels[k] || k);
+      html += buildGroupedHtml('📋 الخطط الناقصة', missingPlans, s => getStudentHalqaId(s.id) || 'غير محدد', groupLbl);
     }
-    const missingAttend = maqAllStudents.filter(s => !getAttendVal(currentWeek, currentDay, s.name));
-    html += buildGroupedHtml('☑️ التحضير اليومي', missingAttend, s => halqaDist[s.id] || 'غير محدد', k => satLabels[k] || k, s => computeStudentDailyStatus(s.name, currentWeek, currentDay).excluded);
+    const missingAttend = maqAllStudents.filter(s => !getAttendVal(currentWeek, studentDayKey(s), s.name));
+    html += buildGroupedHtml('☑️ التحضير اليومي', missingAttend, s => getStudentHalqaId(s.id) || 'غير محدد', groupLbl);
   } else if (!isThu) {
     // الأيام العادية: التحضير مقسّم حسب المجموعة
     const missingAttend = maqAllStudents.filter(s => !getAttendVal(currentWeek, currentDay, s.name));
@@ -4997,13 +5076,10 @@ function getStudentData(group, week, id) {
   return maqData[key];
 }
 
-// اسم حقل التقييم المناسب لليوم الحالي: الحلقة الختامية (يوم 6) لها حقل مستقل تمامًا عن الجمعة-السبت،
-// عشان تصفير/تعديل تقييم أحدهم ما يأثر على الثاني إطلاقًا (كانوا يتشاركون نفس الحقل سابقًا وهذا كان خلل)
+// اسم حقل التقييم: الحلقة الختامية لها حقل مستقل تمامًا عن باقي الفترات،
+// عشان تصفير/تعديل تقييم أحدهم ما يأثر على الثاني إطلاقًا
 function getRatingFieldName() {
-  const key = (ATTEND_DAYS[currentDay] || {}).key;
-  if (key === 'sat2') return 'ratingSat2';
-  if (key === 'sat3') return 'ratingSat3';
-  return 'rating';
+  return liveClosingActive ? 'ratingClosing' : 'rating';
 }
 
 // "إعادة": تعليم الأسبوع الحالي كإعادة + نسخ خطة الحفظ الأسبوعية (المقرر + تقسيم الأيام) من آخر أسبوع حقيقي
@@ -5020,7 +5096,7 @@ function applyEadaRepeat(id, group) {
   sd.hifz = srcSd.hifz || '';
   sd.dayPlan = srcSd.dayPlan ? srcSd.dayPlan.slice() : ['','','',''];
   const stu = maqAllStudents.find(x => x.id === id);
-  if (stu) setSecondaryAttendAlert(currentWeek, currentDay, id, stu.name, 'eada_auto', true);
+  if (stu) setSecondaryAttendAlert(currentWeek, liveAttendKey(), id, stu.name, 'eada_auto', true);
 }
 
 // تقييم التسميع (🌟🌟🌟/🌟🌟/🌟) — يُحفظ على بيانات الأسبوع الحالي؛ 🌟 وحدة تُفعّل الإعادة تلقائيًا
@@ -5044,8 +5120,10 @@ function eventConditionsPass(id) {
   const sd = getStudentData(sg, currentWeek, id);
   const kb = getKubra(sg, id);
 
-  // غياب (بعذر أو بدون) بأي يوم مسجّل هذا الأسبوع (الجمعة-السبت للأربعاء وللخميس)
-  for (let d = 0; d <= 5; d++) {
+  // غياب (بعذر أو بدون) بالحلقة المباشرة هذا الأسبوع (حلقة وفترة الطالبة) + الأحد للأربعاء وللخميس
+  const liveVal = getAttendVal(currentWeek, liveKeyFor(getStudentHalqaId(id) || '0', getStudentPeriod(id) || '1', false), s.name);
+  if (liveVal === 'absent' || liveVal === 'excused') return false;
+  for (let d = 1; d <= 5; d++) {
     const v = getAttendVal(currentWeek, d, s.name);
     if (v === 'absent' || v === 'excused') return false;
   }
@@ -5139,13 +5217,12 @@ function renderWeekBar() {
 
   WEEK_NAMES.forEach((name, i) => {
     const btn = document.createElement('button');
-    btn.className = 'maq-week-btn' + (i === currentWeek ? ' active' : '');
+    btn.className = 'maq-week-btn' + (i === currentWeek && !liveClosingActive ? ' active' : '');
     btn.textContent = toAr(i + 1);
     btn.style.touchAction = 'manipulation'; // يمنع إيماءة التكبير الطبيعية عند الضغط السريع المتكرر
     btn.onclick = () => {
       currentWeek = i;
-      // تبويب الحلقة الختامية يظهر بس بالأسبوع الأخير — لو كنا فيه وتنقلنا لأسبوع ثاني نرجع لأول يوم
-      if (currentDay === 6 && currentWeek !== WEEK_NAMES.length - 1) currentDay = 0;
+      liveClosingActive = false;
       // عداد النقر محفوظ بمتغير عام (weekTapState) عشان ما يتصفر مع كل إعادة رسم
       if (weekTapState.index === i) {
         weekTapState.count++;
@@ -5166,6 +5243,20 @@ function renderWeekBar() {
     el.appendChild(btn);
   });
 
+  // تبويب "الحلقة الختامية" — يظهر طول الوقت بس بوضع الحلقة المباشرة، جنب الأسابيع مباشرة
+  if (curriculumViewMode === 'live') {
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'maq-week-btn' + (liveClosingActive ? ' active' : '');
+    closeBtn.textContent = '🎓 ختامية';
+    closeBtn.style.touchAction = 'manipulation';
+    closeBtn.onclick = () => {
+      currentWeek = WEEK_NAMES.length - 1; // بيانات الحلقة الختامية مبنية على آخر أسبوع بالدورة
+      liveClosingActive = true;
+      renderCurriculumTab();
+    };
+    el.appendChild(closeBtn);
+  }
+
   // زر التقرير مكان الدبوس القديم — بعد الأرقام (يصير أقصى اليسار بصفحة RTL)
   const reportBtn = document.createElement('button');
   reportBtn.className = 'top-report-btn';
@@ -5180,19 +5271,13 @@ function renderWeekBar() {
 function renderDayTabsBar() {
   const tabs = document.getElementById('dayTabs');
   tabs.innerHTML = '';
-  const allowedTypes = curriculumViewMode === 'weekly' ? ['sw', 'thu'] : curriculumViewMode === 'live' ? ['sat', 'sat2'] : null;
-  // ترتيب الظهور بالحلقة المباشرة: الجمعة ← السبت ← الحلقة الختامية (بغض النظر عن ترقيمها الداخلي)
-  const liveDisplayOrder = ['sat', 'sat3', 'sat2'];
-  let indices;
-  if (curriculumViewMode === 'live') {
-    indices = liveDisplayOrder.map(k => ATTEND_DAYS.findIndex(d => d.key === k)).filter(i => i >= 0);
-  } else {
-    indices = ATTEND_DAYS.map((d, i) => i);
-  }
+  // شريط الأيام هذا خاص بالمتابعة الأسبوعية بس — شاشة الحلقة المباشرة صار لها تنقلها الخاص (حلقة ← فترة) عبر renderLiveNav()
+  if (curriculumViewMode !== 'weekly') return;
+  const allowedTypes = ['sw', 'thu'];
+  const indices = ATTEND_DAYS.map((d, i) => i);
   indices.forEach(i => {
     const d = ATTEND_DAYS[i];
-    if (allowedTypes && !allowedTypes.includes(d.type)) return; // فلترة حسب القسم المختار (أسبوعية/حلقة مباشرة)
-    if (d.type === 'sat2' && currentWeek !== WEEK_NAMES.length - 1) return; // ما تظهر إلا بالأسبوع الأخير
+    if (allowedTypes && !allowedTypes.includes(d.type)) return; // فلترة حسب القسم المختار (أسبوعية)
     const btn = document.createElement('button');
     btn.className = 'day-tab' + (i === currentDay ? ' active' : '') + (hasAttendData(currentWeek, i) ? ' has-data' : '');
     btn.textContent = d.label;
@@ -5224,13 +5309,7 @@ function buildDayEvalHTML(name, hasKubra, hasSplit, hasTaahud) {
   const val = getAttendVal(currentWeek, currentDay, name);
   let html = `<div class="day-eval-label">📋 تقييم يوم ${day.label}</div>`;
 
-  if (day.type === 'sat') {
-    html += `<div class="sat-options">
-      <button class="sat-btn ${val==='attend'?'sel-attend':''}" onclick="setAttendSat('${name}','attend')">${EMOJIS.sat_attend} حضور</button>
-      <button class="sat-btn ${val==='excused'?'sel-excused':''}" onclick="setAttendSat('${name}','excused')">${EMOJIS.excused} بعذر</button>
-      <button class="sat-btn ${val==='absent'?'sel-absent':''}" onclick="setAttendSat('${name}','absent')">${EMOJIS.absent} غياب</button>
-    </div>`;
-  } else if (day.type === 'thu') {
+  if (day.type === 'thu') {
     html += `<div class="thu-options">
       <button class="thu-btn ${val==='done'?'sel-done':''}" onclick="setAttendThu('${name}','done')">${EMOJIS.thu_done} مع التحدي</button>
       <button class="thu-btn ${val==='full'?'sel-done':''}" onclick="setAttendThu('${name}','full')">${EMOJIS.thu_full} بدون تحدي</button>
@@ -5298,8 +5377,12 @@ function buildDayEvalHTML(name, hasKubra, hasSplit, hasTaahud) {
 function renderCurriculumTab() {
   if (typeof recomputeEventStatus === 'function') { try { recomputeEventStatus(); } catch(e) {} }
   renderWeekBar();
-  renderDayTabsBar();
-  renderMaqStudents();
+  if (curriculumViewMode === 'live') {
+    renderLiveNav();
+  } else {
+    renderDayTabsBar();
+    renderMaqStudents();
+  }
   // تحديث لوحة الناقص إذا كانت مفتوحة
   var msPanel = document.getElementById('missingStatsPanel');
   if (msPanel && msPanel.style.display !== 'none' && typeof renderMissingStats === 'function') {
@@ -5308,14 +5391,44 @@ function renderCurriculumTab() {
   if (typeof updateAlertsBadge === 'function') { try { updateAlertsBadge(); } catch(e) {} }
 }
 
-function copySatSection(sec, label) {
-  var grp = maqAllStudents.filter(function(s){ return halqaDist[s.id] === sec; });
-  if (!grp.length) { showToast('لا توجد طالبات بهذي الحلقة'); return; }
+// مفتاح تخزين تحضير الحلقة المباشرة — حلقة+فترة بدل يوم (نفس آلية getAttendVal/setAttendVal، بس المفتاح صار نصي)
+// الحلقة الختامية تاخذ بادئة "c" عشان ما تتضارب مع بيانات نفس الحلقة/الفترة بالأسبوع الرابع العادي
+function liveKeyFor(halqa, period, closing) {
+  return (closing ? 'c' : '') + 'h' + halqa + 'p' + period;
+}
+function liveAttendKey() {
+  return liveKeyFor(currentLiveHalqa, currentLivePeriod, liveClosingActive);
+}
+
+// شريط تنقل الحلقة المباشرة: تبويب الحلقات (المعلمات) فوق، وتحته تبويب فترات الحلقة المختارة
+function renderLiveNav() {
+  const tabsEl = document.getElementById('dayTabs');
+  tabsEl.innerHTML = '';
+  const secs = [];
+  for (let i = 1; i <= HALQA_COUNT; i++) secs.push(String(i));
+  if (!secs.length) { document.getElementById('maqStudentList').innerHTML = '<div class="empty-state"><div>حددي الحلقات المباشرة بالإعدادات ⚙️</div></div>'; return; }
+  if (!currentLiveHalqa || secs.indexOf(currentLiveHalqa) < 0) currentLiveHalqa = secs[0];
+
+  secs.forEach(k => {
+    const btn = document.createElement('button');
+    btn.className = 'day-tab' + (k === currentLiveHalqa ? ' active' : '');
+    btn.textContent = getHalqaLabel(k);
+    btn.style.touchAction = 'manipulation';
+    btn.onclick = () => { currentLiveHalqa = k; currentLivePeriod = null; renderCurriculumTab(); };
+    tabsEl.appendChild(btn);
+  });
+
+  renderSatView();
+}
+
+function copySatSection(halqaId, periodId, label) {
+  var grp = maqAllStudents.filter(function(s){ return getStudentHalqaId(s.id) === halqaId && getStudentPeriod(s.id) === periodId; });
+  if (!grp.length) { showToast('لا توجد طالبات بهذي الفترة'); return; }
   var missing = [];
   var lines = ['*طالبات '+label+'*',''];
   var num = 0;
   grp.forEach(function(s){
-    var att = getAttendVal(currentWeek, currentDay, s.name);
+    var att = getAttendVal(currentWeek, liveAttendKey(), s.name);
     var symbol = '';
     if (!att) {
       missing.push(s.name + ' (بدون تحضير)');
@@ -5348,20 +5461,20 @@ function copySatSection(sec, label) {
 function renderSatView() {
   var el = document.getElementById('maqStudentList');
   el.innerHTML = '';
-  var secs = [];
-  for (var i = 1; i <= HALQA_COUNT; i++) secs.push(String(i));
-  var lbls = {};
-  secs.forEach(function(k){ lbls[k] = getHalqaLabel(k); });
 
-  // التبويبات — تظهر كلها حسب العدد المحدد بالإعدادات، حتى لو فاضية بدون طالبات
-  var availSecs = secs;
-  if(!availSecs.length){ el.innerHTML='<div class="empty-state"><div>حددي عدد الحلقات المباشرة بالإعدادات ⚙️</div></div>'; return; }
-  if(!currentSatTab || availSecs.indexOf(currentSatTab)<0) currentSatTab = availSecs[0];
+  const pCount = getHalqaPeriodsCount(currentLiveHalqa);
+  const periods = [];
+  for (let p = 1; p <= pCount; p++) periods.push(String(p));
+  if (!currentLivePeriod || periods.indexOf(currentLivePeriod) < 0) currentLivePeriod = periods[0];
+
+  // تبويبات الفترات (تحت تبويبات الحلقات)
   renderGroupTabs(
-    availSecs.map(function(s){ return {label: lbls[s], key: s}; }),
-    currentSatTab,
-    function(key){ currentSatTab = key; renderSatView(); }
+    periods.map(function(p){ return {label: 'الفترة ' + toAr(p), key: p}; }),
+    currentLivePeriod,
+    function(key){ currentLivePeriod = key; renderSatView(); }
   );
+
+  var haqLabel = getHalqaLabel(currentLiveHalqa) + ' — الفترة ' + toAr(currentLivePeriod);
 
   // زر نسخ الحاضرات
   var copyRow = document.createElement('div');
@@ -5370,18 +5483,19 @@ function renderSatView() {
   cb.textContent = '📋';
   cb.title = 'نسخ قائمة الحاضرات';
   cb.style.cssText='background:var(--wine);color:#fff;border:none;border-radius:8px;padding:0.2rem 0.6rem;font-size:0.9rem;cursor:pointer;';
-  (function(s2,l2){ cb.onclick=function(){ copySatSection(s2,l2); }; })(currentSatTab, lbls[currentSatTab]);
+  (function(h2,p2,l2){ cb.onclick=function(){ copySatSection(h2,p2,l2); }; })(currentLiveHalqa, currentLivePeriod, haqLabel);
   copyRow.appendChild(cb);
   el.appendChild(copyRow);
 
-  // طالبات النقطة المختارة
-  var grp = maqAllStudents.filter(function(s){ return halqaDist[s.id]===currentSatTab; });
+  // طالبات الحلقة والفترة المختارة
+  var grp = maqAllStudents.filter(function(s){ return getStudentHalqaId(s.id) === currentLiveHalqa && getStudentPeriod(s.id) === currentLivePeriod; });
+  if (!grp.length) { el.innerHTML += '<div class="empty-state"><div>ما فيه طالبات موزّعات على هذي الفترة بعد</div></div>'; return; }
   grp.forEach(function(s,idx) {
     var sg = s.group && s.group.trim() ? s.group.trim() : '';
     var sd = getStudentData(sg, currentWeek, s.id);
     var kb = getKubra(sg, s.id);
     var th = getTaahud(s.id);
-    var val = getAttendVal(currentWeek, currentDay, s.name);
+    var val = getAttendVal(currentWeek, liveAttendKey(), s.name);
     var isOpen = openMaqCardId === s.id;
     var card = document.createElement('div');
     card.className = 'maq-student-card'; card.id = 'maqcard_'+s.id;
@@ -5396,7 +5510,7 @@ function renderSatView() {
         +'<div class="maq-card-body" style="'+(isOpen?'':'display:none;')+'">'  
         +(function(){
           var out = '';
-          var isClosing = (currentDay === 6);
+          var isClosing = liveClosingActive;
           function box(label, content) {
             return '<div class="maq-field-group" style="margin-bottom:0.5rem;">'
               +'<div class="maq-field-label" style="color:var(--wine);">'+label+'</div>'
@@ -5475,7 +5589,7 @@ function renderSatView() {
         })()
 
         +'<div class="day-eval-box">'
-        +'<div class="day-eval-label">📋 تقييم '+((ATTEND_DAYS[currentDay]||{}).label||'')+'</div>'
+        +'<div class="day-eval-label">📋 تقييم الفترة '+toAr(currentLivePeriod)+'</div>'
         +'<div class="sat-options">'
         +'<button class="sat-btn '+(val==='attend'?'sel-attend':'')
         +'" onclick="setAttendSat(\''+s.name+'\',\'attend\')">'+EMOJIS.sat_attend+' حضور</button>'
@@ -5502,7 +5616,6 @@ function renderGroupTabs(groups, activeKey, onSelect) {
 }
 
 function renderMaqStudents() {
-  if (['sat', 'sat2'].includes((ATTEND_DAYS[currentDay] || {}).type)) { renderSatView(); return; }
   const el = document.getElementById('maqStudentList');
   el.innerHTML = '';
 
@@ -5593,21 +5706,8 @@ function renderMaqStudents() {
 
         ${(function(){
           const hasSplit = getKubraSplit(s.id).some(d => d && d.trim());
-          const isFriSat = (ATTEND_DAYS[currentDay] || {}).type === 'sat';
-          if (isFriSat && currentWeek === 0) return ''; // الجمعة-السبت بالأسبوع الأول: ما تظهر كبرى لأي نوع
           if (hasSplit) {
             if (currentDay === 5) return ''; // الخميس: ما تظهر كبرى إطلاقًا لو فيه تقسيم
-            if (isFriSat) {
-              // الجمعة-السبت (أسبوع ٢-٣-٤): نفس نص "المقرر" الملخّص، مو قيمة يوم منفصلة
-              return `<div class="kubra-section show" id="kubra_section_${s.id}">
-                <div class="maq-field-group" style="margin-bottom:0">
-                  <div class="maq-field-label">⭐ المراجعة الكبرى</div>
-                  <input class="maq-field-input" id="kubra_${s.id}"
-                    placeholder="— بدون كبرى —"
-                    value="${escapeHTML(kb.kubra)}" readonly>
-                </div>
-              </div>`;
-            }
             const dayVal = getKubraSplit(s.id)[currentDay - 1] || '';
             return `<div class="kubra-section show" id="kubra_section_${s.id}">
               <div class="maq-field-group" style="margin-bottom:0">
@@ -6025,12 +6125,24 @@ function confirmWaRange() {
   document.getElementById(st.target + 'RangeBtn').textContent = '📅 ' + formatGregorianArabic(st.start);
   closeWaRangePicker();
 }
+function onWaPlanImportHalqaChange() {
+  const sel = document.getElementById('waPlanImportHalqa');
+  document.getElementById('waPlanImportHalqaLabel').textContent = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : '';
+  const halqaVal = sel.value;
+  const pSel = document.getElementById('waPlanImportPeriod');
+  const pCount = halqaVal ? getHalqaPeriodsCount(halqaVal) : 0;
+  let pOpts = '';
+  for (let p = 1; p <= pCount; p++) pOpts += `<option value="${p}">الفترة ${toAr(p)}</option>`;
+  pSel.innerHTML = pOpts || '<option value="">—</option>';
+  document.getElementById('waPlanImportPeriodLabel').textContent = pSel.options[pSel.selectedIndex] ? pSel.options[pSel.selectedIndex].text : '';
+}
 function openWaPlanImportModal() {
   const sel = document.getElementById('waPlanImportHalqa');
   let opts = '';
   for (let i = 1; i <= HALQA_COUNT; i++) opts += `<option value="${i}">${getHalqaLabel(String(i))}</option>`;
   sel.innerHTML = opts || '<option value="">لا توجد حلقات</option>';
   document.getElementById('waPlanImportHalqaLabel').textContent = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : '';
+  onWaPlanImportHalqaChange();
   document.getElementById('waPlanImportFile').value = '';
   updateWaFileLabel('waPlanImportFile','waPlanImportFileLabel');
   document.getElementById('waPlanImportResults').innerHTML = '';
@@ -6168,26 +6280,27 @@ async function runWaPlanImportAnalysis() {
   if (!file) { showToast('اختاري الملف أول'); return; }
 
   const halqaVal = document.getElementById('waPlanImportHalqa').value;
+  const periodVal = document.getElementById('waPlanImportPeriod').value;
   const startVal = document.getElementById('waPlanImportStart').value;
   const endVal = document.getElementById('waPlanImportEnd').value;
   if (!startVal || !endVal) { showToast('حددي نطاق الوقت'); return; }
+  if (!halqaVal || !periodVal) { showToast('حددي الحلقة والفترة'); return; }
 
   const rangeStart = new Date(startVal);
   const rangeEnd = new Date(endVal);
 
-  // ===== تحقق تطابق الأسبوع واليوم مع المثبّت حاليًا (نفس فحص الأمان بنظام استيراد البطاقات) =====
+  // ===== تحقق تطابق الأسبوع مع المثبّت حاليًا (نفس فحص الأمان بنظام استيراد البطاقات) =====
   const computedWeek = computeWaWeekIndex(rangeStart);
   if (computedWeek === null) {
     resultsEl.innerHTML = `<div style="color:#c0392b;font-weight:700;">⚠️ ما قدرت أحدد تاريخ بداية الدورة الحالية من صفحة المواعيد.</div>`;
     return;
   }
-  const expectedDayIdx = 0; // الخطط ترسل دايمًا بيوم الجمعة-السبت العادي (كل أسبوع بما فيه الأخير) — الحلقة الختامية يوم إضافي منفصل ومالها علاقة بالخطط
-  const expectedDayLabel = 'الجمعة - السبت';
-  if (pinnedWeek === null || computedWeek !== pinnedWeek || currentDay !== expectedDayIdx) {
+  const expectedDayLabel = getHalqaLabel(halqaVal) + ' — الفترة ' + toAr(periodVal);
+  if (pinnedWeek === null || computedWeek !== pinnedWeek) {
     resultsEl.innerHTML = `<div style="color:#c0392b;font-weight:700;">
-      ⚠️ عدم تطابق! التاريخ اللي حددتيه يقابل الأسبوع "${WEEK_NAMES[computedWeek] || (computedWeek+1)}" ويوم "${expectedDayLabel}"،
-      بينما المثبّت عندك حاليًا هو الأسبوع "${pinnedWeek !== null ? WEEK_NAMES[pinnedWeek] : '—'}" واليوم "${(ATTEND_DAYS[currentDay] || {}).label || '—'}".
-      ثبّتي الأسبوع/اليوم الصحيح أول من تبويب المتابعة، أو راجعي التاريخ.
+      ⚠️ عدم تطابق! التاريخ اللي حددتيه يقابل الأسبوع "${WEEK_NAMES[computedWeek] || (computedWeek+1)}"،
+      بينما المثبّت عندك حاليًا هو الأسبوع "${pinnedWeek !== null ? WEEK_NAMES[pinnedWeek] : '—'}".
+      ثبّتي الأسبوع الصحيح أول من تبويب المتابعة، أو راجعي التاريخ.
     </div>`;
     return;
   }
@@ -6199,7 +6312,7 @@ async function runWaPlanImportAnalysis() {
   const allMsgs = parseWaMessages(text);
   const msgsInRange = allMsgs.filter(m => m.date >= rangeStart && m.date <= rangeEnd);
 
-  const halqaStudents = maqAllStudents.filter(s => halqaDist[s.id] === halqaVal && s.active !== false && !s.withdrawn);
+  const halqaStudents = maqAllStudents.filter(s => getStudentHalqaId(s.id) === halqaVal && getStudentPeriod(s.id) === periodVal && s.active !== false && !s.withdrawn);
   if (!halqaStudents.length) {
     resultsEl.innerHTML = `<div style="color:#c0392b;font-weight:700;">⚠️ ما فيه طالبات موزّعات على "${getHalqaLabel(halqaVal)}" بعد.</div>`;
     return;
@@ -6249,8 +6362,8 @@ async function runWaPlanImportAnalysis() {
     else kubraUnmatched.push(p.rawName + ' (تطابق أكثر من طالبة)');
   });
 
-  const waSourceTag = `${WEEK_NAMES[computedWeek] || (computedWeek+1)} — ${expectedDayLabel} — ${getHalqaLabel(halqaVal)}`;
-  const checkDayIdx = expectedDayIdx;
+  const waSourceTag = `${WEEK_NAMES[computedWeek] || (computedWeek+1)} — ${expectedDayLabel}`;
+  const checkDayIdx = 'h' + halqaVal + 'p' + periodVal;
 
   // ===== مطابقة الخطط بالطالبات: تطابق دقيق أول، ولو ما انطابقت نجرب مطابقة تقريبية (نفس آلية استيراد البطاقات اليومية) — وتحتاج تأكيدك بالحالتين المشكوك فيهم =====
   const planMatchByStudentId = {};
@@ -6380,7 +6493,7 @@ function addWaPlanFuzzyResolvedCard(stu, plan, body) {
   window._waPlanPendingReview = (window._waPlanPendingReview || []).filter(it => !(it.stu.id === stu.id && !it.committed));
   window._waPlanPendingReview.push({
     stu, plan, stars: null, body,
-    sourceTag: `${WEEK_NAMES[currentWeek] || (currentWeek+1)} — الجمعة - السبت — ${getHalqaLabel(halqaDist[stu.id] || '')}`,
+    sourceTag: `${WEEK_NAMES[currentWeek] || (currentWeek+1)} — ${getHalqaLabel(getStudentHalqaId(stu.id) || '')} — الفترة ${toAr(getStudentPeriod(stu.id) || '1')}`,
   });
   renderWaPlanReviewQueue();
 }
