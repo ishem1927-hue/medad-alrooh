@@ -401,6 +401,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     display: flex; align-items: center; justify-content: center;
   }
   .maq-week-btn.active { background: linear-gradient(135deg, var(--wine), var(--wine-light)); border-color: transparent; color: white; }
+  .maq-week-btn.closing { width: auto; height: 34px; border-radius: 10px; padding: 0 0.7rem; font-size: 0.78rem; white-space: nowrap; flex-shrink: 0; }
   .maq-group-tabs { display: flex; gap: 0.5rem; margin-right: auto; flex-wrap: wrap; }
   .maq-group-tab {
     padding: 0.4rem 0.9rem; border-radius: 20px; border: 1px solid var(--border); background: transparent;
@@ -5239,8 +5240,8 @@ function renderWeekBar() {
   // تبويب "الحلقة الختامية" — يظهر طول الوقت بس بوضع الحلقة المباشرة، جنب الأسابيع مباشرة
   if (curriculumViewMode === 'live') {
     const closeBtn = document.createElement('button');
-    closeBtn.className = 'maq-week-btn' + (liveClosingActive ? ' active' : '');
-    closeBtn.textContent = 'ختامية';
+    closeBtn.className = 'maq-week-btn closing' + (liveClosingActive ? ' active' : '');
+    closeBtn.textContent = 'الحلقة الختامية';
     closeBtn.style.touchAction = 'manipulation';
     closeBtn.onclick = () => {
       currentWeek = WEEK_NAMES.length - 1; // بيانات الحلقة الختامية مبنية على آخر أسبوع بالدورة
