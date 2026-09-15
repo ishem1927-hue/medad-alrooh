@@ -4928,7 +4928,6 @@ async function loadMaqData() {
         if (k === 'madad_event_participants') eventParticipants = merged;
         if (k === 'madad_kubra_splits') kubraSplits = merged;
         if (typeof renderCurriculumTab === 'function') { try { renderCurriculumTab(); } catch(e2) {} }
-        if (typeof renderMaqStudents === 'function') { try { renderMaqStudents(); } catch(e2) {} }
       } catch(e) {}
     })
     .subscribe();
@@ -5729,7 +5728,7 @@ function renderMaqStudents() {
 
 function toggleMaqCard(id) {
   openMaqCardId = openMaqCardId === id ? null : id;
-  renderMaqStudents();
+  if (curriculumViewMode === 'live') { renderSatView(); } else { renderMaqStudents(); }
 }
 
 // ===================== تنظيف وتنسيق خطط الحفظ الملصقة =====================
