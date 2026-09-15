@@ -5562,7 +5562,7 @@ function renderSatView() {
           if (currentWeek > 0 && val !== 'absent' && val !== 'excused') {
             var curRating = sd[getRatingFieldName()] || '';
             out += '<div class="maq-field-group" style="margin-bottom:0.5rem;">'
-              +'<div class="maq-field-label" style="color:var(--wine);">🌟 تقييم التسميع</div>'
+              +'<div class="maq-field-label" style="color:var(--wine);">🌟 التقييم</div>'
               +'<div class="sat-options">'
               +'<button class="sat-btn '+(curRating==='3'?'sel-attend':'')+'" onclick="setRating('+s.id+',\'3\')">🌟🌟🌟</button>'
               +'<button class="sat-btn '+(curRating==='2'?'sel-excused':'')+'" onclick="setRating('+s.id+',\'2\')">🌟🌟</button>'
@@ -5574,7 +5574,7 @@ function renderSatView() {
         })()
 
         +'<div class="day-eval-box">'
-        +'<div class="day-eval-label">📋 تقييم الفترة '+toAr(currentLivePeriod)+'</div>'
+        +'<div class="day-eval-label">📋 الحضور — الفترة '+toAr(currentLivePeriod)+'</div>'
         +'<div class="sat-options">'
         +'<button class="sat-btn '+(val==='attend'?'sel-attend':'')
         +'" onclick="setAttendSat(\''+s.name+'\',\'attend\')">'+EMOJIS.sat_attend+' حضور</button>'
