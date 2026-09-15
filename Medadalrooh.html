@@ -1642,12 +1642,12 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0.9rem;">
       <div style="display:flex;gap:0.7rem;margin-bottom:0.7rem;align-items:end;">
         <div style="flex:1;">
-          <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:flex;align-items:end;min-height:2.3em;margin-bottom:0.3rem;">📎 ملف المحادثة</label>
+          <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:flex;align-items:end;min-height:2.3em;margin-bottom:0.3rem;">📎 الملف</label>
           <input type="file" id="waPlanImportFile" accept=".zip,.txt" style="display:none;" onchange="updateWaFileLabel('waPlanImportFile','waPlanImportFileLabel')">
           <label for="waPlanImportFile" id="waPlanImportFileLabel" class="wa-field-box">📎 اختيار ملف</label>
         </div>
         <div style="flex:1;">
-          <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:flex;align-items:end;min-height:2.3em;margin-bottom:0.3rem;">📱 الحلقة المباشرة</label>
+          <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:flex;align-items:end;min-height:2.3em;margin-bottom:0.3rem;">📱 الحلقة</label>
           <div style="position:relative;">
             <select id="waPlanImportHalqa" onchange="onWaPlanImportHalqaChange()" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;"></select>
             <div id="waPlanImportHalqaLabel" class="wa-field-box" style="pointer-events:none;position:relative;font-size:0.58rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
