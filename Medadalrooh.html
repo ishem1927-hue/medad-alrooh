@@ -1011,6 +1011,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
             <div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.5rem;">تحديد عدد الحلقات فوق، وبعدها لصق أسماء طالبات كل حلقة (كل اسم بسطر مستقل).</div>
             <div id="halqaDistContent"></div>
 
+            <div class="stitle" style="margin-top:1.2rem;">↔️ نقل طالبة لحلقة/فترة ثانية</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.5rem;">تقدرين تغيّرين الفترة بس (وتخلين نفس الحلقة)، أو تنقلينها لحلقة ثانية بالكامل.</div>
+            <div id="transferHalqaStudentContent"></div>
+
             <button class="icon-btn-sm accent" style="margin-top:0.8rem;" onclick="resetHalqaSectionsOnly()">🧹 تصفير توزيع الحلقات المباشرة</button>
           </div>
           </div>
@@ -3291,6 +3295,7 @@ function saveGroupName(k, val) {
 function saveHalqaName(k, val) {
   if (val && val.trim()) HALQA_NAMES[k] = val.trim(); else delete HALQA_NAMES[k];
   saveSectionNames();
+  renderTransferHalqaStudentTool();
   renderCurriculumTab();
 }
 function saveHalqaPeriods(k, val) {
@@ -3298,6 +3303,7 @@ function saveHalqaPeriods(k, val) {
   HALQA_PERIODS[String(k)] = (!n || n < 1) ? 1 : n;
   saveSectionNames();
   renderHalqaDistTool();
+  renderTransferHalqaStudentTool();
   renderCurriculumTab();
 }
 function onGroupCountChange(val) {
@@ -3312,6 +3318,7 @@ function onHalqaCountChange(val) {
   HALQA_COUNT = (!n || n < 1) ? 1 : n;
   saveSectionCounts();
   renderHalqaNamesRows();
+  renderTransferHalqaStudentTool();
   renderCurriculumTab();
 }
 
@@ -3415,6 +3422,7 @@ function confirmHalqaDist() {
   }
   renderStudents();
   try { renderCurriculumTab(); } catch(e) {}
+  renderTransferHalqaStudentTool();
   showToast(`تم توزيع ${matched} طالبة على الحلقات ✅`);
 }
 
@@ -3555,6 +3563,52 @@ function confirmTransferStudent() {
   showToast(`✅ تم نقل ${s.name} إلى ${getGroupLabel(newGroup)}`);
 }
 
+function renderTransferHalqaStudentTool() {
+  const el = document.getElementById('transferHalqaStudentContent');
+  if (!el) return;
+  const activeStudents = students.filter(s => s.active !== false).slice().sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+  if (!activeStudents.length || !HALQA_COUNT) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:0.5rem;">
+      <select id="transferHalqaStudentSelect" class="edit-input" style="font-family:inherit;">
+        ${activeStudents.map(s => {
+          const h = getStudentHalqaId(s.id);
+          const p = getStudentPeriod(s.id);
+          const cur = h ? `${getHalqaLabel(h)} — الفترة ${toAr(p)}` : 'بدون توزيع';
+          return `<option value="${s.id}">${s.name} (حاليًا: ${cur})</option>`;
+        }).join('')}
+      </select>
+      <select id="transferHalqaSelect" class="edit-input" style="font-family:inherit;" onchange="onTransferHalqaChange()">
+        ${Array.from({length: HALQA_COUNT}, (_, i) => String(i + 1)).map(h => `<option value="${h}">${getHalqaLabel(h)}</option>`).join('')}
+      </select>
+      <select id="transferPeriodSelect" class="edit-input" style="font-family:inherit;"></select>
+      <button class="add-btn" onclick="confirmTransferHalqaStudent()">↔️ نقل</button>
+    </div>
+  `;
+  onTransferHalqaChange();
+}
+function onTransferHalqaChange() {
+  const hSel = document.getElementById('transferHalqaSelect');
+  const pSel = document.getElementById('transferPeriodSelect');
+  if (!hSel || !pSel) return;
+  const pCount = getHalqaPeriodsCount(hSel.value);
+  let opts = '';
+  for (let p = 1; p <= pCount; p++) opts += `<option value="${p}">الفترة ${toAr(p)}</option>`;
+  pSel.innerHTML = opts;
+}
+function confirmTransferHalqaStudent() {
+  const sid = parseInt(document.getElementById('transferHalqaStudentSelect').value, 10);
+  const newHalqa = document.getElementById('transferHalqaSelect').value;
+  const newPeriod = document.getElementById('transferPeriodSelect').value;
+  const s = students.find(x => x.id === sid);
+  if (!s) return;
+  halqaDist[s.id] = newHalqa + ':' + newPeriod;
+  saveHalqaDist();
+  try { renderCurriculumTab(); } catch(e) {}
+  renderTransferHalqaStudentTool();
+  showToast(`✅ تم نقل ${s.name} إلى ${getHalqaLabel(newHalqa)} — الفترة ${toAr(newPeriod)}`);
+}
+
 function openContextualSettings() {
   const subTab = curriculumViewMode === 'weekly' ? 'group' : curriculumViewMode === 'live' ? 'halqa' : 'emoji';
   openAttendSettings(subTab);
@@ -3578,6 +3632,7 @@ function openAttendSettings(subTab) {
     renderGroupNamesRows();
     renderHalqaNamesRows();
     renderTransferStudentTool();
+    renderTransferHalqaStudentTool();
     halqaDistCount = null;
     renderGroupDistTool();
     renderHalqaDistTool();
@@ -4441,6 +4496,7 @@ function resetHalqaSectionsOnly() {
       saveHalqaDist();
       renderStudents();
       try { renderCurriculumTab(); } catch(e) {}
+      renderTransferHalqaStudentTool();
       showToast('✅ تم تصفير توزيع الحلقات المباشرة');
     }
   );
