@@ -6495,7 +6495,10 @@ async function runWaPlanImportAnalysis() {
   // ===== الملخص =====
   let html = `<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.6rem;">
     <div style="font-weight:700;color:var(--green);">📋 جاهزة للمراجعة: ${pendingReview.length} طالبة</div>
-    <button class="icon-btn-sm" style="padding:0.3rem 0.6rem;font-size:0.72rem;background:var(--surface2);color:var(--wine);" onclick="toggleWaPlanApprovalLog()">📜 سجل الاعتمادات</button>
+    <div style="display:flex;gap:0.4rem;">
+      <button class="icon-btn-sm" style="padding:0.3rem 0.6rem;font-size:0.72rem;background:var(--surface2);color:var(--wine);" onclick="toggleWaPlanApprovalLog()">📜 سجل الاعتمادات</button>
+      <button class="icon-btn-sm" style="padding:0.3rem 0.6rem;font-size:0.72rem;background:#fce8ec;color:#c0392b;" onclick="oneTimeClearPrevLiveApprovals()">🧹 مسح المعتمدة سابقًا (مرة وحدة)</button>
+    </div>
   </div>
   <div id="waPlanApprovalLogBox" style="display:none;margin-bottom:0.6rem;"></div>`;
   if (planFuzzyQueue.length) {
@@ -6668,6 +6671,42 @@ function showWaPlanCardTab(i, tab) {
   }
 }
 
+
+
+// ===== إجراء لمرة وحدة: مسح بيانات كل الطالبات "المعتمدة سابقًا" (كل الحلقات والفترات) للأسبوع الحالي فقط، وإرجاعهم للمراجعة =====
+function oneTimeClearPrevLiveApprovals() {
+  showConfirmModal(
+    '🧹 مسح الاعتمادات السابقة',
+    'هذا إجراء لمرة وحدة: يمسح المقرر والتلاوة والكبرى والتقييم والحضور لكل الطالبات "المعتمدة سابقًا لنفس النطاق" بكل الحلقات والفترات — للأسبوع الحالي فقط، وترجع بطاقاتهم للمراجعة من جديد. باقي البيانات ما تتأثر إطلاقًا.<br><br>هل تأكدين المتابعة؟',
+    () => {
+      const wPrefix = 'w' + currentWeek + '_dh';
+      const dayKeyPattern = new RegExp('^w' + currentWeek + '_d(h\\d+p\\d+)$');
+      let clearedNames = [];
+      Object.keys(attendData).forEach(k => {
+        const m = k.match(dayKeyPattern);
+        if (!m) return;
+        const dayKey = m[1];
+        Object.keys(attendData[k] || {}).forEach(name => {
+          if (!attendData[k][name]) return;
+          const stu = students.find(s => s.name === name) || maqAllStudents.find(s => s.name === name);
+          if (stu) {
+            const sg = stu.group && stu.group.trim() ? stu.group.trim() : '';
+            delete maqData[dk(sg, currentWeek, stu.id)];
+            delete kubraSplits['k' + stu.id];
+          }
+          delete attendData[k][name];
+          clearedNames.push(name);
+        });
+      });
+      saveMaqData();
+      saveKubraSplits();
+      saveAttendData();
+      renderCurriculumTab();
+      showToast('تم مسح اعتمادات ' + clearedNames.length + ' طالبة ✅ — رجعوا للمراجعة');
+      if (typeof runWaPlanImportAnalysis === 'function') runWaPlanImportAnalysis();
+    }
+  );
+}
 
 
 function commitWaPlanReviewCard(i) {
