@@ -1839,6 +1839,7 @@ const ALL_DATA_KEYS = [
   'madad_cycle_star_list', 'madad_cycle_star_weeks', 'madad_weekly_excellent',
   'madad_group_names', 'madad_halqa_names', 'madad_group_count', 'madad_halqa_count', 'madad_halqa_periods',
   'madad_halqa_dist', 'madad_event_participants', 'madad_kubra_splits', 'madad_archive',
+  'madad_wa_plan_approval_log',
 ];
 const CALC_ONLY_KEYS = ['hasibat_madad', 'hasibat_custom_pay', 'hasibat_obligations'];
 const MERGE_KEYS = ['madad_data', 'maqarrar_data', 'maqarrar_history', 'madad_halqa_dist', 'madad_event_participants', 'madad_kubra_splits', 'madad_archive'];
@@ -4631,6 +4632,9 @@ function startNewCycle() {
       saveAttendAlerts();
       // 📌 الكبرى والتعاهد تُحسب تلقائيًا من الأرشيف — ما تحتاج مسح ولا إعادة حساب هنا
       saveMaqData();
+      // سجل اعتمادات خطط الحلقة المباشرة خاص بالدورة الحالية بس — ينمسح مع بداية دورة جديدة
+      waPlanApprovalLog = [];
+      saveWaPlanApprovalLog();
       currentWeek = 0;
       currentDay = 0;
       openMaqCardId = null;
@@ -4737,11 +4741,18 @@ let maqData = {};
 let reviewHistory = {};
 let eventParticipants = {};
 let kubraSplits = {};
+// سجل اعتمادات خطط الحلقة المباشرة (للتراجع الحقيقي) — يبقى طول الدورة الحالية، وينمسح تلقائيًا مع بداية دورة جديدة
+let waPlanApprovalLog = [];
 
 const STORE_DATA    = 'maqarrar_data';
 const STORE_HISTORY = 'maqarrar_history';
 const STORE_EVENT   = 'madad_event_participants';
 const STORE_KUBRA_SPLIT = 'madad_kubra_splits';
+const STORE_WA_PLAN_LOG = 'madad_wa_plan_approval_log';
+function saveWaPlanApprovalLog() {
+  try { localStorage.setItem(STORE_WA_PLAN_LOG, JSON.stringify(waPlanApprovalLog)); } catch(e) {}
+  syncPush(STORE_WA_PLAN_LOG);
+}
 
 function saveMaqData() {
   try { localStorage.setItem(STORE_DATA, JSON.stringify(maqData)); } catch(e) {}
@@ -4961,6 +4972,8 @@ async function loadMaqData() {
       });
       saveKubraSplits();
     }
+    const wl = localStorage.getItem(STORE_WA_PLAN_LOG);
+    waPlanApprovalLog = wl ? JSON.parse(wl) : [];
   } catch(e) {}
   // بعد ما تكتمل بيانات المقرر (المتابعة)، نحدّث قائمة الطالبات تلقائيًا
   // عشان "تفاصيل الحفظ" (اللي تعتمد على هذي البيانات) تطلع صح من أول فتحة، بدون ما تحتاجين تضغطين على أي اسم
@@ -6480,7 +6493,11 @@ async function runWaPlanImportAnalysis() {
   });
 
   // ===== الملخص =====
-  let html = `<div style="font-weight:700;color:var(--green);margin-bottom:0.6rem;">📋 جاهزة للمراجعة: ${pendingReview.length} طالبة</div>`;
+  let html = `<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.6rem;">
+    <div style="font-weight:700;color:var(--green);">📋 جاهزة للمراجعة: ${pendingReview.length} طالبة</div>
+    <button class="icon-btn-sm" style="padding:0.3rem 0.6rem;font-size:0.72rem;background:var(--surface2);color:var(--wine);" onclick="toggleWaPlanApprovalLog()">📜 سجل الاعتمادات</button>
+  </div>
+  <div id="waPlanApprovalLogBox" style="display:none;margin-bottom:0.6rem;"></div>`;
   if (planFuzzyQueue.length) {
     html += `<div style="font-weight:700;color:var(--wine);margin:0.6rem 0 0.3rem;">🔍 مطابقة تقريبية — تحتاج تأكيدك (${planFuzzyQueue.length}):</div>`;
     planFuzzyQueue.forEach((item, i) => {
@@ -6657,6 +6674,13 @@ function commitWaPlanReviewCard(i) {
   const queue = window._waPlanPendingReview || [];
   const item = queue[i];
   if (!item || item.committed) { showToast('اتحفظت هالبطاقة أصلًا'); return; }
+  // ===== نسخة من القيم القديمة قبل أي تعديل — عشان التراجع الحقيقي لاحقًا من سجل الاعتمادات =====
+  const sgSnap = item.stu.group && item.stu.group.trim() ? item.stu.group.trim() : '';
+  const dayKeySnap = liveAttendKey();
+  const prevAttendSnap = getAttendVal(currentWeek, dayKeySnap, item.stu.name);
+  const sdKeySnap = dk(sgSnap, currentWeek, item.stu.id);
+  const prevSdSnap = maqData[sdKeySnap] ? JSON.parse(JSON.stringify(maqData[sdKeySnap])) : null;
+  const prevKubraSnap = kubraSplits['k' + item.stu.id] ? kubraSplits['k' + item.stu.id].slice() : null;
   waSetIfChanged(setAttendSat, item.stu.name, 'attend');
   if (item.plan) {
     // نقرأ القيم من خانات التعديل (بعد أي تصحيح سويتيه وقت المراجعة) بدل القيم الخام الملصوقة مباشرة
@@ -6692,7 +6716,107 @@ function commitWaPlanReviewCard(i) {
   const cardEl = document.getElementById('waPlanReviewCard_' + i);
   if (cardEl) cardEl.outerHTML = `<div style="color:var(--green);font-weight:700;padding:0.5rem;border:1px solid var(--border);border-radius:10px;margin-bottom:0.6rem;">✅ ${escapeHTML(item.stu.name)} — تم الاعتماد والحفظ</div>`;
   showToast('تم اعتماد ' + item.stu.name + ' ✅');
+  // ===== تسجيل العملية بسجل الاعتمادات (للتراجع الحقيقي لاحقًا) =====
+  waPlanApprovalLog.push({
+    id: 'wpl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+    studentId: item.stu.id,
+    studentName: item.stu.name,
+    ts: Date.now(),
+    week: item.week,
+    group: sgSnap,
+    dayKey: dayKeySnap,
+    prevAttend: prevAttendSnap,
+    prevSd: prevSdSnap,
+    hadKubra: !!item.kubraPlan,
+    prevKubra: prevKubraSnap,
+    cardData: {
+      plan: item.plan,
+      kubraPlan: item.kubraPlan,
+      kubraWarning: item.kubraWarning,
+      stars: item.stars,
+      body: item.body,
+      sourceTag: item.sourceTag,
+    },
+  });
+  saveWaPlanApprovalLog();
+  renderWaPlanApprovalLog();
   renderCurriculumTab();
+}
+
+// عرض/إخفاء صندوق سجل الاعتمادات، وتحديث محتواه وقت الفتح
+function toggleWaPlanApprovalLog() {
+  const box = document.getElementById('waPlanApprovalLogBox');
+  if (!box) return;
+  const opening = box.style.display === 'none';
+  box.style.display = opening ? 'block' : 'none';
+  if (opening) renderWaPlanApprovalLog();
+}
+
+// رسم قائمة سجل الاعتمادات — كل سطر فيه اسم الطالبة وزر تراجع حقيقي
+function renderWaPlanApprovalLog() {
+  const box = document.getElementById('waPlanApprovalLogBox');
+  if (!box) return;
+  if (!waPlanApprovalLog.length) {
+    box.innerHTML = '<div style="font-size:0.75rem;color:var(--muted);padding:0.4rem 0.2rem;">ما فيه اعتمادات مسجّلة بهالدورة</div>';
+    return;
+  }
+  const sorted = waPlanApprovalLog.slice().sort((a, b) => b.ts - a.ts);
+  let html = '<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;">';
+  sorted.forEach(entry => {
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;gap:0.4rem;padding:0.45rem 0.6rem;border-bottom:1px solid var(--border);font-size:0.78rem;background:var(--surface2);">
+      <span>${escapeHTML(entry.studentName)}</span>
+      <button class="icon-btn-sm" style="padding:0.25rem 0.55rem;font-size:0.7rem;background:#fce8ec;color:#c0392b;" onclick="undoWaPlanApproval('${entry.id}')">↩️ تراجع</button>
+    </div>`;
+  });
+  html += '</div>';
+  box.innerHTML = html;
+}
+
+// تراجع حقيقي عن اعتماد بطاقة — يرجّع كل القيم القديمة فعليًا (حضور، مقرر/تلاوة، كبرى، تقييم) ويرجّع البطاقة لقائمة المراجعة
+function undoWaPlanApproval(logId) {
+  const idx = waPlanApprovalLog.findIndex(e => e.id === logId);
+  if (idx === -1) return;
+  const entry = waPlanApprovalLog[idx];
+
+  // استرجاع بيانات المقرر/التلاوة/التقييم لنفس الأسبوع والمجموعة
+  const key = dk(entry.group, entry.week, entry.studentId);
+  if (entry.prevSd) maqData[key] = entry.prevSd; else delete maqData[key];
+  saveMaqData();
+
+  // استرجاع تقسيم المراجعة الكبرى لو كان هذا الاعتماد غيّره
+  if (entry.hadKubra) {
+    if (entry.prevKubra) kubraSplits['k' + entry.studentId] = entry.prevKubra;
+    else delete kubraSplits['k' + entry.studentId];
+    saveKubraSplits();
+  }
+
+  // استرجاع الحضور
+  setAttendVal(entry.week, entry.dayKey, entry.studentName, entry.prevAttend);
+  saveAttendData();
+
+  // إرجاع البطاقة لقائمة المراجعة من جديد
+  const stu = maqAllStudents.find(s => s.id === entry.studentId) || students.find(s => s.id === entry.studentId);
+  if (stu) {
+    window._waPlanPendingReview = window._waPlanPendingReview || [];
+    window._waPlanPendingReview.push({
+      stu,
+      plan: entry.cardData.plan,
+      kubraPlan: entry.cardData.kubraPlan,
+      kubraWarning: entry.cardData.kubraWarning,
+      week: entry.week,
+      stars: entry.cardData.stars,
+      body: entry.cardData.body,
+      sourceTag: entry.cardData.sourceTag,
+    });
+    renderWaPlanReviewQueue();
+  }
+
+  // حذف السطر من السجل
+  waPlanApprovalLog.splice(idx, 1);
+  saveWaPlanApprovalLog();
+  renderWaPlanApprovalLog();
+  renderCurriculumTab();
+  showToast('تم التراجع، رجعت البطاقة للمراجعة ↩️');
 }
 
 // ===================== لصق تقسيم المراجعة الكبرى (جديد) =====================
