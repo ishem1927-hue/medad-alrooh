@@ -1839,7 +1839,7 @@ const ALL_DATA_KEYS = [
   'madad_cycle_star_list', 'madad_cycle_star_weeks', 'madad_weekly_excellent',
   'madad_group_names', 'madad_halqa_names', 'madad_group_count', 'madad_halqa_count', 'madad_halqa_periods',
   'madad_halqa_dist', 'madad_event_participants', 'madad_kubra_splits', 'madad_archive',
-  'madad_wa_plan_approval_log',
+  'madad_wa_plan_approval_log', 'madad_wa_daily_approval_log',
 ];
 const CALC_ONLY_KEYS = ['hasibat_madad', 'hasibat_custom_pay', 'hasibat_obligations'];
 const MERGE_KEYS = ['madad_data', 'maqarrar_data', 'maqarrar_history', 'madad_halqa_dist', 'madad_event_participants', 'madad_kubra_splits', 'madad_archive'];
@@ -4635,6 +4635,8 @@ function startNewCycle() {
       // سجل اعتمادات خطط الحلقة المباشرة خاص بالدورة الحالية بس — ينمسح مع بداية دورة جديدة
       waPlanApprovalLog = [];
       saveWaPlanApprovalLog();
+      waDailyApprovalLog = [];
+      saveWaDailyApprovalLog();
       currentWeek = 0;
       currentDay = 0;
       openMaqCardId = null;
@@ -4749,9 +4751,15 @@ const STORE_HISTORY = 'maqarrar_history';
 const STORE_EVENT   = 'madad_event_participants';
 const STORE_KUBRA_SPLIT = 'madad_kubra_splits';
 const STORE_WA_PLAN_LOG = 'madad_wa_plan_approval_log';
+const STORE_WA_DAILY_LOG = 'madad_wa_daily_approval_log';
 function saveWaPlanApprovalLog() {
   try { localStorage.setItem(STORE_WA_PLAN_LOG, JSON.stringify(waPlanApprovalLog)); } catch(e) {}
   syncPush(STORE_WA_PLAN_LOG);
+}
+let waDailyApprovalLog = [];
+function saveWaDailyApprovalLog() {
+  try { localStorage.setItem(STORE_WA_DAILY_LOG, JSON.stringify(waDailyApprovalLog)); } catch(e) {}
+  syncPush(STORE_WA_DAILY_LOG);
 }
 
 function saveMaqData() {
@@ -4974,6 +4982,8 @@ async function loadMaqData() {
     }
     const wl = localStorage.getItem(STORE_WA_PLAN_LOG);
     waPlanApprovalLog = wl ? JSON.parse(wl) : [];
+    const wdl = localStorage.getItem(STORE_WA_DAILY_LOG);
+    waDailyApprovalLog = wdl ? JSON.parse(wdl) : [];
   } catch(e) {}
   // بعد ما تكتمل بيانات المقرر (المتابعة)، نحدّث قائمة الطالبات تلقائيًا
   // عشان "تفاصيل الحفظ" (اللي تعتمد على هذي البيانات) تطلع صح من أول فتحة، بدون ما تحتاجين تضغطين على أي اسم
@@ -10269,7 +10279,11 @@ async function runWaImportAnalysis() {
   window._waFuzzyConfirmCache = (window._waFuzzyConfirmCache || []).concat(fuzzyConfirm);
 
   // ===== الملخص =====
-  let html = `<div style="font-weight:700;color:var(--green);margin-bottom:0.6rem;">📋 جاهزة للمراجعة: ${matched.length} طالبة — ما راح تنحفظ إلا بعد اعتمادك بالأسفل</div>`;
+  let html = `<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.6rem;">
+    <div style="font-weight:700;color:var(--green);">📋 جاهزة للمراجعة: ${matched.length} طالبة — ما راح تنحفظ إلا بعد اعتمادك بالأسفل</div>
+    <button class="icon-btn-sm" style="padding:0.3rem 0.6rem;font-size:0.72rem;background:var(--surface2);color:var(--wine);" onclick="toggleWaDailyApprovalLog()">📜 سجل الاعتمادات</button>
+  </div>
+  <div id="waDailyApprovalLogBox" style="display:none;margin-bottom:0.6rem;"></div>`;
   const withMissing = matched.filter(m => m.missingItems.length > 0 || m.kubraMissing);
   if (withMissing.length) {
     html += `<div style="font-weight:700;color:#b3691f;margin:0.6rem 0 0.3rem;">✗ ناقصات (حسب تحليل النظام، راجعيها بالأسفل):</div>`;
@@ -10444,6 +10458,9 @@ function commitWaReviewCard(i) {
   const dayKey = item.dayKey;
   const statusSel = document.getElementById('waReviewStatus_' + i);
   const status = statusSel ? statusSel.value : item.status;
+  // ===== نسخة من القيم القديمة قبل أي تعديل — عشان التراجع الحقيقي لاحقًا من سجل الاعتمادات =====
+  const prevStatusSnap = getAttendVal(currentWeek, currentDay, item.stu.name);
+  const prevKubraSnap = item.kubraApplicable ? getAttendVal(currentWeek, currentDay, item.stu.name + '_kubra') : null;
   if (dayKey === 'thu') waSetIfChanged(setAttendThu, item.stu.name, status === 'challenge' ? 'done' : status);
   else waSetIfChanged(setAttendSW, item.stu.name, status);
   if (item.kubraApplicable) {
@@ -10454,8 +10471,92 @@ function commitWaReviewCard(i) {
   item.committed = true;
   showToast('تم اعتماد ' + item.stu.name + ' ✅');
   waSaveCaches();
+  // ===== تسجيل العملية بسجل الاعتمادات (للتراجع الحقيقي لاحقًا) =====
+  waDailyApprovalLog.push({
+    id: 'wdl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+    studentId: item.stu.id,
+    studentName: item.stu.name,
+    ts: Date.now(),
+    week: currentWeek,
+    dayIdx: currentDay,
+    dayKey: dayKey,
+    prevStatus: prevStatusSnap,
+    kubraApplicable: !!item.kubraApplicable,
+    prevKubra: prevKubraSnap,
+    cardData: {
+      dayKey: item.dayKey,
+      status: item.status,
+      kubraApplicable: item.kubraApplicable,
+      kubraDone: item.kubraDone,
+      body: item.body,
+    },
+  });
+  saveWaDailyApprovalLog();
+  renderWaDailyApprovalLog();
   renderWaReviewQueue();
   renderCurriculumTab();
+}
+
+// عرض/إخفاء صندوق سجل اعتمادات المتابعة الأسبوعية، وتحديث محتواه وقت الفتح
+function toggleWaDailyApprovalLog() {
+  const box = document.getElementById('waDailyApprovalLogBox');
+  if (!box) return;
+  const opening = box.style.display === 'none';
+  box.style.display = opening ? 'block' : 'none';
+  if (opening) renderWaDailyApprovalLog();
+}
+
+// رسم قائمة سجل اعتمادات المتابعة الأسبوعية — كل سطر فيه اسم الطالبة وزر تراجع حقيقي
+function renderWaDailyApprovalLog() {
+  const box = document.getElementById('waDailyApprovalLogBox');
+  if (!box) return;
+  if (!waDailyApprovalLog.length) {
+    box.innerHTML = '<div style="font-size:0.75rem;color:var(--muted);padding:0.4rem 0.2rem;">ما فيه اعتمادات مسجّلة بهالدورة</div>';
+    return;
+  }
+  const sorted = waDailyApprovalLog.slice().sort((a, b) => b.ts - a.ts);
+  let html = '<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;">';
+  sorted.forEach(entry => {
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;gap:0.4rem;padding:0.45rem 0.6rem;border-bottom:1px solid var(--border);font-size:0.78rem;background:var(--surface2);">
+      <span>${escapeHTML(entry.studentName)}</span>
+      <button class="icon-btn-sm" style="padding:0.25rem 0.55rem;font-size:0.7rem;background:#fce8ec;color:#c0392b;" onclick="undoWaDailyApproval('${entry.id}')">↩️ تراجع</button>
+    </div>`;
+  });
+  html += '</div>';
+  box.innerHTML = html;
+}
+
+// تراجع حقيقي عن اعتماد بطاقة يومية — يرجّع الحضور والكبرى للقيم القديمة فعليًا ويرجّع البطاقة لقائمة المراجعة
+function undoWaDailyApproval(logId) {
+  const idx = waDailyApprovalLog.findIndex(e => e.id === logId);
+  if (idx === -1) return;
+  const entry = waDailyApprovalLog[idx];
+
+  setAttendVal(entry.week, entry.dayIdx, entry.studentName, entry.prevStatus);
+  if (entry.kubraApplicable) {
+    setAttendVal(entry.week, entry.dayIdx, entry.studentName + '_kubra', entry.prevKubra);
+  }
+  saveAttendData();
+
+  const stu = maqAllStudents.find(s => s.id === entry.studentId) || students.find(s => s.id === entry.studentId);
+  if (stu) {
+    window._waPendingReview = window._waPendingReview || [];
+    window._waPendingReview.push({
+      stu,
+      dayKey: entry.cardData.dayKey,
+      status: entry.cardData.status,
+      kubraApplicable: entry.cardData.kubraApplicable,
+      kubraDone: entry.cardData.kubraDone,
+      body: entry.cardData.body,
+    });
+    renderWaReviewQueue();
+  }
+
+  waDailyApprovalLog.splice(idx, 1);
+  saveWaDailyApprovalLog();
+  renderWaDailyApprovalLog();
+  renderCurriculumTab();
+  showToast('تم التراجع، رجعت البطاقة للمراجعة ↩️');
 }
 
 // تشيل طالبة من قائمة "غايبات" المعروضة (بعد ما تنحل حالتها يدويًا) بدون إعادة تحليل كامل
