@@ -6377,6 +6377,7 @@ async function runWaPlanImportAnalysis() {
   const msgsInRange = allMsgs.filter(m => m.date >= rangeStart && m.date <= rangeEnd);
 
   const halqaStudents = maqAllStudents.filter(s => getStudentHalqaId(s.id) === halqaVal && getStudentPeriod(s.id) === periodVal && s.active !== false && !s.withdrawn);
+  window._waPlanImportCtx = { students: halqaStudents, week: computedWeek };
   if (!halqaStudents.length) {
     resultsEl.innerHTML = `<div style="color:#c0392b;font-weight:700;">⚠️ ما فيه طالبات موزّعات على "${getHalqaLabel(halqaVal)}" بعد.</div>`;
     return;
@@ -6507,6 +6508,7 @@ async function runWaPlanImportAnalysis() {
     <div style="font-weight:700;color:var(--green);">📋 جاهزة للمراجعة: ${pendingReview.length} طالبة</div>
     <div style="display:flex;gap:0.4rem;">
       <button class="icon-btn-sm" style="padding:0.3rem 0.6rem;font-size:0.72rem;background:var(--surface2);color:var(--wine);" onclick="toggleWaPlanApprovalLog()">📜 سجل الاعتمادات</button>
+      <button class="icon-btn-sm" style="padding:0.3rem 0.7rem;font-size:0.85rem;background:var(--surface2);color:var(--wine);font-weight:700;" onclick="openWaPlanManualAdd()" title="إضافة خطة يدوية">➕</button>
     </div>
   </div>
   <div id="waPlanApprovalLogBox" style="display:none;margin-bottom:0.6rem;"></div>`;
@@ -6625,8 +6627,9 @@ function renderWaPlanReviewQueue() {
             <input id="waPlanEditKubraDay_${i}_${idx}" value="${escapeHTML(item.kubraPlan.days[idx] || '')}" style="width:100%;font-family:'Cairo';font-size:0.72rem;border:1px solid var(--border);border-radius:8px;padding:0.3rem 0.5rem;background:#fff;box-sizing:border-box;margin-bottom:0.25rem;">`).join('')}
         </div>`
       : `<div style="color:var(--muted);font-size:0.75rem;">— ما فيه تقسيم مراجعة كبرى مستلم —</div>`;
-    const defaultTab = item.plan ? 'plan' : 'kubra';
-    const showKubraTab = (item.week === 0); // تقسيم الكبرى بس بالأسبوع الأول، باقي الأسابيع ما له داعي
+    const itemGroup = item.stu.group && item.stu.group.trim() ? item.stu.group.trim() : '';
+    const showKubraTab = (item.week === 0) && getKubra(itemGroup, item.stu.id).hasKubra; // تقسيم الكبرى بس بالأسبوع الأول، وبس للطالبات اللي عندها كبرى فعلًا حسب الأرشيف
+    const defaultTab = (item.plan || !showKubraTab) ? 'plan' : 'kubra';
     const tabsBarHtml = showKubraTab ? `
       <div style="display:flex;gap:0.9rem;margin-bottom:0.5rem;">
         <div class="group-tab wpTabBtn_${i}_plan${defaultTab==='plan'?' active':''}" style="padding:0.25rem 0;font-size:0.72rem;" onclick="showWaPlanCardTab(${i},'plan')">📖 الخطة</div>
@@ -6683,6 +6686,49 @@ function showWaPlanCardTab(i, tab) {
 
 
 // ===== إجراء لمرة وحدة: مسح بيانات كل الطالبات "المعتمدة سابقًا" (كل الحلقات والفترات) للأسبوع الحالي فقط، وإرجاعهم للمراجعة =====
+// فتح نافذة اختيار طالبة لإضافة خطتها يدويًا (لما ما ترسل الخطة أصلًا بالجروب ولا بالخاص)
+function openWaPlanManualAdd() {
+  const ctx = window._waPlanImportCtx;
+  if (!ctx || !ctx.students || !ctx.students.length) { showToast('حللي الملف أول'); return; }
+  const queue = window._waPlanPendingReview || [];
+  const already = new Set(queue.map(it => it.stu.id));
+  const available = ctx.students.filter(s => !already.has(s.id));
+  if (!available.length) { showToast('كل طالبات القاعة موجودات بقائمة المراجعة أصلًا'); return; }
+  const optionsHtml = available.map(s => `<option value="${s.id}">${escapeHTML(s.name)}</option>`).join('');
+  showConfirmModal(
+    '➕ إضافة خطة يدوية',
+    `اختاري الطالبة اللي تبين تضيفين خطتها يدويًا:<br><br>
+     <select id="waManualAddSelect" style="width:100%;font-family:'Cairo';font-size:0.8rem;padding:0.4rem;border-radius:8px;border:1px solid var(--border);">${optionsHtml}</select>`,
+    () => {
+      const sel = document.getElementById('waManualAddSelect');
+      const id = sel ? parseInt(sel.value) : null;
+      if (id) addWaPlanManualCard(id);
+    }
+  );
+}
+
+// إنشاء بطاقة فاضية للطالبة المختارة تنضاف لقائمة المراجعة، تعبيها يدويًا وتعتمديها زي أي بطاقة عادية
+function addWaPlanManualCard(id) {
+  const ctx = window._waPlanImportCtx;
+  const stu = ctx.students.find(s => s.id === id);
+  if (!stu) return;
+  const group = stu.group && stu.group.trim() ? stu.group.trim() : '';
+  const hasKubra = ctx.week === 0 && getKubra(group, id).hasKubra;
+  window._waPlanPendingReview = window._waPlanPendingReview || [];
+  window._waPlanPendingReview.push({
+    stu,
+    plan: { hifz: '', days: ['', '', '', ''], body: '' },
+    kubraPlan: hasKubra ? { mainText: '', days: ['', '', '', ''], body: '' } : null,
+    kubraWarning: null,
+    week: ctx.week,
+    stars: '',
+    body: '',
+    sourceTag: '✍️ أضيفت يدويًا',
+  });
+  renderWaPlanReviewQueue();
+  showToast('انضافت بطاقة ' + stu.name + ' — عبّيها واعتمديها');
+}
+
 function commitWaPlanReviewCard(i) {
   const queue = window._waPlanPendingReview || [];
   const item = queue[i];
