@@ -6550,6 +6550,7 @@ async function runWaPlanImportAnalysis() {
   resultsEl.innerHTML = html;
   window._waPlanFuzzyCache = planFuzzyQueue;
   window._waPlanDayKey = checkDayIdx;
+  window._waPlanWeek = computedWeek;
   // لو أعدنا تحليل نفس النطاق (نفس الأسبوع/اليوم/القاعة)، نستبدل بطاقاتها القديمة الغير معتمدة بدل ما نكررها
   const existingQueue = (window._waPlanPendingReview || []).filter(it =>
     it.committed || it.sourceTag !== waSourceTag || !halqaStudents.some(s => s.id === it.stu.id)
@@ -6565,6 +6566,7 @@ function addWaPlanFuzzyResolvedCard(stu, plan, body) {
   window._waPlanPendingReview = (window._waPlanPendingReview || []).filter(it => !(it.stu.id === stu.id && !it.committed));
   window._waPlanPendingReview.push({
     stu, plan, stars: null, body,
+    week: (typeof window._waPlanWeek === 'number') ? window._waPlanWeek : currentWeek,
     sourceTag: `${WEEK_NAMES[currentWeek] || (currentWeek+1)} — ${getHalqaLabel(getStudentHalqaId(stu.id) || '')} — الفترة ${toAr(getStudentPeriod(stu.id) || '1')}`,
   });
   renderWaPlanReviewQueue();
