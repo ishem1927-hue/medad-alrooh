@@ -9862,8 +9862,8 @@ async function readWaImportFile(file) {
 function parseWaMessages(text) {
   const lines = text.split(/\r\n|\n/);
   // نمط بداية رسالة: [١٢/٨/٢٠٢٦، ٤:٥٣:٠٠ م] المرسل: النص — الثواني اختيارية، والأرقام قد تكون عربية
-  // يتقبّل صيغتين لتصدير واتساب: بأقواس مربعة [تاريخ، وقت] اسم: نص — أو بدون أقواس مع شرطة تاريخ، وقت - اسم: نص
-  const startRe = /^\[?(\d{1,2})\/(\d{1,2})\/(\d{4})،\s*(\d{1,2}):(\d{2})(?::\d{2})?\s*([صم])\]?\s*-?\s*([^:]+):\s?([\s\S]*)$/;
+  // يدعم صيغتين لتصدير واتساب حسب إعدادات لغة الجهاز المصدّر: عربي (فاصلة "،" + ص/م) أو إنجليزي (فاصلة "," + AM/PM)
+  const startRe = /^\[?(\d{1,2})\/(\d{1,2})\/(\d{4})[،,]\s*(\d{1,2}):(\d{2})(?::\d{2})?\s*(ص|م|AM|PM)\]?\s*-?\s*([^:]+):\s?([\s\S]*)$/i;
   const msgs = [];
   let current = null;
   const toEn = s => (s || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
@@ -9874,9 +9874,11 @@ function parseWaMessages(text) {
     if (m) {
       if (current) msgs.push(current);
       const day = parseInt(m[1]), month = parseInt(m[2]), year = parseInt(m[3]);
-      let hour = parseInt(m[4]); const minute = parseInt(m[5]); const ampm = m[6];
-      if (ampm === 'م' && hour < 12) hour += 12;
-      if (ampm === 'ص' && hour === 12) hour = 0;
+      let hour = parseInt(m[4]); const minute = parseInt(m[5]); const ampm = m[6].toLowerCase();
+      const isPM = ampm === 'م' || ampm === 'pm';
+      const isAM = ampm === 'ص' || ampm === 'am';
+      if (isPM && hour < 12) hour += 12;
+      if (isAM && hour === 12) hour = 0;
       const dateObj = new Date(year, month - 1, day, hour, minute, 0);
       current = { date: dateObj, sender: m[7].trim(), body: m[8] };
     } else if (current) {
