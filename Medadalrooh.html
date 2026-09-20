@@ -6592,20 +6592,19 @@ async function runWaPlanImportAnalysis() {
   renderWaPlanReviewQueue();
 }
 
-// يضيف/يكمل تقسيم كبرى انحلّت مطابقته التقريبية — يضيفه على بطاقة الطالبة الموجودة (لو عندها خطة أصلًا) بدل ما يسوي بطاقة ثانية
+// يضيف/يكمل تقسيم كبرى انحلّت مطابقته التقريبية — يضيفه على بطاقة الطالبة الموجودة (لو عندها خطة أصلًا) بدل ما يسوي بطاقة ثانية.
+// لو خطتها سبق اعتمدت (حضورها مسجّل أصلًا)، ننشئ لها بطاقة "كبرى بس" (plan فاضي/null) عشان ما نلمس خطتها المعتمدة ولا نعيد فتح حضورها.
 function addWaKubraFuzzyResolvedCard(stu, kubra, body) {
   window._waPlanPendingReview = window._waPlanPendingReview || [];
   const existing = window._waPlanPendingReview.find(it => it.stu.id === stu.id && !it.committed);
   if (existing) {
     existing.kubraPlan = kubra;
   } else {
-    const dayKey = window._waPlanDayKey;
-    if (getAttendVal(currentWeek, dayKey, stu.name)) { showToast('سبق اعتمدت بطاقة ' + stu.name); return; }
     window._waPlanPendingReview.push({
       stu, plan: null, kubraPlan: kubra, kubraWarning: null, stars: null, body,
       week: (typeof window._waPlanWeek === 'number') ? window._waPlanWeek : currentWeek,
       dayKey: window._waPlanDayKey || null,
-      sourceTag: `${WEEK_NAMES[currentWeek] || (currentWeek+1)} — ${getHalqaLabel(getStudentHalqaId(stu.id) || '')} — الفترة ${toAr(getStudentPeriod(stu.id) || '1')}`,
+      sourceTag: `${WEEK_NAMES[currentWeek] || (currentWeek+1)} — ${getHalqaLabel(getStudentHalqaId(stu.id) || '')} — الفترة ${toAr(getStudentPeriod(stu.id) || '1')} — 🌟 تكميل الكبرى فقط`,
     });
   }
   renderWaPlanReviewQueue();
@@ -6711,7 +6710,7 @@ function renderWaPlanReviewQueue() {
         </div>`
       : `<div style="color:var(--muted);font-size:0.75rem;">— ما فيه تقسيم مراجعة كبرى مستلم —</div>`;
     const itemGroup = item.stu.group && item.stu.group.trim() ? item.stu.group.trim() : '';
-    const showKubraTab = (item.week === 0) && getKubra(itemGroup, item.stu.id).hasKubra; // تقسيم الكبرى بس بالأسبوع الأول، وبس للطالبات اللي عندها كبرى فعلًا حسب الأرشيف
+    const showKubraTab = (item.week === 0) && (!!item.kubraPlan || getKubra(itemGroup, item.stu.id).hasKubra); // تقسيم الكبرى بس بالأسبوع الأول — يطلع لو فيه بيانات كبرى فعلية متطابقة، أو لو الطالبة تنطبق عليها حسب الأرشيف
     const defaultTab = (item.plan || !showKubraTab) ? 'plan' : 'kubra';
     const tabsBarHtml = showKubraTab ? `
       <div style="display:flex;gap:0.9rem;margin-bottom:0.5rem;">
