@@ -5083,8 +5083,13 @@ function buildGroupedHtml(title, students, groupKeyFn, groupLabelFn, excludedFn)
 }
 
 let missingStatsActiveTab = 'attend';
+let liveMissingStatsTab = 'attend';
 function setMissingStatsTab(tab) {
   missingStatsActiveTab = tab;
+  renderMissingStats();
+}
+function setLiveMissingStatsTab(tab) {
+  liveMissingStatsTab = tab;
   renderMissingStats();
 }
 function renderMissingStats() {
@@ -5093,7 +5098,7 @@ function renderMissingStats() {
   const isLive = curriculumViewMode === 'live';
   const isThu = !isLive && currentDay === 5;
 
-  // شريط التبويبات الأفقي (يظهر بس لما فيه أكثر من قائمة، يعني بالخميس)
+  // شريط التبويبات الأفقي (يظهر بس لما فيه أكثر من قائمة، يعني بالخميس أو بالحلقة المباشرة)
   let tabsHtml = '';
   if (isThu) {
     const tabs = [
@@ -5104,8 +5109,18 @@ function renderMissingStats() {
     tabsHtml = '<div style="display:flex;justify-content:space-between;margin-bottom:0.6rem;padding:0 0.3rem;box-sizing:border-box;">' +
       tabs.map(t => '<div class="group-tab' + (missingStatsActiveTab === t.key ? ' active' : '') + '" style="padding:0.3rem 0;font-size:0.62rem;white-space:nowrap;" onclick="setMissingStatsTab(\'' + t.key + '\')">' + t.label + '</div>').join('') +
       '</div>';
+  } else if (isLive) {
+    const tabs = [
+      { key: 'attend', label: '☑️ التحضير اليومي' },
+      { key: 'plans', label: '📋 الخطط الناقصة' },
+    ];
+    if (currentWeek === 0) tabs.push({ key: 'kubra', label: '⭐️ الكبرى الناقصة' });
+    if (liveMissingStatsTab !== 'attend' && !tabs.some(t => t.key === liveMissingStatsTab)) liveMissingStatsTab = 'attend';
+    tabsHtml = '<div style="display:flex;justify-content:space-between;margin-bottom:0.6rem;padding:0 0.3rem;box-sizing:border-box;">' +
+      tabs.map(t => '<div class="group-tab' + (liveMissingStatsTab === t.key ? ' active' : '') + '" style="padding:0.3rem 0;font-size:0.62rem;white-space:nowrap;" onclick="setLiveMissingStatsTab(\'' + t.key + '\')">' + t.label + '</div>').join('') +
+      '</div>';
   } else if (missingStatsActiveTab !== 'attend') {
-    missingStatsActiveTab = 'attend'; // الأيام العادية والحلقة المباشرة ما فيها إلا قائمة التحضير
+    missingStatsActiveTab = 'attend'; // الأيام العادية ما فيها إلا قائمة التحضير
   }
 
   let html = tabsHtml;
@@ -5114,21 +5129,22 @@ function renderMissingStats() {
     // الحلقة المباشرة: كل طالبة تُفحص بحلقتها وفترتها هي (مو التبويب المفتوح حاليًا فقط)
     const studentDayKey = s => liveKeyFor(getStudentHalqaId(s.id) || '0', getStudentPeriod(s.id) || '1', liveClosingActive);
     const groupLbl = k => getHalqaLabel(k);
-    if (!liveClosingActive) {
+    const tab = liveClosingActive ? 'attend' : liveMissingStatsTab; // الحلقة الختامية ما فيها إلا التحضير
+    if (tab === 'plans') {
       const missingPlans = maqAllStudents.filter(s => { const sd = getStudentData(s.group&&s.group.trim()?s.group.trim():'', currentWeek, s.id); return !sd.hifz || !sd.hifz.trim(); });
-      html += buildGroupedHtml('📋 الخطط الناقصة', missingPlans, s => getStudentHalqaId(s.id) || 'غير محدد', groupLbl);
-      if (currentWeek === 0) {
-        const missingKubra = maqAllStudents.filter(s => {
-          const g = s.group && s.group.trim() ? s.group.trim() : '';
-          if (!getKubra(g, s.id).hasKubra) return false;
-          const split = kubraSplits['k' + s.id] || [];
-          return !split.some(d => d && d.trim());
-        });
-        html += buildGroupedHtml('⭐️ تقسيمات الكبرى الناقصة', missingKubra, s => getStudentHalqaId(s.id) || 'غير محدد', groupLbl);
-      }
+      html += buildGroupedHtml('', missingPlans, s => getStudentHalqaId(s.id) || 'غير محدد', groupLbl);
+    } else if (tab === 'kubra' && currentWeek === 0) {
+      const missingKubra = maqAllStudents.filter(s => {
+        const g = s.group && s.group.trim() ? s.group.trim() : '';
+        if (!getKubra(g, s.id).hasKubra) return false;
+        const split = kubraSplits['k' + s.id] || [];
+        return !split.some(d => d && d.trim());
+      });
+      html += buildGroupedHtml('', missingKubra, s => getStudentHalqaId(s.id) || 'غير محدد', groupLbl);
+    } else {
+      const missingAttend = maqAllStudents.filter(s => !getAttendVal(currentWeek, studentDayKey(s), s.name));
+      html += buildGroupedHtml('', missingAttend, s => getStudentHalqaId(s.id) || 'غير محدد', groupLbl);
     }
-    const missingAttend = maqAllStudents.filter(s => !getAttendVal(currentWeek, studentDayKey(s), s.name));
-    html += buildGroupedHtml('☑️ التحضير اليومي', missingAttend, s => getStudentHalqaId(s.id) || 'غير محدد', groupLbl);
   } else if (!isThu) {
     // الأيام العادية: التحضير مقسّم حسب المجموعة
     const missingAttend = maqAllStudents.filter(s => !getAttendVal(currentWeek, currentDay, s.name));
