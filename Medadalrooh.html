@@ -6779,6 +6779,13 @@ function openWaPlanManualAdd() {
     const group = s.group && s.group.trim() ? s.group.trim() : '';
     const hasKubra = ctx.week === 0 && getKubra(group, s.id).hasKubra;
     if (!existing) {
+      const alreadyApproved = !!ctx.dayKey && getAttendVal(ctx.week, ctx.dayKey, s.name) === 'attend';
+      if (alreadyApproved) {
+        const hasKubraData = (kubraSplits['k' + s.id] || []).some(d => d && d.trim());
+        if (hasKubraData) return; // معتمدة وعندها كبرى فعليًا — مكتملة، ما تحتاج شي
+        options.push({ id: s.id, name: s.name, hint: 'معتمدة أصلًا — ناقصها تقسيم الكبرى بس' });
+        return;
+      }
       options.push({ id: s.id, name: s.name, hint: 'ما وصل منها شي' });
       return;
     }
@@ -6813,20 +6820,23 @@ function addWaPlanManualCard(id) {
   const hasKubra = ctx.week === 0 && getKubra(group, id).hasKubra;
   window._waPlanPendingReview = window._waPlanPendingReview || [];
   const existing = window._waPlanPendingReview.find(it => it.stu.id === id && !it.committed);
+  // لو خطتها سبق اعتمدت فعليًا (حضورها مسجّل أصلًا)، ما نعطيها خطة فاضية جديدة عشان ما تكتب فوق خطتها المعتمدة الصح بالغلط —
+  // بطاقتها الجديدة تصير كبرى بس (plan: null يعني الاعتماد ما يلمس الخطة إطلاقًا)
+  const alreadyApproved = !!ctx.dayKey && getAttendVal(ctx.week, ctx.dayKey, stu.name) === 'attend';
   if (existing) {
     if (!existing.plan) existing.plan = { hifz: '', days: ['', '', '', ''], body: '' };
     if (hasKubra && !existing.kubraPlan) existing.kubraPlan = { mainText: '', days: ['', '', '', ''], body: '' };
   } else {
     window._waPlanPendingReview.push({
       stu,
-      plan: { hifz: '', days: ['', '', '', ''], body: '' },
-      kubraPlan: hasKubra ? { mainText: '', days: ['', '', '', ''], body: '' } : null,
+      plan: alreadyApproved ? null : { hifz: '', days: ['', '', '', ''], body: '' },
+      kubraPlan: { mainText: '', days: ['', '', '', ''], body: '' },
       kubraWarning: null,
       week: ctx.week,
       dayKey: ctx.dayKey || null,
       stars: '',
       body: '',
-      sourceTag: '✍️ أضيفت يدويًا',
+      sourceTag: alreadyApproved ? '✍️ تكميل الكبرى فقط (خطتها معتمدة أصلًا)' : '✍️ أضيفت يدويًا',
     });
   }
   renderWaPlanReviewQueue();
