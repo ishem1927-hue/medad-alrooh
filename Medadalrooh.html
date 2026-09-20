@@ -6425,12 +6425,17 @@ async function runWaPlanImportAnalysis() {
     parseKubraDayPaste2(msg.body).forEach(b => kubraCards.push(Object.assign({}, b, { body: msg.body })));
   });
   const kubraMatchByStudentId = {};
+  const kubraFuzzyQueue = []; // {rawName, suggested, kubra, body} — نفس فكرة planFuzzyQueue
   const kubraUnmatched = []; // تقسيمات ما لقينا لها ولا احتمال بهالقاعة
   kubraCards.forEach(p => {
     const exact = findMatchingStudents2(p.rawName).filter(s => halqaStudents.some(h => h.id === s.id));
-    if (exact.length === 1) kubraMatchByStudentId[exact[0].id] = p;
-    else if (exact.length === 0) kubraUnmatched.push(p.rawName);
-    else kubraUnmatched.push(p.rawName + ' (تطابق أكثر من طالبة)');
+    if (exact.length === 1) {
+      kubraMatchByStudentId[exact[0].id] = p;
+    } else if (exact.length === 0) {
+      const fuzzy = findWaFuzzyMatch(p.rawName, halqaStudents);
+      if (fuzzy.length) kubraFuzzyQueue.push({ rawName: p.rawName, suggested: fuzzy[0].student, kubra: p, body: p.body });
+      else kubraUnmatched.push(p.rawName);
+    } else kubraUnmatched.push(p.rawName + ' (تطابق أكثر من طالبة)');
   });
 
   const waSourceTag = `${WEEK_NAMES[computedWeek] || (computedWeek+1)} — ${expectedDayLabel}`;
@@ -6462,7 +6467,8 @@ async function runWaPlanImportAnalysis() {
     const planMatch = planMatchByStudentId[stu.id] || null;
     const kubraMatch = kubraMatchByStudentId[stu.id] || null;
     const hasFuzzyPending = planFuzzyQueue.some(f => f.suggested.id === stu.id);
-    const attended = !!starEntry || !!planMatch || !!kubraMatch || hasFuzzyPending;
+    const hasKubraFuzzyPending = kubraFuzzyQueue.some(f => f.suggested.id === stu.id);
+    const attended = !!starEntry || !!planMatch || !!kubraMatch || hasFuzzyPending || hasKubraFuzzyPending;
 
     if (!attended) { absentees.push(stu); return; }
 
@@ -6473,6 +6479,7 @@ async function runWaPlanImportAnalysis() {
     }
 
     if (hasFuzzyPending && !planMatch) return; // بانتظار تأكيدك بقسم "مطابقة تقريبية" — ما نبنيها كبطاقة لسا
+    if (hasKubraFuzzyPending && !planMatch && !kubraMatch) return; // نفس الشي بس لتقسيم الكبرى المعلّق
 
     const cardAlerts = [];
     if (!planMatch) cardAlerts.push('الخطة غير موجودة');
@@ -6537,6 +6544,25 @@ async function runWaPlanImportAnalysis() {
       </div>`;
     });
   }
+  if (kubraFuzzyQueue.length) {
+    html += `<div style="font-weight:700;color:var(--wine);margin:0.6rem 0 0.3rem;">🔍 تقسيم كبرى — مطابقة تقريبية تحتاج تأكيدك (${kubraFuzzyQueue.length}):</div>`;
+    kubraFuzzyQueue.forEach((item, i) => {
+      html += `<div id="waKubraFuzzy_${i}" style="border:1px solid var(--border);border-radius:8px;padding:0.5rem;margin-bottom:0.4rem;font-size:0.78rem;">
+        تقسيم الكبرى باسم "<b>${escapeHTML(item.rawName)}</b>" — يمكن تقصدين <b>${escapeHTML(item.suggested.name)}</b>؟
+        <div style="display:flex;gap:0.4rem;margin-top:0.4rem;">
+          <button class="sw-btn" onclick="resolveWaKubraFuzzy(${i}, true)">✅ نعم</button>
+          <button class="sw-btn" onclick="resolveWaKubraFuzzy(${i}, false)">❌ لا</button>
+        </div>
+        <div id="waKubraFuzzyAlt_${i}" style="display:none;margin-top:0.4rem;">
+          <select id="waKubraFuzzySel_${i}" style="font-family:'Cairo';font-size:0.75rem;">
+            <option value="">— اختاري الطالبة الصح —</option>
+            ${halqaStudents.map(s => `<option value="${s.id}">${escapeHTML(s.name)}</option>`).join('')}
+          </select>
+          <button class="icon-btn-sm accent" style="margin-top:0.3rem;" onclick="resolveWaKubraFuzzyAlt(${i})">تأكيد</button>
+        </div>
+      </div>`;
+    });
+  }
   if (planUnmatched.length) {
     html += `<div style="font-weight:700;color:#c0392b;margin:0.6rem 0 0.3rem;">❓ خطط ما قدرنا نطابقها بأي طالبة بهالقاعة (${planUnmatched.length}):</div>`;
     html += `<div style="font-size:0.78rem;">${planUnmatched.map((n, i) => `<div>${i+1}. ${escapeHTML(n)}</div>`).join('')}</div>`;
@@ -6555,6 +6581,7 @@ async function runWaPlanImportAnalysis() {
   }
   resultsEl.innerHTML = html;
   window._waPlanFuzzyCache = planFuzzyQueue;
+  window._waKubraFuzzyCache = kubraFuzzyQueue;
   window._waPlanDayKey = checkDayIdx;
   window._waPlanWeek = computedWeek;
   // لو أعدنا تحليل نفس النطاق (نفس الأسبوع/اليوم/القاعة)، نستبدل بطاقاتها القديمة الغير معتمدة بدل ما نكررها
@@ -6563,6 +6590,53 @@ async function runWaPlanImportAnalysis() {
   );
   window._waPlanPendingReview = existingQueue.concat(pendingReview);
   renderWaPlanReviewQueue();
+}
+
+// يضيف/يكمل تقسيم كبرى انحلّت مطابقته التقريبية — يضيفه على بطاقة الطالبة الموجودة (لو عندها خطة أصلًا) بدل ما يسوي بطاقة ثانية
+function addWaKubraFuzzyResolvedCard(stu, kubra, body) {
+  window._waPlanPendingReview = window._waPlanPendingReview || [];
+  const existing = window._waPlanPendingReview.find(it => it.stu.id === stu.id && !it.committed);
+  if (existing) {
+    existing.kubraPlan = kubra;
+  } else {
+    const dayKey = window._waPlanDayKey;
+    if (getAttendVal(currentWeek, dayKey, stu.name)) { showToast('سبق اعتمدت بطاقة ' + stu.name); return; }
+    window._waPlanPendingReview.push({
+      stu, plan: null, kubraPlan: kubra, kubraWarning: null, stars: null, body,
+      week: (typeof window._waPlanWeek === 'number') ? window._waPlanWeek : currentWeek,
+      dayKey: window._waPlanDayKey || null,
+      sourceTag: `${WEEK_NAMES[currentWeek] || (currentWeek+1)} — ${getHalqaLabel(getStudentHalqaId(stu.id) || '')} — الفترة ${toAr(getStudentPeriod(stu.id) || '1')}`,
+    });
+  }
+  renderWaPlanReviewQueue();
+}
+function resolveWaKubraFuzzy(idx, isYes) {
+  const item = window._waKubraFuzzyCache && window._waKubraFuzzyCache[idx];
+  if (!item) { showToast('انحلّت هالحالة أصلًا'); return; }
+  const rowEl = document.getElementById('waKubraFuzzy_' + idx);
+  if (isYes) {
+    addWaKubraFuzzyResolvedCard(item.suggested, item.kubra, item.body);
+    if (rowEl) rowEl.innerHTML = `<span style="color:var(--green);font-weight:700;">✅ ${escapeHTML(item.suggested.name)} — أُضيف تقسيم الكبرى لبطاقتها</span>`;
+    showToast('أُضيف تقسيم الكبرى لبطاقة ' + item.suggested.name + ' ✅');
+    window._waKubraFuzzyCache[idx] = null;
+  } else {
+    const alt = document.getElementById('waKubraFuzzyAlt_' + idx);
+    if (alt) alt.style.display = 'block';
+  }
+}
+function resolveWaKubraFuzzyAlt(idx) {
+  const sel = document.getElementById('waKubraFuzzySel_' + idx);
+  const id = parseInt(sel.value);
+  if (!id) return;
+  const item = window._waKubraFuzzyCache && window._waKubraFuzzyCache[idx];
+  if (!item) { showToast('انحلّت هالحالة أصلًا'); return; }
+  const stu = maqAllStudents.find(s => s.id === id);
+  if (!stu) return;
+  addWaKubraFuzzyResolvedCard(stu, item.kubra, item.body);
+  const rowEl = document.getElementById('waKubraFuzzy_' + idx);
+  if (rowEl) rowEl.innerHTML = `<span style="color:var(--green);font-weight:700;">✅ ${escapeHTML(stu.name)} — أُضيف تقسيم الكبرى لبطاقتها</span>`;
+  showToast('أُضيف تقسيم الكبرى لبطاقة ' + stu.name + ' ✅');
+  window._waKubraFuzzyCache[idx] = null;
 }
 
 // يضيف بطاقة طالبة انحلّت مطابقتها التقريبية لقائمة المراجعة (يستخدم نفس بيانات الأسبوع/القاعة المحسوبة وقت آخر تحليل)
