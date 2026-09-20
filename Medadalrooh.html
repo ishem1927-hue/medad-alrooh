@@ -5117,6 +5117,15 @@ function renderMissingStats() {
     if (!liveClosingActive) {
       const missingPlans = maqAllStudents.filter(s => { const sd = getStudentData(s.group&&s.group.trim()?s.group.trim():'', currentWeek, s.id); return !sd.hifz || !sd.hifz.trim(); });
       html += buildGroupedHtml('📋 الخطط الناقصة', missingPlans, s => getStudentHalqaId(s.id) || 'غير محدد', groupLbl);
+      if (currentWeek === 0) {
+        const missingKubra = maqAllStudents.filter(s => {
+          const g = s.group && s.group.trim() ? s.group.trim() : '';
+          if (!getKubra(g, s.id).hasKubra) return false;
+          const split = kubraSplits['k' + s.id] || [];
+          return !split.some(d => d && d.trim());
+        });
+        html += buildGroupedHtml('⭐️ تقسيمات الكبرى الناقصة', missingKubra, s => getStudentHalqaId(s.id) || 'غير محدد', groupLbl);
+      }
     }
     const missingAttend = maqAllStudents.filter(s => !getAttendVal(currentWeek, studentDayKey(s), s.name));
     html += buildGroupedHtml('☑️ التحضير اليومي', missingAttend, s => getStudentHalqaId(s.id) || 'غير محدد', groupLbl);
@@ -6781,9 +6790,14 @@ function openWaPlanManualAdd() {
     if (!existing) {
       const alreadyApproved = !!ctx.dayKey && getAttendVal(ctx.week, ctx.dayKey, s.name) === 'attend';
       if (alreadyApproved) {
+        const sd = getStudentData(group, ctx.week, s.id);
+        const missingPlan = !sd.hifz || !sd.hifz.trim();
         const hasKubraData = (kubraSplits['k' + s.id] || []).some(d => d && d.trim());
-        if (hasKubraData) return; // معتمدة وعندها كبرى فعليًا — مكتملة، ما تحتاج شي
-        options.push({ id: s.id, name: s.name, hint: 'معتمدة أصلًا — ناقصها تقسيم الكبرى بس' });
+        const missingKubra = hasKubra && !hasKubraData;
+        if (!missingPlan && !missingKubra) return; // معتمدة ومكتملة فعليًا — ما تحتاج شي
+        if (missingPlan && missingKubra) options.push({ id: s.id, name: s.name, hint: 'معتمدة أصلًا — ناقصها الخطة والكبرى' });
+        else if (missingPlan) options.push({ id: s.id, name: s.name, hint: 'معتمدة أصلًا — ناقصها الخطة الأسبوعية' });
+        else options.push({ id: s.id, name: s.name, hint: 'معتمدة أصلًا — ناقصها تقسيم الكبرى بس' });
         return;
       }
       options.push({ id: s.id, name: s.name, hint: 'ما وصل منها شي' });
@@ -6820,23 +6834,28 @@ function addWaPlanManualCard(id) {
   const hasKubra = ctx.week === 0 && getKubra(group, id).hasKubra;
   window._waPlanPendingReview = window._waPlanPendingReview || [];
   const existing = window._waPlanPendingReview.find(it => it.stu.id === id && !it.committed);
-  // لو خطتها سبق اعتمدت فعليًا (حضورها مسجّل أصلًا)، ما نعطيها خطة فاضية جديدة عشان ما تكتب فوق خطتها المعتمدة الصح بالغلط —
-  // بطاقتها الجديدة تصير كبرى بس (plan: null يعني الاعتماد ما يلمس الخطة إطلاقًا)
   const alreadyApproved = !!ctx.dayKey && getAttendVal(ctx.week, ctx.dayKey, stu.name) === 'attend';
+  let missingPlan = true, missingKubra = hasKubra;
+  if (alreadyApproved) {
+    const sd = getStudentData(group, ctx.week, id);
+    missingPlan = !sd.hifz || !sd.hifz.trim();
+    const hasKubraData = (kubraSplits['k' + id] || []).some(d => d && d.trim());
+    missingKubra = hasKubra && !hasKubraData;
+  }
   if (existing) {
-    if (!existing.plan) existing.plan = { hifz: '', days: ['', '', '', ''], body: '' };
-    if (hasKubra && !existing.kubraPlan) existing.kubraPlan = { mainText: '', days: ['', '', '', ''], body: '' };
+    if (!existing.plan && missingPlan) existing.plan = { hifz: '', days: ['', '', '', ''], body: '' };
+    if (missingKubra && !existing.kubraPlan) existing.kubraPlan = { mainText: '', days: ['', '', '', ''], body: '' };
   } else {
     window._waPlanPendingReview.push({
       stu,
-      plan: alreadyApproved ? null : { hifz: '', days: ['', '', '', ''], body: '' },
-      kubraPlan: { mainText: '', days: ['', '', '', ''], body: '' },
+      plan: missingPlan ? { hifz: '', days: ['', '', '', ''], body: '' } : null,
+      kubraPlan: missingKubra ? { mainText: '', days: ['', '', '', ''], body: '' } : null,
       kubraWarning: null,
       week: ctx.week,
       dayKey: ctx.dayKey || null,
       stars: '',
       body: '',
-      sourceTag: alreadyApproved ? '✍️ تكميل الكبرى فقط (خطتها معتمدة أصلًا)' : '✍️ أضيفت يدويًا',
+      sourceTag: alreadyApproved ? '✍️ تكميل النواقص (خطتها معتمدة أصلًا)' : '✍️ أضيفت يدويًا',
     });
   }
   renderWaPlanReviewQueue();
