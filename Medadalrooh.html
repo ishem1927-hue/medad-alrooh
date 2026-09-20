@@ -925,7 +925,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         <div class="attend-actions-row" style="justify-content:center;">
           <div style="display:flex;gap:0.5rem;">
             <button class="icon-btn-sm accent" onclick="generateAttendReport()" title="التقرير">📊</button>
-            <button class="icon-btn-sm accent" onclick="startNewCycle()">🔄</button>
+            <button class="icon-btn-sm accent" id="startNewCycleTopBtn" onclick="startNewCycle()">🔄</button>
             <button class="icon-btn-sm accent" onclick="toggleCycleStarPanel()">🌟</button>
             <button class="icon-btn-sm accent" onclick="toggleMissingStatsPanel()">🧩</button>
             <button class="icon-btn-sm accent" onclick="openContextualWaImport()" title="استيراد من واتساب">📥</button>
@@ -3985,17 +3985,20 @@ function updateAlertsBadge() {
   const btn = document.getElementById('attendAlertsTopBtn');
   const expandedBtn = document.getElementById('attendAlertsExpandedBtn');
   const backBtn = document.getElementById('curriculumBackTopBtn');
+  const newCycleBtn = document.getElementById('startNewCycleTopBtn');
   if (!btn) return;
   const onCurriculumTab = document.getElementById('panel-curriculum') && document.getElementById('panel-curriculum').classList.contains('active');
   if (!onCurriculumTab) {
     btn.style.display = 'none';
     if (expandedBtn) expandedBtn.style.display = 'none';
     if (backBtn) backBtn.style.display = 'none';
+    if (newCycleBtn) newCycleBtn.style.display = 'none';
     return;
   }
   btn.style.display = '';
   if (expandedBtn) expandedBtn.style.display = (curriculumActiveRole === 'admin') ? '' : 'none';
   if (backBtn) backBtn.style.display = (curriculumActiveRole === 'admin' && curriculumViewMode) ? '' : 'none';
+  if (newCycleBtn) newCycleBtn.style.display = (curriculumActiveRole === 'admin') ? '' : 'none';
   const count = getAlertsCount(currentWeek, curriculumViewMode === 'live' ? liveAttendKey() : currentDay);
   const dot = document.getElementById('attendAlertsCount');
   if (dot) {
