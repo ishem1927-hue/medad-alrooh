@@ -4161,7 +4161,12 @@ function goToStudentsTab() {
 }
 
 function setAttendSat(s, v) {
-  const dayKey = liveAttendKey();
+  setAttendForKey(liveAttendKey(), s, v);
+}
+// نفس منطق setAttendSat بالضبط، بس تاخذ مفتاح اليوم (الحلقة+الفترة) صراحة بدل ما تعتمد على
+// التبويب المفتوح حاليًا بشاشة "الحلقة" — يستخدمها الاعتماد من شاشة الاستيراد عشان تكتب على
+// نفس الحلقة/الفترة اللي اختارتها المستخدمة فعليًا بنافذة الاستيراد، بغض النظر عن أي تبويب ثاني مفتوح
+function setAttendForKey(dayKey, s, v) {
   const cur = getAttendVal(currentWeek, dayKey, s);
   const newVal = cur === v ? null : v;
   setAttendVal(currentWeek, dayKey, s, newVal);
@@ -6377,7 +6382,7 @@ async function runWaPlanImportAnalysis() {
   const msgsInRange = allMsgs.filter(m => m.date >= rangeStart && m.date <= rangeEnd);
 
   const halqaStudents = maqAllStudents.filter(s => getStudentHalqaId(s.id) === halqaVal && getStudentPeriod(s.id) === periodVal && s.active !== false && !s.withdrawn);
-  window._waPlanImportCtx = { students: halqaStudents, week: computedWeek };
+  window._waPlanImportCtx = { students: halqaStudents, week: computedWeek, dayKey: checkDayIdx };
   if (!halqaStudents.length) {
     resultsEl.innerHTML = `<div style="color:#c0392b;font-weight:700;">⚠️ ما فيه طالبات موزّعات على "${getHalqaLabel(halqaVal)}" بعد.</div>`;
     return;
@@ -6497,6 +6502,7 @@ async function runWaPlanImportAnalysis() {
       kubraPlan: kubraMatch,
       kubraWarning,
       week: computedWeek,
+      dayKey: checkDayIdx,
       stars: starEntry ? starEntry.stars : null,
       body: planMatch ? planMatch.body : (kubraMatch ? kubraMatch.body : '— ما فيه رسالة خطة مستلمة —'),
       sourceTag: waSourceTag,
@@ -6567,6 +6573,7 @@ function addWaPlanFuzzyResolvedCard(stu, plan, body) {
   window._waPlanPendingReview.push({
     stu, plan, stars: null, body,
     week: (typeof window._waPlanWeek === 'number') ? window._waPlanWeek : currentWeek,
+    dayKey: window._waPlanDayKey || null,
     sourceTag: `${WEEK_NAMES[currentWeek] || (currentWeek+1)} — ${getHalqaLabel(getStudentHalqaId(stu.id) || '')} — الفترة ${toAr(getStudentPeriod(stu.id) || '1')}`,
   });
   renderWaPlanReviewQueue();
@@ -6723,6 +6730,7 @@ function addWaPlanManualCard(id) {
     kubraPlan: hasKubra ? { mainText: '', days: ['', '', '', ''], body: '' } : null,
     kubraWarning: null,
     week: ctx.week,
+    dayKey: ctx.dayKey || null,
     stars: '',
     body: '',
     sourceTag: '✍️ أضيفت يدويًا',
@@ -6737,12 +6745,12 @@ function commitWaPlanReviewCard(i) {
   if (!item || item.committed) { showToast('اتحفظت هالبطاقة أصلًا'); return; }
   // ===== نسخة من القيم القديمة قبل أي تعديل — عشان التراجع الحقيقي لاحقًا من سجل الاعتمادات =====
   const sgSnap = item.stu.group && item.stu.group.trim() ? item.stu.group.trim() : '';
-  const dayKeySnap = liveAttendKey();
+  const dayKeySnap = item.dayKey || liveAttendKey();
   const prevAttendSnap = getAttendVal(currentWeek, dayKeySnap, item.stu.name);
   const sdKeySnap = dk(sgSnap, currentWeek, item.stu.id);
   const prevSdSnap = maqData[sdKeySnap] ? JSON.parse(JSON.stringify(maqData[sdKeySnap])) : null;
   const prevKubraSnap = kubraSplits['k' + item.stu.id] ? kubraSplits['k' + item.stu.id].slice() : null;
-  waSetIfChanged(setAttendSat, item.stu.name, 'attend');
+  if (getAttendVal(currentWeek, dayKeySnap, item.stu.name) !== 'attend') setAttendForKey(dayKeySnap, item.stu.name, 'attend');
   if (item.plan) {
     // نقرأ القيم من خانات التعديل (بعد أي تصحيح سويتيه وقت المراجعة) بدل القيم الخام الملصوقة مباشرة
     const hifzInput = document.getElementById('waPlanEditHifz_' + i);
