@@ -6804,11 +6804,13 @@ function openWaPlanManualAdd() {
     const group = s.group && s.group.trim() ? s.group.trim() : '';
     const hasKubra = ctx.week === 0 && getKubra(group, s.id).hasKubra;
     if (!existing) {
-      const alreadyApproved = !!ctx.dayKey && getAttendVal(ctx.week, ctx.dayKey, s.name) === 'attend';
+      const attendMarked = !!ctx.dayKey && getAttendVal(ctx.week, ctx.dayKey, s.name) === 'attend';
+      const sd = getStudentData(group, ctx.week, s.id);
+      const hasPlanData = !!(sd.hifz && sd.hifz.trim());
+      const hasKubraData = (kubraSplits['k' + s.id] || []).some(d => d && d.trim());
+      const alreadyApproved = attendMarked && (hasPlanData || hasKubraData); // حضور بدون أي بيانات حقيقية = بصمة قديمة، مو اعتماد فعلي
       if (alreadyApproved) {
-        const sd = getStudentData(group, ctx.week, s.id);
-        const missingPlan = !sd.hifz || !sd.hifz.trim();
-        const hasKubraData = (kubraSplits['k' + s.id] || []).some(d => d && d.trim());
+        const missingPlan = !hasPlanData;
         const missingKubra = hasKubra && !hasKubraData;
         if (!missingPlan && !missingKubra) return; // معتمدة ومكتملة فعليًا — ما تحتاج شي
         if (missingPlan && missingKubra) options.push({ id: s.id, name: s.name, hint: 'معتمدة أصلًا — ناقصها الخطة والكبرى' });
@@ -6850,13 +6852,15 @@ function addWaPlanManualCard(id) {
   const hasKubra = ctx.week === 0 && getKubra(group, id).hasKubra;
   window._waPlanPendingReview = window._waPlanPendingReview || [];
   const existing = window._waPlanPendingReview.find(it => it.stu.id === id && !it.committed);
-  const alreadyApproved = !!ctx.dayKey && getAttendVal(ctx.week, ctx.dayKey, stu.name) === 'attend';
+  const attendMarked = !!ctx.dayKey && getAttendVal(ctx.week, ctx.dayKey, stu.name) === 'attend';
+  const sd0 = getStudentData(group, ctx.week, id);
+  const hasPlanData = !!(sd0.hifz && sd0.hifz.trim());
+  const hasKubraData0 = (kubraSplits['k' + id] || []).some(d => d && d.trim());
+  const alreadyApproved = attendMarked && (hasPlanData || hasKubraData0); // حضور بدون بيانات حقيقية = بصمة قديمة، مو اعتماد فعلي
   let missingPlan = true, missingKubra = hasKubra;
   if (alreadyApproved) {
-    const sd = getStudentData(group, ctx.week, id);
-    missingPlan = !sd.hifz || !sd.hifz.trim();
-    const hasKubraData = (kubraSplits['k' + id] || []).some(d => d && d.trim());
-    missingKubra = hasKubra && !hasKubraData;
+    missingPlan = !hasPlanData;
+    missingKubra = hasKubra && !hasKubraData0;
   }
   if (existing) {
     if (!existing.plan && missingPlan) existing.plan = { hifz: '', days: ['', '', '', ''], body: '' };
