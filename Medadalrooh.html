@@ -6695,18 +6695,32 @@ function showWaPlanCardTab(i, tab) {
 
 
 // ===== إجراء لمرة وحدة: مسح بيانات كل الطالبات "المعتمدة سابقًا" (كل الحلقات والفترات) للأسبوع الحالي فقط، وإرجاعهم للمراجعة =====
-// فتح نافذة اختيار طالبة لإضافة خطتها يدويًا (لما ما ترسل الخطة أصلًا بالجروب ولا بالخاص)
+// فتح نافذة اختيار طالبة لإضافة خطتها أو كبراها يدويًا (لما ما ترسل شي أصلًا، أو ترسل نص وناقصها النص الثاني)
 function openWaPlanManualAdd() {
   const ctx = window._waPlanImportCtx;
   if (!ctx || !ctx.students || !ctx.students.length) { showToast('حللي الملف أول'); return; }
   const queue = window._waPlanPendingReview || [];
-  const already = new Set(queue.map(it => it.stu.id));
-  const available = ctx.students.filter(s => !already.has(s.id));
-  if (!available.length) { showToast('كل طالبات القاعة موجودات بقائمة المراجعة أصلًا'); return; }
-  const optionsHtml = available.map(s => `<option value="${s.id}">${escapeHTML(s.name)}</option>`).join('');
+  const options = [];
+  ctx.students.forEach(s => {
+    const existing = queue.find(it => it.stu.id === s.id && !it.committed);
+    const group = s.group && s.group.trim() ? s.group.trim() : '';
+    const hasKubra = ctx.week === 0 && getKubra(group, s.id).hasKubra;
+    if (!existing) {
+      options.push({ id: s.id, name: s.name, hint: 'ما وصل منها شي' });
+      return;
+    }
+    const missingPlan = !existing.plan;
+    const missingKubra = hasKubra && !existing.kubraPlan;
+    if (missingPlan && missingKubra) options.push({ id: s.id, name: s.name, hint: 'ناقصها الخطة والكبرى' });
+    else if (missingPlan) options.push({ id: s.id, name: s.name, hint: 'ناقصها الخطة الأسبوعية' });
+    else if (missingKubra) options.push({ id: s.id, name: s.name, hint: 'ناقصها تقسيم الكبرى' });
+    // لو مكتملة (عندها خطة، وكبرى لو تنطبق عليها) ما تنضاف للقائمة أصلًا
+  });
+  if (!options.length) { showToast('كل طالبات القاعة مكتملة البيانات أصلًا'); return; }
+  const optionsHtml = options.map(o => `<option value="${o.id}">${escapeHTML(o.name)} — ${escapeHTML(o.hint)}</option>`).join('');
   showConfirmModal(
-    '➕ إضافة خطة يدوية',
-    `اختاري الطالبة اللي تبين تضيفين خطتها يدويًا:<br><br>
+    '➕ إضافة يدوية',
+    `اختاري الطالبة اللي تبين تكملين بياناتها يدويًا:<br><br>
      <select id="waManualAddSelect" style="width:100%;font-family:'Cairo';font-size:0.8rem;padding:0.4rem;border-radius:8px;border:1px solid var(--border);">${optionsHtml}</select>`,
     () => {
       const sel = document.getElementById('waManualAddSelect');
@@ -6716,7 +6730,8 @@ function openWaPlanManualAdd() {
   );
 }
 
-// إنشاء بطاقة فاضية للطالبة المختارة تنضاف لقائمة المراجعة، تعبيها يدويًا وتعتمديها زي أي بطاقة عادية
+// إكمال بطاقة الطالبة المختارة: لو عندها بطاقة ناقصة أصلًا نكمل الجزء الفاضي فيها بدون ما نمسح اللي وصلها،
+// ولو ما عندها بطاقة من الأساس ننشئ لها وحدة جديدة كاملة فاضية تعبيها
 function addWaPlanManualCard(id) {
   const ctx = window._waPlanImportCtx;
   const stu = ctx.students.find(s => s.id === id);
@@ -6724,19 +6739,25 @@ function addWaPlanManualCard(id) {
   const group = stu.group && stu.group.trim() ? stu.group.trim() : '';
   const hasKubra = ctx.week === 0 && getKubra(group, id).hasKubra;
   window._waPlanPendingReview = window._waPlanPendingReview || [];
-  window._waPlanPendingReview.push({
-    stu,
-    plan: { hifz: '', days: ['', '', '', ''], body: '' },
-    kubraPlan: hasKubra ? { mainText: '', days: ['', '', '', ''], body: '' } : null,
-    kubraWarning: null,
-    week: ctx.week,
-    dayKey: ctx.dayKey || null,
-    stars: '',
-    body: '',
-    sourceTag: '✍️ أضيفت يدويًا',
-  });
+  const existing = window._waPlanPendingReview.find(it => it.stu.id === id && !it.committed);
+  if (existing) {
+    if (!existing.plan) existing.plan = { hifz: '', days: ['', '', '', ''], body: '' };
+    if (hasKubra && !existing.kubraPlan) existing.kubraPlan = { mainText: '', days: ['', '', '', ''], body: '' };
+  } else {
+    window._waPlanPendingReview.push({
+      stu,
+      plan: { hifz: '', days: ['', '', '', ''], body: '' },
+      kubraPlan: hasKubra ? { mainText: '', days: ['', '', '', ''], body: '' } : null,
+      kubraWarning: null,
+      week: ctx.week,
+      dayKey: ctx.dayKey || null,
+      stars: '',
+      body: '',
+      sourceTag: '✍️ أضيفت يدويًا',
+    });
+  }
   renderWaPlanReviewQueue();
-  showToast('انضافت بطاقة ' + stu.name + ' — عبّيها واعتمديها');
+  showToast('جاهزة للتعبية: ' + stu.name);
 }
 
 function commitWaPlanReviewCard(i) {
