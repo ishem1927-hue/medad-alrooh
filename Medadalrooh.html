@@ -6382,6 +6382,7 @@ async function runWaPlanImportAnalysis() {
   const msgsInRange = allMsgs.filter(m => m.date >= rangeStart && m.date <= rangeEnd);
 
   const halqaStudents = maqAllStudents.filter(s => getStudentHalqaId(s.id) === halqaVal && getStudentPeriod(s.id) === periodVal && s.active !== false && !s.withdrawn);
+  const checkDayIdx = 'h' + halqaVal + 'p' + periodVal;
   window._waPlanImportCtx = { students: halqaStudents, week: computedWeek, dayKey: checkDayIdx };
   if (!halqaStudents.length) {
     resultsEl.innerHTML = `<div style="color:#c0392b;font-weight:700;">⚠️ ما فيه طالبات موزّعات على "${getHalqaLabel(halqaVal)}" بعد.</div>`;
@@ -6433,7 +6434,6 @@ async function runWaPlanImportAnalysis() {
   });
 
   const waSourceTag = `${WEEK_NAMES[computedWeek] || (computedWeek+1)} — ${expectedDayLabel}`;
-  const checkDayIdx = 'h' + halqaVal + 'p' + periodVal;
 
   // ===== مطابقة الخطط بالطالبات: تطابق دقيق أول، ولو ما انطابقت نجرب مطابقة تقريبية (نفس آلية استيراد البطاقات اليومية) — وتحتاج تأكيدك بالحالتين المشكوك فيهم =====
   const planMatchByStudentId = {};
