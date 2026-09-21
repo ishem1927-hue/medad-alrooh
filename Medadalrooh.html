@@ -946,6 +946,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         </div>
 
         <div class="day-tabs" id="dayTabs"></div>
+        <div id="noChallengeBar" style="text-align:center;"></div>
 
         <div id="groupTabs" style="display:flex;gap:0;flex-wrap:nowrap;overflow-x:auto;padding:0.4rem 0.4rem 0;border-bottom:2px solid #e8d5d5;margin-bottom:0.2rem;scrollbar-width:none;"></div>
         <div id="maqStudentList"></div>
@@ -3746,6 +3747,7 @@ function toggleNoChallengeDay() {
   const k = getKey(currentWeek, currentDay);
   noChallengeDays[k] = !noChallengeDays[k];
   saveNoChallengeDays();
+  renderDayTabsBar();
   renderMaqStudents();
 }
 
@@ -5387,8 +5389,9 @@ function renderWeekBar() {
 function renderDayTabsBar() {
   const tabs = document.getElementById('dayTabs');
   tabs.innerHTML = '';
+  const ncBar = document.getElementById('noChallengeBar');
   // شريط الأيام هذا خاص بالمتابعة الأسبوعية بس — شاشة الحلقة المباشرة صار لها تنقلها الخاص (حلقة ← فترة) عبر renderLiveNav()
-  if (curriculumViewMode !== 'weekly') return;
+  if (curriculumViewMode !== 'weekly') { if (ncBar) ncBar.innerHTML = ''; return; }
   const allowedTypes = ['sw', 'thu'];
   const indices = ATTEND_DAYS.map((d, i) => i);
   indices.forEach(i => {
@@ -5418,6 +5421,16 @@ function renderDayTabsBar() {
     };
     tabs.appendChild(btn);
   });
+  if (ncBar) {
+    if (ATTEND_DAYS[currentDay] && ATTEND_DAYS[currentDay].type === 'sw') {
+      const isOff = isNoChallengeDay(currentWeek, currentDay);
+      ncBar.innerHTML = isOff
+        ? `<button onclick="toggleNoChallengeDay()" style="margin:0.35rem auto;padding:0.28rem 0.7rem;border-radius:10px;border:1px solid var(--wine);background:var(--wine);color:#fff;font-family:inherit;font-weight:700;font-size:0.68rem;cursor:pointer;">🚫 لا يوجد تحدي اليوم</button>`
+        : `<button onclick="toggleNoChallengeDay()" style="margin:0.35rem auto;padding:0.22rem 0.55rem;border-radius:10px;border:1px dashed var(--border);background:transparent;color:var(--muted);font-family:inherit;font-weight:600;font-size:0.62rem;cursor:pointer;">🚫 التحدي</button>`;
+    } else {
+      ncBar.innerHTML = '';
+    }
+  }
 }
 
 function buildDayEvalHTML(name, hasKubra, hasSplit, hasTaahud) {
@@ -5734,16 +5747,6 @@ function renderGroupTabs(groups, activeKey, onSelect) {
 function renderMaqStudents() {
   const el = document.getElementById('maqStudentList');
   el.innerHTML = '';
-
-  if (ATTEND_DAYS[currentDay] && ATTEND_DAYS[currentDay].type === 'sw') {
-    const isOff = isNoChallengeDay(currentWeek, currentDay);
-    const btn = document.createElement('button');
-    btn.textContent = '🚫 التحدي';
-    btn.style.cssText = 'display:block;margin:0.5rem auto 0.6rem;padding:0.4rem 0.9rem;border-radius:12px;border:1px solid var(--border);font-family:inherit;font-weight:700;font-size:0.78rem;cursor:pointer;' + (isOff ? 'background:var(--wine);color:#fff;' : 'background:var(--surface2);color:var(--muted);');
-    btn.title = isOff ? 'التحدي متوقف اليوم — إنجاز "بدون تحدي" ما يؤثر على التميز ولا المسابقة' : 'التحدي شغال اليوم';
-    btn.onclick = toggleNoChallengeDay;
-    el.appendChild(btn);
-  }
 
   if (maqStudents.length === 0) {
     el.innerHTML = `
