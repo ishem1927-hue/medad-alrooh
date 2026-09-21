@@ -5422,14 +5422,19 @@ function renderDayTabsBar() {
     tabs.appendChild(btn);
   });
   if (ncBar) {
-    if (ATTEND_DAYS[currentDay] && ATTEND_DAYS[currentDay].type === 'sw') {
-      const isOff = isNoChallengeDay(currentWeek, currentDay);
-      ncBar.innerHTML = isOff
-        ? `<button onclick="toggleNoChallengeDay()" style="margin:0.35rem auto;padding:0.28rem 0.7rem;border-radius:10px;border:1px solid var(--wine);background:var(--wine);color:#fff;font-family:inherit;font-weight:700;font-size:0.68rem;cursor:pointer;">🚫 لا يوجد تحدي اليوم</button>`
-        : `<button onclick="toggleNoChallengeDay()" style="margin:0.35rem auto;padding:0.22rem 0.55rem;border-radius:10px;border:1px dashed var(--border);background:transparent;color:var(--muted);font-family:inherit;font-weight:600;font-size:0.62rem;cursor:pointer;">🚫 التحدي</button>`;
-    } else {
-      ncBar.innerHTML = '';
-    }
+    const dayIndices = indices.filter(i => allowedTypes.includes(ATTEND_DAYS[i].type));
+    let slotsHtml = '';
+    dayIndices.forEach(i => {
+      if (i === currentDay && ATTEND_DAYS[i].type === 'sw') {
+        const isOff = isNoChallengeDay(currentWeek, currentDay);
+        slotsHtml += isOff
+          ? `<div style="flex:1;text-align:center;"><button onclick="toggleNoChallengeDay()" style="padding:0.28rem 0.5rem;border-radius:10px;border:1px solid var(--wine);background:var(--wine);color:#fff;font-family:inherit;font-weight:700;font-size:0.6rem;cursor:pointer;white-space:nowrap;">🚫 لا يوجد تحدي</button></div>`
+          : `<div style="flex:1;text-align:center;"><button onclick="toggleNoChallengeDay()" style="padding:0.2rem 0.4rem;border-radius:10px;border:1px dashed var(--border);background:transparent;color:var(--muted);font-family:inherit;font-weight:600;font-size:0.55rem;cursor:pointer;">🚫 التحدي</button></div>`;
+      } else {
+        slotsHtml += `<div style="flex:1;"></div>`;
+      }
+    });
+    ncBar.innerHTML = `<div style="display:flex;margin-top:0.3rem;">${slotsHtml}</div>`;
   }
 }
 
