@@ -330,7 +330,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     border-radius: 8px; padding: 0.35rem 0.8rem; cursor: pointer; font-size: 1rem;
   }
 
-  .day-tabs { display: flex; gap: 0.4rem; margin-bottom: 0.3rem; overflow-x: auto; padding-bottom: 0.3rem; scrollbar-width: none; }
+  .day-tabs { display: flex; gap: 0.4rem; margin-bottom: 1.2rem; overflow-x: auto; padding-bottom: 0.3rem; scrollbar-width: none; }
   .day-tabs::-webkit-scrollbar { display: none; }
   #dayTabs { flex-wrap: nowrap; overflow-x: visible; }
   #dayTabs .day-tab { flex: 1; padding: 0.42rem 0.2rem; font-size: 0.72rem; text-align: center; }
@@ -925,7 +925,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         <div class="attend-actions-row" style="justify-content:center;">
           <div style="display:flex;gap:0.5rem;">
             <button class="icon-btn-sm accent" onclick="generateAttendReport()" title="التقرير">📊</button>
-            <button class="icon-btn-sm accent" onclick="startNewCycle()">🔄</button>
+            <button class="icon-btn-sm accent" id="startNewCycleTopBtn" onclick="startNewCycle()">🔄</button>
             <button class="icon-btn-sm accent" onclick="toggleCycleStarPanel()">🌟</button>
             <button class="icon-btn-sm accent" onclick="toggleMissingStatsPanel()">🧩</button>
             <button class="icon-btn-sm accent" onclick="openContextualWaImport()" title="استيراد من واتساب">📥</button>
@@ -946,7 +946,6 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         </div>
 
         <div class="day-tabs" id="dayTabs"></div>
-        <div id="noChallengeBar" style="text-align:center;"></div>
 
         <div id="groupTabs" style="display:flex;gap:0;flex-wrap:nowrap;overflow-x:auto;padding:0.4rem 0.4rem 0;border-bottom:2px solid #e8d5d5;margin-bottom:0.2rem;scrollbar-width:none;"></div>
         <div id="maqStudentList"></div>
@@ -1840,7 +1839,7 @@ const ALL_DATA_KEYS = [
   'madad_cycle_star_list', 'madad_cycle_star_weeks', 'madad_weekly_excellent',
   'madad_group_names', 'madad_halqa_names', 'madad_group_count', 'madad_halqa_count', 'madad_halqa_periods',
   'madad_halqa_dist', 'madad_event_participants', 'madad_kubra_splits', 'madad_archive',
-  'madad_wa_plan_approval_log', 'madad_wa_daily_approval_log', 'madad_no_challenge_days',
+  'madad_wa_plan_approval_log', 'madad_wa_daily_approval_log',
 ];
 const CALC_ONLY_KEYS = ['hasibat_madad', 'hasibat_custom_pay', 'hasibat_obligations'];
 const MERGE_KEYS = ['madad_data', 'maqarrar_data', 'maqarrar_history', 'madad_halqa_dist', 'madad_event_participants', 'madad_kubra_splits', 'madad_archive'];
@@ -3734,23 +3733,6 @@ const ATTEND_DAYS = [
 const WEEK_NAMES = ['الأول','الثاني','الثالث','الرابع'];
 
 let currentWeek = 0;
-let noChallengeDays = {};
-const STORE_NO_CHALLENGE = 'madad_no_challenge_days';
-function saveNoChallengeDays() {
-  try { localStorage.setItem(STORE_NO_CHALLENGE, JSON.stringify(noChallengeDays)); } catch(e) {}
-  syncPush(STORE_NO_CHALLENGE);
-}
-function isNoChallengeDay(w, d) { return !!noChallengeDays[getKey(w, d)]; }
-// تبديل حالة "ما فيه تحدي" لليوم المفتوح حاليًا — لما تكون مفعّلة، اختيار "بدون تحدي" لأي طالبة ذاك اليوم
-// يُحسب مثل "مع التحدي" تمامًا (ما يؤثر على التميز ولا أهلية المسابقة ولا ينشئ تنبيه)
-function toggleNoChallengeDay() {
-  const k = getKey(currentWeek, currentDay);
-  noChallengeDays[k] = !noChallengeDays[k];
-  saveNoChallengeDays();
-  renderDayTabsBar();
-  renderMaqStudents();
-}
-
 let currentDay = 0;
 let pinnedWeek = null;
 let weekTapState = { index: null, count: 0, timer: null };
@@ -3970,8 +3952,7 @@ function setPrimaryAttendAlert(week, day, studentId, studentName, val) {
   if (!studentId) return;
   const k = alertKey(week, day);
   const list = (attendAlerts[k] || []).filter(a => !(a.studentId === studentId && ALERT_PRIMARY_KINDS.includes(a.kind)));
-  let kind = mapAttendValToAlertKind(val);
-  if (kind === 'no_challenge' && isNoChallengeDay(week, day)) kind = null; // اليوم أصلًا ما فيه تحدي — ما يعتبر تقصير من الطالبة
+  const kind = mapAttendValToAlertKind(val);
   if (kind) list.push({ studentId, studentName, kind, ts: Date.now() });
   attendAlerts[k] = list;
   saveAttendAlerts();
@@ -4004,17 +3985,20 @@ function updateAlertsBadge() {
   const btn = document.getElementById('attendAlertsTopBtn');
   const expandedBtn = document.getElementById('attendAlertsExpandedBtn');
   const backBtn = document.getElementById('curriculumBackTopBtn');
+  const newCycleBtn = document.getElementById('startNewCycleTopBtn');
   if (!btn) return;
   const onCurriculumTab = document.getElementById('panel-curriculum') && document.getElementById('panel-curriculum').classList.contains('active');
   if (!onCurriculumTab) {
     btn.style.display = 'none';
     if (expandedBtn) expandedBtn.style.display = 'none';
     if (backBtn) backBtn.style.display = 'none';
+    if (newCycleBtn) newCycleBtn.style.display = 'none';
     return;
   }
   btn.style.display = '';
   if (expandedBtn) expandedBtn.style.display = (curriculumActiveRole === 'admin') ? '' : 'none';
   if (backBtn) backBtn.style.display = (curriculumActiveRole === 'admin' && curriculumViewMode) ? '' : 'none';
+  if (newCycleBtn) newCycleBtn.style.display = (curriculumActiveRole === 'admin') ? '' : 'none';
   const count = getAlertsCount(currentWeek, curriculumViewMode === 'live' ? liveAttendKey() : currentDay);
   const dot = document.getElementById('attendAlertsCount');
   if (dot) {
@@ -4339,7 +4323,6 @@ function generateAttendReport() {
     if (d.sat !== 'attend') return false;
     if (d.sw.some((v, idx) => {
       if (v === 'challenge') return false;
-      if (v === 'full' && isNoChallengeDay(w, idx + 1)) return false; // اليوم أصلًا ما فيه تحدي — ما تنخصم
       const compensatedWithChallenge = d.swComp && d.swComp[idx] && getAttendVal(w, idx + 1, s + '_comp') === 'challenge';
       if (!compensatedWithChallenge) return true;
       return !isFirstAbsenceInCycle(s, w, idx + 1);
@@ -4699,8 +4682,6 @@ async function loadAttendData() {
   try {
     const saved = localStorage.getItem('madad_data');
     if (saved) attendData = JSON.parse(saved);
-    const ncd = localStorage.getItem(STORE_NO_CHALLENGE);
-    noChallengeDays = ncd ? JSON.parse(ncd) : {};
   } catch(e) {}
 }
 
@@ -5251,16 +5232,14 @@ function eventConditionsPass(id) {
     const v = getAttendVal(currentWeek, d, s.name);
     if (v === 'absent' || v === 'excused') return false;
   }
-  // نقص أو إنجاز بدون تحدي — الأحد للأربعاء (إلا لو اليوم أصلًا معلّم "ما فيه تحدي")
+  // نقص أو إنجاز بدون تحدي — الأحد للأربعاء
   for (let d = 1; d <= 4; d++) {
     const v = getAttendVal(currentWeek, d, s.name);
-    if (v === 'miss') return false;
-    if (v === 'full' && !isNoChallengeDay(currentWeek, d)) return false;
+    if (v === 'miss' || v === 'full') return false;
   }
   // نقص أو إنجاز بدون تحدي — الخميس
   const thuVal = getAttendVal(currentWeek, 5, s.name);
-  if (thuVal === 'miss') return false;
-  if (thuVal === 'full' && !isNoChallengeDay(currentWeek, 5)) return false;
+  if (thuVal === 'miss' || thuVal === 'full') return false;
 
   // المراجعة الكبرى للطالبات السابقات (اللي عندها تقسيم ٤ أيام) — كل يوم مسجّل يلزم يكون منجز
   if (kb.hasKubra) {
@@ -5389,9 +5368,8 @@ function renderWeekBar() {
 function renderDayTabsBar() {
   const tabs = document.getElementById('dayTabs');
   tabs.innerHTML = '';
-  const ncBar = document.getElementById('noChallengeBar');
   // شريط الأيام هذا خاص بالمتابعة الأسبوعية بس — شاشة الحلقة المباشرة صار لها تنقلها الخاص (حلقة ← فترة) عبر renderLiveNav()
-  if (curriculumViewMode !== 'weekly') { if (ncBar) ncBar.innerHTML = ''; return; }
+  if (curriculumViewMode !== 'weekly') return;
   const allowedTypes = ['sw', 'thu'];
   const indices = ATTEND_DAYS.map((d, i) => i);
   indices.forEach(i => {
@@ -5421,21 +5399,6 @@ function renderDayTabsBar() {
     };
     tabs.appendChild(btn);
   });
-  if (ncBar) {
-    const dayIndices = indices.filter(i => allowedTypes.includes(ATTEND_DAYS[i].type));
-    let slotsHtml = '';
-    dayIndices.forEach(i => {
-      if (i === currentDay && ATTEND_DAYS[i].type === 'sw') {
-        const isOff = isNoChallengeDay(currentWeek, currentDay);
-        slotsHtml += isOff
-          ? `<div style="flex:1;text-align:center;"><button onclick="toggleNoChallengeDay()" style="padding:0.28rem 0.5rem;border-radius:10px;border:1px solid var(--wine);background:var(--wine);color:#fff;font-family:inherit;font-weight:700;font-size:0.6rem;cursor:pointer;white-space:nowrap;">🚫 لا يوجد تحدي</button></div>`
-          : `<div style="flex:1;text-align:center;"><button onclick="toggleNoChallengeDay()" style="padding:0.2rem 0.4rem;border-radius:10px;border:1px dashed var(--border);background:transparent;color:var(--muted);font-family:inherit;font-weight:600;font-size:0.55rem;cursor:pointer;">🚫 التحدي</button></div>`;
-      } else {
-        slotsHtml += `<div style="flex:1;"></div>`;
-      }
-    });
-    ncBar.innerHTML = `<div style="display:flex;margin-top:0.1rem;">${slotsHtml}</div>`;
-  }
 }
 
 function buildDayEvalHTML(name, hasKubra, hasSplit, hasTaahud) {
@@ -10173,6 +10136,20 @@ function extractWaLabelValue(lines, idx) {
   return value.replace(/[`'"]/g, '').trim(); // نشيل علامات الاقتباس/الباكتك اللي بعض الطالبات يحطنها حول اسمها
 }
 
+// يفحص هل سطر فرعي مسمّى (زي "طريقة الإنجاز:") فيه كتابة فعلية بعد النقطتين — يقبل أي محتوى (عربي أو غيره)، عكس waLineHasContent اللي يتجاهل الحروف العربية (مصمّمة أصلًا لبنود العلامة/الرمز بس)
+function waSubLineHasContent(lines, mainIdx, subLabel) {
+  for (let i = mainIdx + 1; i <= mainIdx + 2 && i < lines.length; i++) {
+    const l = lines[i];
+    if (l && l.includes(subLabel)) {
+      const colonIdx = l.search(/:|：/);
+      const after = colonIdx !== -1 ? l.slice(colonIdx + 1) : '';
+      const cleaned = after.replace(/[\s\*⁠\u200e\u200f]/g, '');
+      return cleaned.length > 0;
+    }
+  }
+  return false;
+}
+
 // يجمّع بنود بطاقة يومية عادية من نص الرسالة
 function parseWaDailyCard(body, dayKey) {
   const lines = body.split('\n');
@@ -10192,18 +10169,25 @@ function parseWaDailyCard(body, dayKey) {
         { key: 'sard', kw: 'السرد على الرفيقة' },
       ]
     : [
-        { key: 'tafsir', kw: 'التفسير' },
-        { key: 'qari', kw: 'الاستماع للقارئ' },
-        { key: 'sard', kw: 'السرد على الرفيقة' },
+        { key: 'tafsir', kw: 'التفسير', subLabel: 'طريقة الإنجاز' },
+        { key: 'qari', kw: 'الاستماع للقارئ', subLabel: 'اسم القارئ' },
+        { key: 'sard', kw: 'سرد المقرر', subLabel: 'طريقة السرد' },
         { key: 'tikrar', kw: 'تكرار المحفوظ' },
         { key: 'salah', kw: 'الصلاة بالمحفوظ' },
+        { key: 'tasjeel', kw: 'التسجيل الصوتي' },
       ];
   const missingItems = [];
   itemKeywords.forEach(it => {
     const idx = lines.findIndex(l => it.re ? it.re.test(normalizeForMatch2(l)) : l.includes(it.kw));
     if (idx === -1) { missingItems.push(it.kw); return; }
-    let ok = waLineHasContent(lines[idx]);
-    if (!ok && lines[idx + 1] !== undefined) ok = waLineHasContent(lines[idx + 1]);
+    let ok;
+    if (it.subLabel) {
+      // بنود تحتاج كتابة فعلية بسطرها الفرعي المسمّى (مو مجرد علامة/رمز بالسطر الرئيسي)
+      ok = waSubLineHasContent(lines, idx, it.subLabel);
+    } else {
+      ok = waLineHasContent(lines[idx]);
+      if (!ok && lines[idx + 1] !== undefined) ok = waLineHasContent(lines[idx + 1]);
+    }
     if (!ok) missingItems.push(it.kw);
   });
 
