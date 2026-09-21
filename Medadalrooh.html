@@ -2283,7 +2283,7 @@ function copySmartNames() {
   const names = list
     .filter(s => s.name)
     .sort((a, b) => a.name.trim().localeCompare(b.name.trim(), 'ar'))
-    .map((s, i) => `${toAr(i + 1)}. ${s.name}`);
+    .map((s, i) => `${toAr(i + 1)}. ${firstTwoWords(s.name)}`);
   if (!names.length) { showToast('ما فيه أسماء لنسخها بهذا التصنيف'); return; }
   const text = names.join('\n');
 
