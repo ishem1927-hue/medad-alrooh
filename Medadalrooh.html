@@ -330,7 +330,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     border-radius: 8px; padding: 0.35rem 0.8rem; cursor: pointer; font-size: 1rem;
   }
 
-  .day-tabs { display: flex; gap: 0.4rem; margin-bottom: 1.2rem; overflow-x: auto; padding-bottom: 0.3rem; scrollbar-width: none; }
+  .day-tabs { display: flex; gap: 0.4rem; margin-bottom: 0.3rem; overflow-x: auto; padding-bottom: 0.3rem; scrollbar-width: none; }
   .day-tabs::-webkit-scrollbar { display: none; }
   #dayTabs { flex-wrap: nowrap; overflow-x: visible; }
   #dayTabs .day-tab { flex: 1; padding: 0.42rem 0.2rem; font-size: 0.72rem; text-align: center; }
@@ -5434,7 +5434,7 @@ function renderDayTabsBar() {
         slotsHtml += `<div style="flex:1;"></div>`;
       }
     });
-    ncBar.innerHTML = `<div style="display:flex;margin-top:0.3rem;">${slotsHtml}</div>`;
+    ncBar.innerHTML = `<div style="display:flex;margin-top:0.1rem;">${slotsHtml}</div>`;
   }
 }
 
