@@ -980,6 +980,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
             <div class="emoji-row"><input id="e_star" onchange="saveEmojiEdit()"><input id="e_star_lbl" placeholder="متميزة" onchange="saveEmojiEdit()"></div>
             <div class="stitle" style="margin-top:1rem;">🎉 المسابقة (اختياري)</div>
             <div class="emoji-row"><input id="e_event" onchange="saveEmojiEdit()"><input id="e_event_lbl" placeholder="اسم المسابقة" onchange="saveEmojiEdit()"></div>
+            <div class="emoji-row">
+              <span style="font-size:0.78rem;color:var(--muted);align-self:center;">شرط المسابقة</span>
+              <select id="e_event_condition" onchange="saveEmojiEdit()" style="flex:1;padding:0.5rem;border-radius:10px;border:1px solid var(--border);font-family:inherit;">
+                <option value="excellence">التميز (حضور + تحديات + كبرى + تعاهد)</option>
+                <option value="no_error">بدون خطأ (تقييم 3 نجوم فأكثر)</option>
+              </select>
+            </div>
             <div class="stitle" style="margin-top:1rem;">📋 رموز التقرير اليومي</div>
             <div class="emoji-row"><input id="e_rep_title" onchange="saveEmojiEdit()"><span style="font-size:0.75rem;color:var(--muted);align-self:center;">أيقونة العنوان</span></div>
             <div class="emoji-row"><input id="e_rep_total" onchange="saveEmojiEdit()"><span style="font-size:0.75rem;color:var(--muted);align-self:center;">العدد الكلي</span></div>
@@ -3666,6 +3673,7 @@ function openAttendSettings(subTab) {
     document.getElementById('e_star_lbl').value = EMOJIS.star_lbl || 'متميزة';
     document.getElementById('e_event').value = EMOJIS.event || '';
     document.getElementById('e_event_lbl').value = EMOJIS.event_lbl || '';
+    document.getElementById('e_event_condition').value = EMOJIS.event_condition || 'excellence';
     document.getElementById('e_rep_title').value = EMOJIS.report_title;
     document.getElementById('e_rep_total').value = EMOJIS.report_total;
     document.getElementById('e_rep_attend').value = EMOJIS.report_attend;
@@ -3709,6 +3717,7 @@ function saveEmojiEdit() {
     EMOJIS.star_lbl = g('e_star_lbl') || 'متميزة';
     EMOJIS.event = g('e_event');
     EMOJIS.event_lbl = g('e_event_lbl');
+    EMOJIS.event_condition = g('e_event_condition') || 'excellence';
     EMOJIS.report_title = g('e_rep_title') || EMOJIS.report_title;
     EMOJIS.report_total = g('e_rep_total') || EMOJIS.report_total;
     EMOJIS.report_attend = g('e_rep_attend') || EMOJIS.report_attend;
@@ -5247,6 +5256,14 @@ function eventConditionsPass(id) {
   const sd = getStudentData(sg, currentWeek, id);
   const kb = getKubra(sg, id);
 
+  // تقييم التسميع 🌟🌟🌟 — شرط أساسي بكل الأحوال (من الأسبوع الثاني فقط، الأسبوع الأول ما فيه تقييم أصلًا)
+  if (currentWeek > 0 && (sd.rating === '1' || sd.rating === '2')) return false;
+
+  const conditionType = EMOJIS.event_condition || 'excellence';
+  if (conditionType === 'no_error') return true; // "بدون خطأ" = بس شرط التقييم فوق، ما فيه شروط زيادة
+
+  // من هنا فما تحت: شرط "التميز" (تجميع كل النقاط، لازم كلها تتحقق مع بعض)
+
   // غياب (بعذر أو بدون) بالحلقة المباشرة هذا الأسبوع (حلقة وفترة الطالبة) + الأحد للأربعاء وللخميس
   const liveVal = getAttendVal(currentWeek, liveKeyFor(getStudentHalqaId(id) || '0', getStudentPeriod(id) || '1', false), s.name);
   if (liveVal === 'absent' || liveVal === 'excused') return false;
@@ -5265,13 +5282,12 @@ function eventConditionsPass(id) {
   if (thuVal === 'miss') return false;
   if (thuVal === 'full' && !isNoChallengeDay(currentWeek, 5)) return false;
 
-  // المراجعة الكبرى للطالبات السابقات (اللي عندها تقسيم ٤ أيام) — كل يوم مسجّل يلزم يكون منجز
+  // المراجعة الكبرى للطالبات السابقات (اللي عندها كبرى) — لازم تكون مقسّمة فعليًا، وإلا فشلت (بشرط التميز بس)
   if (kb.hasKubra) {
     const hasSplit = getKubraSplit(id).some(d => d && d.trim());
-    if (hasSplit) {
-      for (let d = 1; d <= 4; d++) {
-        if (getAttendVal(currentWeek, d, s.name + '_kubra') === 'miss') return false;
-      }
+    if (!hasSplit) return false; // عندها كبرى بس ما سوّت تقسيم لها = فشل شرط التميز
+    for (let d = 1; d <= 4; d++) {
+      if (getAttendVal(currentWeek, d, s.name + '_kubra') === 'miss') return false;
     }
   }
 
@@ -5279,9 +5295,6 @@ function eventConditionsPass(id) {
   if (getTaahud(id).hasTaahud) {
     if (getAttendVal(currentWeek, 5, s.name + '_taahud') === 'miss') return false;
   }
-
-  // تقييم التسميع 🌟🌟🌟 — من الأسبوع الثاني فقط (الأسبوع الأول ما فيه تقييم أصلًا)
-  if (currentWeek > 0 && (sd.rating === '1' || sd.rating === '2')) return false;
 
   return true;
 }
@@ -10467,7 +10480,7 @@ async function runWaImportAnalysis() {
     if (parsed.missingItems.length > 0) status = 'miss';
     else status = parsed.challengeDone ? 'challenge' : 'full';
 
-    const candidate = { stu, parsed, status, dayMatches, actualDayLabel, body: msg.body, sender: msg.sender };
+    const candidate = { stu, parsed, status, dayMatches, actualDayLabel, body: msg.body, sender: msg.sender, msgDate: msg.date };
 
     // لو فيه بطاقة سابقة لنفس الطالبة (بنفس هالتحليل)، نقارن: لو وحدة أكمل بوضوح نمسكها، ولو متساويتين تمامًا نحطهم بقائمة "بطاقات مكررة" تختارين بنفسك
     const prev = studentCandidates.get(stu.id);
@@ -10503,7 +10516,7 @@ async function runWaImportAnalysis() {
   const alreadyCommitted = [];
   // نتحقق من البيانات الفعلية المحفوظة (مو ذاكرة مؤقتة) — لو الطالبة عندها تقييم مسجّل أصلاً بهذا اليوم/الأسبوع، معناته اعتُمدت قبل (يدوم حتى بعد إغلاق الصفحة)
   const checkDayIdx = WA_DAY_TO_INDEX[dayKey];
-  studentCandidates.forEach(({ stu, parsed, status, dayMatches, actualDayLabel, body }) => {
+  studentCandidates.forEach(({ stu, parsed, status, dayMatches, actualDayLabel, body, msgDate }) => {
     seenSet.add('s:' + stu.id);
     if (!dayMatches) {
       // عنوان البطاقة ما يطابق اليوم المطلوب — لو سبق اعتمدتيها (بيانات فعلية محفوظة)، نتخطاها بصمت بدل ما نسألك عليها من جديد
@@ -10520,11 +10533,15 @@ async function runWaImportAnalysis() {
       return;
     }
     const studentIsSplitKubra = studentHasKubraByName(stu.name) && getKubraSplit(stu.id).some(d => d && d.trim());
+    // شرط وقت المسابقة: المشاركات بالمسابقة عندهم 12 ساعة بس من بداية النطاق (بدل 24 ساعة للباقي) — الخميس مستثنى
+    const eventCutoff = new Date(rangeStart.getTime() + 12 * 60 * 60 * 1000);
+    const eventLate = dayKey !== 'thu' && !!eventParticipants[stu.id] && msgDate instanceof Date && msgDate > eventCutoff;
     pendingReview.push({
       stu, status, parsed, body, dayKey,
       kubraApplicable: !!(studentIsSplitKubra && parsed.kubraLine),
       kubraDone: !!parsed.kubraDone,
       sourceTag: waSourceTag,
+      eventLate,
     });
     matched.push({ student: stu, missingItems: parsed.missingItems, kubraMissing: studentIsSplitKubra && parsed.kubraLine && !parsed.kubraDone, rawName: parsed.name });
   });
@@ -10680,6 +10697,7 @@ function renderWaReviewQueue() {
     html += `<div id="waReviewCard_${i}" style="border:1px solid var(--border);border-radius:10px;padding:0.6rem;margin-bottom:0.6rem;background:var(--surface2);">
       <div style="font-size:0.68rem;color:var(--accent);font-weight:700;margin-bottom:0.2rem;">📍 ${item.sourceTag || ''}</div>
       <div style="font-weight:700;color:var(--wine);margin-bottom:0.3rem;">${item.stu.name}</div>
+      ${item.eventLate ? `<div style="font-size:0.72rem;color:#c0392b;font-weight:700;margin-bottom:0.3rem;">⏰ وصلت بعد مهلة المسابقة (12 ساعة) — راح تنسحب من المسابقة تلقائيًا بعد الاعتماد، وبطاقتها تُحفظ عادي</div>` : ''}
       <div style="font-size:0.72rem;color:var(--muted);margin-bottom:0.2rem;">📋 مقرر اليوم:</div>
       <div style="background:#fff7e6;border-radius:8px;padding:0.5rem;font-size:0.75rem;color:var(--ink);margin-bottom:0.4rem;">${planText || '— ما فيه مقرر مسجّل لهذا اليوم —'}</div>
       <div style="font-size:0.72rem;color:var(--muted);margin-bottom:0.2rem;">💬 رسالتها:</div>
@@ -10737,6 +10755,12 @@ function commitWaReviewCard(i) {
   item.committed = true;
   showToast('تم اعتماد ' + item.stu.name + ' ✅');
   waSaveCaches();
+  // انسحاب تلقائي من المسابقة لو البطاقة وصلت بعد مهلة الـ12 ساعة الخاصة بالمشاركات
+  if (item.eventLate && eventParticipants[item.stu.id]) {
+    eventParticipants[item.stu.id] = false;
+    saveEventParticipants();
+    setSecondaryAttendAlert(currentWeek, currentDay, item.stu.id, item.stu.name, 'event_removed', true);
+  }
   // ===== تسجيل العملية بسجل الاعتمادات (للتراجع الحقيقي لاحقًا) =====
   waDailyApprovalLog.push({
     id: 'wdl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
