@@ -980,12 +980,12 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
             <div class="emoji-row"><input id="e_star" onchange="saveEmojiEdit()"><input id="e_star_lbl" placeholder="متميزة" onchange="saveEmojiEdit()"></div>
             <div class="stitle" style="margin-top:1rem;">🎉 المسابقة (اختياري)</div>
             <div class="emoji-row"><input id="e_event" onchange="saveEmojiEdit()"><input id="e_event_lbl" placeholder="اسم المسابقة" onchange="saveEmojiEdit()"></div>
-            <div class="emoji-row">
-              <span style="font-size:0.78rem;color:var(--muted);align-self:center;">شرط المسابقة</span>
-              <select id="e_event_condition" onchange="saveEmojiEdit()" style="flex:1;padding:0.5rem;border-radius:10px;border:1px solid var(--border);font-family:inherit;">
-                <option value="excellence">التميز (حضور + تحديات + كبرى + تعاهد)</option>
-                <option value="no_error">بدون خطأ (تقييم 3 نجوم فأكثر)</option>
-              </select>
+            <div style="margin-bottom:0.7rem;">
+              <div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.3rem;">شرط المسابقة</div>
+              <div style="display:flex;gap:0.5rem;">
+                <button type="button" id="eventCondBtnExcellence" onclick="setEventCondition('excellence')" style="flex:1;padding:0.5rem;border-radius:10px;border:1px solid var(--border);font-family:inherit;font-weight:700;font-size:0.78rem;cursor:pointer;">🌟 التميز</button>
+                <button type="button" id="eventCondBtnNoError" onclick="setEventCondition('no_error')" style="flex:1;padding:0.5rem;border-radius:10px;border:1px solid var(--border);font-family:inherit;font-weight:700;font-size:0.78rem;cursor:pointer;">✅ بدون خطأ</button>
+              </div>
             </div>
             <div class="stitle" style="margin-top:1rem;">📋 رموز التقرير اليومي</div>
             <div class="emoji-row"><input id="e_rep_title" onchange="saveEmojiEdit()"><span style="font-size:0.75rem;color:var(--muted);align-self:center;">أيقونة العنوان</span></div>
@@ -3673,7 +3673,7 @@ function openAttendSettings(subTab) {
     document.getElementById('e_star_lbl').value = EMOJIS.star_lbl || 'متميزة';
     document.getElementById('e_event').value = EMOJIS.event || '';
     document.getElementById('e_event_lbl').value = EMOJIS.event_lbl || '';
-    document.getElementById('e_event_condition').value = EMOJIS.event_condition || 'excellence';
+    updateEventConditionButtons();
     document.getElementById('e_rep_title').value = EMOJIS.report_title;
     document.getElementById('e_rep_total').value = EMOJIS.report_total;
     document.getElementById('e_rep_attend').value = EMOJIS.report_attend;
@@ -3683,6 +3683,22 @@ function openAttendSettings(subTab) {
   }
 }
 
+function updateEventConditionButtons() {
+  const cur = EMOJIS.event_condition || 'excellence';
+  const bE = document.getElementById('eventCondBtnExcellence');
+  const bN = document.getElementById('eventCondBtnNoError');
+  if (!bE || !bN) return;
+  const onStyle = 'background:var(--wine);color:#fff;border-color:var(--wine);';
+  const offStyle = 'background:transparent;color:var(--ink);';
+  bE.style.cssText += (cur === 'excellence' ? onStyle : offStyle);
+  bN.style.cssText += (cur === 'no_error' ? onStyle : offStyle);
+}
+function setEventCondition(val) {
+  EMOJIS.event_condition = val;
+  updateEventConditionButtons();
+  saveEmojis();
+  showToast('✅ تم الحفظ');
+}
 function saveEmojiEdit() {
   const g = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
   try {
@@ -3717,7 +3733,6 @@ function saveEmojiEdit() {
     EMOJIS.star_lbl = g('e_star_lbl') || 'متميزة';
     EMOJIS.event = g('e_event');
     EMOJIS.event_lbl = g('e_event_lbl');
-    EMOJIS.event_condition = g('e_event_condition') || 'excellence';
     EMOJIS.report_title = g('e_rep_title') || EMOJIS.report_title;
     EMOJIS.report_total = g('e_rep_total') || EMOJIS.report_total;
     EMOJIS.report_attend = g('e_rep_attend') || EMOJIS.report_attend;
