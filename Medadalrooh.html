@@ -946,6 +946,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         </div>
 
         <div class="day-tabs" id="dayTabs"></div>
+        <div id="noChallengeBar" style="text-align:center;"></div>
 
         <div id="groupTabs" style="display:flex;gap:0;flex-wrap:nowrap;overflow-x:auto;padding:0.4rem 0.4rem 0;border-bottom:2px solid #e8d5d5;margin-bottom:0.2rem;scrollbar-width:none;"></div>
         <div id="maqStudentList"></div>
@@ -1839,7 +1840,7 @@ const ALL_DATA_KEYS = [
   'madad_cycle_star_list', 'madad_cycle_star_weeks', 'madad_weekly_excellent',
   'madad_group_names', 'madad_halqa_names', 'madad_group_count', 'madad_halqa_count', 'madad_halqa_periods',
   'madad_halqa_dist', 'madad_event_participants', 'madad_kubra_splits', 'madad_archive',
-  'madad_wa_plan_approval_log', 'madad_wa_daily_approval_log',
+  'madad_wa_plan_approval_log', 'madad_wa_daily_approval_log', 'madad_no_challenge_days',
 ];
 const CALC_ONLY_KEYS = ['hasibat_madad', 'hasibat_custom_pay', 'hasibat_obligations'];
 const MERGE_KEYS = ['madad_data', 'maqarrar_data', 'maqarrar_history', 'madad_halqa_dist', 'madad_event_participants', 'madad_kubra_splits', 'madad_archive'];
@@ -3733,6 +3734,23 @@ const ATTEND_DAYS = [
 const WEEK_NAMES = ['الأول','الثاني','الثالث','الرابع'];
 
 let currentWeek = 0;
+let noChallengeDays = {};
+const STORE_NO_CHALLENGE = 'madad_no_challenge_days';
+function saveNoChallengeDays() {
+  try { localStorage.setItem(STORE_NO_CHALLENGE, JSON.stringify(noChallengeDays)); } catch(e) {}
+  syncPush(STORE_NO_CHALLENGE);
+}
+function isNoChallengeDay(w, d) { return !!noChallengeDays[getKey(w, d)]; }
+// تبديل حالة "ما فيه تحدي" لليوم المفتوح حاليًا — لما تكون مفعّلة، اختيار "بدون تحدي" لأي طالبة ذاك اليوم
+// يُحسب مثل "مع التحدي" تمامًا (ما يؤثر على التميز ولا أهلية المسابقة ولا ينشئ تنبيه)
+function toggleNoChallengeDay() {
+  const k = getKey(currentWeek, currentDay);
+  noChallengeDays[k] = !noChallengeDays[k];
+  saveNoChallengeDays();
+  renderDayTabsBar();
+  renderMaqStudents();
+}
+
 let currentDay = 0;
 let pinnedWeek = null;
 let weekTapState = { index: null, count: 0, timer: null };
@@ -3952,7 +3970,8 @@ function setPrimaryAttendAlert(week, day, studentId, studentName, val) {
   if (!studentId) return;
   const k = alertKey(week, day);
   const list = (attendAlerts[k] || []).filter(a => !(a.studentId === studentId && ALERT_PRIMARY_KINDS.includes(a.kind)));
-  const kind = mapAttendValToAlertKind(val);
+  let kind = mapAttendValToAlertKind(val);
+  if (kind === 'no_challenge' && isNoChallengeDay(week, day)) kind = null; // اليوم أصلًا ما فيه تحدي — ما يعتبر تقصير من الطالبة
   if (kind) list.push({ studentId, studentName, kind, ts: Date.now() });
   attendAlerts[k] = list;
   saveAttendAlerts();
@@ -4323,6 +4342,7 @@ function generateAttendReport() {
     if (d.sat !== 'attend') return false;
     if (d.sw.some((v, idx) => {
       if (v === 'challenge') return false;
+      if (v === 'full' && isNoChallengeDay(w, idx + 1)) return false; // اليوم أصلًا ما فيه تحدي — ما تنخصم
       const compensatedWithChallenge = d.swComp && d.swComp[idx] && getAttendVal(w, idx + 1, s + '_comp') === 'challenge';
       if (!compensatedWithChallenge) return true;
       return !isFirstAbsenceInCycle(s, w, idx + 1);
@@ -4682,6 +4702,8 @@ async function loadAttendData() {
   try {
     const saved = localStorage.getItem('madad_data');
     if (saved) attendData = JSON.parse(saved);
+    const ncd = localStorage.getItem(STORE_NO_CHALLENGE);
+    noChallengeDays = ncd ? JSON.parse(ncd) : {};
   } catch(e) {}
 }
 
@@ -5232,14 +5254,16 @@ function eventConditionsPass(id) {
     const v = getAttendVal(currentWeek, d, s.name);
     if (v === 'absent' || v === 'excused') return false;
   }
-  // نقص أو إنجاز بدون تحدي — الأحد للأربعاء
+  // نقص أو إنجاز بدون تحدي — الأحد للأربعاء (إلا لو اليوم أصلًا معلّم "ما فيه تحدي")
   for (let d = 1; d <= 4; d++) {
     const v = getAttendVal(currentWeek, d, s.name);
-    if (v === 'miss' || v === 'full') return false;
+    if (v === 'miss') return false;
+    if (v === 'full' && !isNoChallengeDay(currentWeek, d)) return false;
   }
   // نقص أو إنجاز بدون تحدي — الخميس
   const thuVal = getAttendVal(currentWeek, 5, s.name);
-  if (thuVal === 'miss' || thuVal === 'full') return false;
+  if (thuVal === 'miss') return false;
+  if (thuVal === 'full' && !isNoChallengeDay(currentWeek, 5)) return false;
 
   // المراجعة الكبرى للطالبات السابقات (اللي عندها تقسيم ٤ أيام) — كل يوم مسجّل يلزم يكون منجز
   if (kb.hasKubra) {
@@ -5368,8 +5392,9 @@ function renderWeekBar() {
 function renderDayTabsBar() {
   const tabs = document.getElementById('dayTabs');
   tabs.innerHTML = '';
+  const ncBar = document.getElementById('noChallengeBar');
   // شريط الأيام هذا خاص بالمتابعة الأسبوعية بس — شاشة الحلقة المباشرة صار لها تنقلها الخاص (حلقة ← فترة) عبر renderLiveNav()
-  if (curriculumViewMode !== 'weekly') return;
+  if (curriculumViewMode !== 'weekly') { if (ncBar) ncBar.innerHTML = ''; return; }
   const allowedTypes = ['sw', 'thu'];
   const indices = ATTEND_DAYS.map((d, i) => i);
   indices.forEach(i => {
@@ -5399,6 +5424,21 @@ function renderDayTabsBar() {
     };
     tabs.appendChild(btn);
   });
+  if (ncBar) {
+    const dayIndices = indices.filter(i => allowedTypes.includes(ATTEND_DAYS[i].type));
+    let slotsHtml = '';
+    dayIndices.forEach(i => {
+      if (i === currentDay && ATTEND_DAYS[i].type === 'sw') {
+        const isOff = isNoChallengeDay(currentWeek, currentDay);
+        slotsHtml += isOff
+          ? `<div style="flex:1;text-align:center;"><button onclick="toggleNoChallengeDay()" style="padding:0.28rem 0.5rem;border-radius:10px;border:1px solid var(--wine);background:var(--wine);color:#fff;font-family:inherit;font-weight:700;font-size:0.6rem;cursor:pointer;white-space:nowrap;">🚫 لا يوجد تحدي</button></div>`
+          : `<div style="flex:1;text-align:center;"><button onclick="toggleNoChallengeDay()" style="padding:0.2rem 0.4rem;border-radius:10px;border:1px dashed var(--border);background:transparent;color:var(--muted);font-family:inherit;font-weight:600;font-size:0.55rem;cursor:pointer;">🚫 التحدي</button></div>`;
+      } else {
+        slotsHtml += `<div style="flex:1;"></div>`;
+      }
+    });
+    ncBar.innerHTML = `<div style="display:flex;margin-top:0.1rem;">${slotsHtml}</div>`;
+  }
 }
 
 function buildDayEvalHTML(name, hasKubra, hasSplit, hasTaahud) {
@@ -10175,6 +10215,7 @@ function parseWaDailyCard(body, dayKey) {
         { key: 'tikrar', kw: 'تكرار المحفوظ' },
         { key: 'salah', kw: 'الصلاة بالمحفوظ' },
         { key: 'tasjeel', kw: 'التسجيل الصوتي' },
+        ...(['mon', 'tue', 'wed'].includes(dayKey) ? [{ key: 'sabiq', kw: 'مراجعة السابق' }] : []),
       ];
   const missingItems = [];
   itemKeywords.forEach(it => {
@@ -10195,12 +10236,12 @@ function parseWaDailyCard(body, dayKey) {
   const kubraIdx = lines.findIndex(l => l.includes('المراجعة الكبرى') || (l.includes('كبرى') && !l.includes('طالبات')));
   let kubraDone = false;
   if (kubraIdx !== -1) {
+    // لازم كتابة/علامة فعلية بعد النقطتين (بنفس السطر أو اللي بعده) — مب مجرد وجود إيموجي 🍍 العنوان
     const kubraLineContent = lines[kubraIdx];
     const kubraColonIdx = kubraLineContent.search(/:|：/);
     const kubraAfterColon = kubraColonIdx !== -1 ? kubraLineContent.slice(kubraColonIdx + 1).replace(/[\s\*⁠\u200e\u200f]/g, '') : '';
-    kubraDone = kubraAfterColon.length > 0
-      || waLineHasContent(kubraLineContent)
-      || (lines[kubraIdx + 1] !== undefined && (waLineHasContent(lines[kubraIdx + 1]) || lines[kubraIdx + 1].replace(/[\s\*⁠\u200e\u200f]/g, '').length > 0));
+    const nextLineContent = lines[kubraIdx + 1] !== undefined ? lines[kubraIdx + 1].replace(/[\s\*⁠\u200e\u200f]/g, '') : '';
+    kubraDone = kubraAfterColon.length > 0 || nextLineContent.length > 0;
   }
 
   // التحدي: نلقى سطر العنوان، ونفحص أسطر التحدي (اللي تبدأ بنقطة •)
