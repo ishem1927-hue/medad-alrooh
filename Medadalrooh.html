@@ -6789,6 +6789,8 @@ function renderWaPlanReviewQueue() {
     const planEditor = item.plan
       ? `<div>
           <div style="white-space:pre-wrap;background:#fff;border-radius:8px;padding:0.5rem;font-size:0.72rem;color:var(--ink);max-height:120px;overflow-y:auto;margin-bottom:0.4rem;">${escapeHTML(item.plan.body || '')}</div>
+          <label style="font-size:0.72rem;color:var(--muted);">📖 المقرر:</label>
+          <input id="waPlanEditHifz_${i}" value="${escapeHTML(item.plan.hifz || '')}" style="width:100%;font-family:'Cairo';font-size:0.75rem;border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.5rem;background:#fff;box-sizing:border-box;margin-bottom:0.3rem;">
           ${dayLabels4.map((d, idx) => `<label style="font-size:0.7rem;color:var(--muted);">${d}:</label>
             <input id="waPlanEditDay_${i}_${idx}" value="${escapeHTML(item.plan.days[idx] || '')}" style="width:100%;font-family:'Cairo';font-size:0.72rem;border:1px solid var(--border);border-radius:8px;padding:0.3rem 0.5rem;background:#fff;box-sizing:border-box;margin-bottom:0.25rem;">`).join('')}
         </div>`
@@ -6811,12 +6813,21 @@ function renderWaPlanReviewQueue() {
         <div class="group-tab wpTabBtn_${i}_plan${defaultTab==='plan'?' active':''}" style="padding:0.25rem 0;font-size:0.72rem;" onclick="showWaPlanCardTab(${i},'plan')">📖 الخطة</div>
         <div class="group-tab wpTabBtn_${i}_kubra${defaultTab==='kubra'?' active':''}" style="padding:0.25rem 0;font-size:0.72rem;" onclick="showWaPlanCardTab(${i},'kubra')">⭐ الكبرى</div>
       </div>` : '';
+    const starsHtml = (item.week === 0) ? '' : `
+      <label style="font-size:0.75rem;color:var(--muted);margin-top:0.5rem;display:block;">التقييم:</label>
+      <select id="waPlanReviewStars_${i}" style="font-family:'Cairo';font-size:0.75rem;">
+        <option value="3" ${item.stars===3?'selected':''}>🌟🌟🌟 بدون خطأ</option>
+        <option value="2" ${item.stars===2?'selected':''}>🌟🌟 خطأ أو خطأين</option>
+        <option value="1" ${item.stars===1?'selected':''}>🌟 إعادة المقرر</option>
+        <option value="" ${!item.stars?'selected':''}>— بدون تقييم —</option>
+      </select>`;
     html += `<div id="waPlanReviewCard_${i}" style="border:1px solid var(--border);border-radius:10px;padding:0.6rem;margin-bottom:0.6rem;background:var(--surface2);">
       <div style="font-size:0.68rem;color:var(--accent);font-weight:700;margin-bottom:0.2rem;">📍 ${escapeHTML(item.sourceTag)}</div>
       <div style="font-weight:700;color:var(--wine);margin-bottom:0.4rem;">${escapeHTML(item.stu.name)}</div>
       ${tabsBarHtml}
       <div id="wpPlanSec_${i}" style="${(!showKubraTab || defaultTab==='plan')?'':'display:none;'}">${planEditor}</div>
       ${showKubraTab ? `<div id="wpKubraSec_${i}" style="${defaultTab==='kubra'?'':'display:none;'}">${kubraEditor}</div>` : ''}
+      ${starsHtml}
       <div style="display:flex;gap:0.4rem;margin-top:0.5rem;">
         <button class="icon-btn-sm accent" style="flex:1;padding:0.4rem;font-weight:700;" onclick="commitWaPlanReviewCard(${i})">✅ اعتماد هذي البطاقة</button>
         <button class="icon-btn-sm" style="padding:0.4rem 0.7rem;background:var(--surface2);color:var(--muted);" onclick="dismissWaPlanReviewCard(${i})" title="تجاهل بدون اعتماد">✕</button>
