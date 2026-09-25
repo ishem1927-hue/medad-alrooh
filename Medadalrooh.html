@@ -3238,7 +3238,11 @@ function toggleMissingStatsPanel() {
   const panel = document.getElementById('missingStatsPanel');
   const isOpen = panel.style.display !== 'none';
   panel.style.display = isOpen ? 'none' : 'block';
-  if (!isOpen) renderMissingStats();
+  if (!isOpen) {
+    missingStatsLiveHalqa = null;
+    missingStatsLivePeriod = null;
+    renderMissingStats();
+  }
 }
 
 function toggleCycleStarPanel() {
@@ -5131,14 +5135,27 @@ function buildGroupedHtml(title, students, groupKeyFn, groupLabelFn, excludedFn)
   return '<div style="margin-bottom:0.9rem;">' + titleHtml + '<div style="display:flex;gap:1rem;flex-wrap:wrap;">' + cols + '</div></div>';
 }
 
+function buildMissingStatsCol(title, students) {
+  const body = students.length
+    ? students.map((s, i) => '<div style="font-size:0.75rem;color:var(--ink);padding:0.1rem 0;">' + toAr(i + 1) + '. ' + firstTwoWords(s.name) + '</div>').join('')
+    : '<div style="color:var(--green);font-size:0.75rem;">✅ مكتمل</div>';
+  return '<div style="flex:1;min-width:130px;"><div style="font-weight:700;color:var(--wine);font-size:0.78rem;margin-bottom:0.25rem;">' + title + '</div>' + body + '</div>';
+}
+
 let missingStatsActiveTab = 'attend';
-let liveMissingStatsTab = 'attend';
+let missingStatsLiveHalqa = null;  // خطوات الحلقة المباشرة بلوحة 🧩: الحلقة المختارة حاليًا (null = لسا بخطوة اختيار الحلقة)
+let missingStatsLivePeriod = null; // الفترة المختارة حاليًا (null = لسا بخطوة اختيار الفترة)
 function setMissingStatsTab(tab) {
   missingStatsActiveTab = tab;
   renderMissingStats();
 }
-function setLiveMissingStatsTab(tab) {
-  liveMissingStatsTab = tab;
+function selectMissingStatsHalqa(h) {
+  missingStatsLiveHalqa = h;
+  missingStatsLivePeriod = null; // كل ما تتغير الحلقة، نرجع نسأل عن الفترة من جديد
+  renderMissingStats();
+}
+function selectMissingStatsPeriod(p) {
+  missingStatsLivePeriod = p;
   renderMissingStats();
 }
 function renderMissingStats() {
@@ -5159,15 +5176,7 @@ function renderMissingStats() {
       tabs.map(t => '<div class="group-tab' + (missingStatsActiveTab === t.key ? ' active' : '') + '" style="padding:0.3rem 0;font-size:0.62rem;white-space:nowrap;" onclick="setMissingStatsTab(\'' + t.key + '\')">' + t.label + '</div>').join('') +
       '</div>';
   } else if (isLive) {
-    const tabs = [
-      { key: 'attend', label: '☑️ التحضير اليومي' },
-      { key: 'plans', label: '📋 الخطط الناقصة' },
-    ];
-    if (currentWeek === 0) tabs.push({ key: 'kubra', label: '⭐️ الكبرى الناقصة' });
-    if (liveMissingStatsTab !== 'attend' && !tabs.some(t => t.key === liveMissingStatsTab)) liveMissingStatsTab = 'attend';
-    tabsHtml = '<div style="display:flex;justify-content:space-between;margin-bottom:0.6rem;padding:0 0.3rem;box-sizing:border-box;">' +
-      tabs.map(t => '<div class="group-tab' + (liveMissingStatsTab === t.key ? ' active' : '') + '" style="padding:0.3rem 0;font-size:0.62rem;white-space:nowrap;" onclick="setLiveMissingStatsTab(\'' + t.key + '\')">' + t.label + '</div>').join('') +
-      '</div>';
+    // الحلقة المباشرة: التنقل صار حلقة ← فترة (بدل تبويبات ثابتة)، فما فيه شريط تبويبات علوي هنا
   } else if (missingStatsActiveTab !== 'attend') {
     missingStatsActiveTab = 'attend'; // الأيام العادية ما فيها إلا قائمة التحضير
   }
@@ -5175,24 +5184,55 @@ function renderMissingStats() {
   let html = tabsHtml;
 
   if (isLive) {
-    // الحلقة المباشرة: كل طالبة تُفحص بحلقتها وفترتها هي (مو التبويب المفتوح حاليًا فقط)
-    const studentDayKey = s => liveKeyFor(getStudentHalqaId(s.id) || '0', getStudentPeriod(s.id) || '1', liveClosingActive);
-    const groupLbl = k => getHalqaLabel(k);
-    const tab = liveClosingActive ? 'attend' : liveMissingStatsTab; // الحلقة الختامية ما فيها إلا التحضير
-    if (tab === 'plans') {
-      const missingPlans = maqAllStudents.filter(s => { const sd = getStudentData(s.group&&s.group.trim()?s.group.trim():'', currentWeek, s.id); return !sd.hifz || !sd.hifz.trim(); });
-      html += buildGroupedHtml('', missingPlans, s => getStudentHalqaId(s.id) || 'غير محدد', groupLbl);
-    } else if (tab === 'kubra' && currentWeek === 0) {
-      const missingKubra = maqAllStudents.filter(s => {
-        const g = s.group && s.group.trim() ? s.group.trim() : '';
-        if (!getKubra(g, s.id).hasKubra) return false;
-        const split = kubraSplits['k' + s.id] || [];
-        return !split.some(d => d && d.trim());
-      });
-      html += buildGroupedHtml('', missingKubra, s => getStudentHalqaId(s.id) || 'غير محدد', groupLbl);
+    // الحلقة المباشرة: خطوة 1) اختيار الحلقة، خطوة 2) اختيار الفترة، خطوة 3) الأعمدة الثلاثة (تحضير/خطط/كبرى) لهذي الحلقة والفترة بس
+    const allHalqaIds = Array.from(new Set(maqAllStudents.map(s => getStudentHalqaId(s.id)).filter(Boolean)))
+      .sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+
+    if (!missingStatsLiveHalqa || !allHalqaIds.includes(missingStatsLiveHalqa)) {
+      // خطوة 1: اختيار الحلقة
+      html += '<div style="font-weight:700;color:var(--wine);font-size:0.8rem;margin-bottom:0.5rem;">📱 اختاري الحلقة:</div>';
+      html += '<div style="display:flex;flex-wrap:wrap;gap:0.4rem;">' +
+        allHalqaIds.map(h => '<button class="icon-btn-sm" style="padding:0.4rem 0.8rem;font-size:0.75rem;" onclick="selectMissingStatsHalqa(\'' + h + '\')">' + escapeHTML(getHalqaLabel(h)) + '</button>').join('') +
+        '</div>';
+    } else if (!missingStatsLivePeriod) {
+      // خطوة 2: اختيار الفترة (حسب عدد فترات هذي الحلقة المسجّل)
+      const periodsCount = getHalqaPeriodsCount(missingStatsLiveHalqa);
+      const periods = [];
+      for (let p = 1; p <= periodsCount; p++) periods.push(String(p));
+      html += '<div style="margin-bottom:0.5rem;"><span style="cursor:pointer;color:var(--muted);font-size:0.72rem;" onclick="selectMissingStatsHalqa(null)">‹ رجوع للحلقات</span></div>';
+      html += '<div style="font-weight:700;color:var(--wine);font-size:0.8rem;margin-bottom:0.5rem;">' + escapeHTML(getHalqaLabel(missingStatsLiveHalqa)) + ' — 🕐 اختاري الفترة:</div>';
+      html += '<div style="display:flex;flex-wrap:wrap;gap:0.4rem;">' +
+        periods.map(p => '<button class="icon-btn-sm" style="padding:0.4rem 0.8rem;font-size:0.75rem;" onclick="selectMissingStatsPeriod(\'' + p + '\')">فترة ' + toAr(p) + '</button>').join('') +
+        '</div>';
     } else {
-      const missingAttend = maqAllStudents.filter(s => !getAttendVal(currentWeek, studentDayKey(s), s.name));
-      html += buildGroupedHtml('', missingAttend, s => getStudentHalqaId(s.id) || 'غير محدد', groupLbl);
+      // خطوة 3: الأعمدة الثلاثة لهذي الحلقة+الفترة بس
+      const h = missingStatsLiveHalqa, p = missingStatsLivePeriod;
+      const inHalqaPeriod = s => getStudentHalqaId(s.id) === h && getStudentPeriod(s.id) === p;
+      const dayKey = liveKeyFor(h, p, liveClosingActive);
+      html += '<div style="margin-bottom:0.5rem;"><span style="cursor:pointer;color:var(--muted);font-size:0.72rem;" onclick="selectMissingStatsPeriod(null)">‹ رجوع للفترات</span></div>';
+      html += '<div style="font-weight:700;color:var(--wine);font-size:0.8rem;margin-bottom:0.5rem;">' + escapeHTML(getHalqaLabel(h)) + ' — فترة ' + toAr(p) + '</div>';
+
+      const missingAttend = maqAllStudents.filter(s => inHalqaPeriod(s) && !getAttendVal(currentWeek, dayKey, s.name));
+      let cols = buildMissingStatsCol('☑️ التحضير', missingAttend);
+
+      if (!liveClosingActive) {
+        const missingPlans = maqAllStudents.filter(s => inHalqaPeriod(s) && (() => { const sd = getStudentData(s.group && s.group.trim() ? s.group.trim() : '', currentWeek, s.id); return !sd.hifz || !sd.hifz.trim(); })());
+        cols += buildMissingStatsCol('📋 الخطط', missingPlans);
+
+        if (currentWeek === 0) {
+          const hasKubraHere = maqAllStudents.some(s => inHalqaPeriod(s) && getKubra(s.group && s.group.trim() ? s.group.trim() : '', s.id).hasKubra);
+          if (hasKubraHere) {
+            const missingKubra = maqAllStudents.filter(s => inHalqaPeriod(s) && (() => {
+              const g = s.group && s.group.trim() ? s.group.trim() : '';
+              if (!getKubra(g, s.id).hasKubra) return false;
+              const split = kubraSplits['k' + s.id] || [];
+              return !split.some(d => d && d.trim());
+            })());
+            cols += buildMissingStatsCol('⭐ الكبرى', missingKubra);
+          }
+        }
+      }
+      html += '<div style="display:flex;gap:1rem;flex-wrap:wrap;">' + cols + '</div>';
     }
   } else if (!isThu) {
     // الأيام العادية: التحضير مقسّم حسب المجموعة
