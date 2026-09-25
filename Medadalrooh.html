@@ -5184,33 +5184,34 @@ function renderMissingStats() {
   let html = tabsHtml;
 
   if (isLive) {
-    // الحلقة المباشرة: خطوة 1) اختيار الحلقة، خطوة 2) اختيار الفترة، خطوة 3) الأعمدة الثلاثة (تحضير/خطط/كبرى) لهذي الحلقة والفترة بس
+    // الحلقة المباشرة: شريط حلقات ثابت فوق (نفس شكل التبويبات القديمة)، وتحته شريط فترات بنفس الشكل، وتحتها الأعمدة الثلاثة
     const allHalqaIds = Array.from(new Set(maqAllStudents.map(s => getStudentHalqaId(s.id)).filter(Boolean)))
       .sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
 
-    if (!missingStatsLiveHalqa || !allHalqaIds.includes(missingStatsLiveHalqa)) {
-      // خطوة 1: اختيار الحلقة
-      html += '<div style="font-weight:700;color:var(--wine);font-size:0.8rem;margin-bottom:0.5rem;">📱 اختاري الحلقة:</div>';
-      html += '<div style="display:flex;flex-wrap:wrap;gap:0.4rem;">' +
-        allHalqaIds.map(h => '<button class="icon-btn-sm" style="padding:0.4rem 0.8rem;font-size:0.75rem;" onclick="selectMissingStatsHalqa(\'' + h + '\')">' + escapeHTML(getHalqaLabel(h)) + '</button>').join('') +
+    if (!allHalqaIds.length) {
+      html += '<div style="color:var(--muted);font-size:0.8rem;">ما فيه طالبات موزّعة على حلقات بعد</div>';
+    } else {
+      if (!missingStatsLiveHalqa || !allHalqaIds.includes(missingStatsLiveHalqa)) missingStatsLiveHalqa = allHalqaIds[0];
+      const h = missingStatsLiveHalqa;
+
+      // شريط الحلقات — نفس شكل شريط التبويبات القديم بالضبط
+      html += '<div style="display:flex;justify-content:space-between;margin-bottom:0.6rem;padding:0 0.3rem;box-sizing:border-box;">' +
+        allHalqaIds.map(hk => '<div class="group-tab' + (hk === h ? ' active' : '') + '" style="padding:0.3rem 0;font-size:0.62rem;white-space:nowrap;" onclick="selectMissingStatsHalqa(\'' + hk + '\')">' + escapeHTML(getHalqaLabel(hk)) + '</div>').join('') +
         '</div>';
-    } else if (!missingStatsLivePeriod) {
-      // خطوة 2: اختيار الفترة (حسب عدد فترات هذي الحلقة المسجّل)
-      const periodsCount = getHalqaPeriodsCount(missingStatsLiveHalqa);
+
+      const periodsCount = getHalqaPeriodsCount(h);
       const periods = [];
       for (let p = 1; p <= periodsCount; p++) periods.push(String(p));
-      html += '<div style="margin-bottom:0.5rem;"><span style="cursor:pointer;color:var(--muted);font-size:0.72rem;" onclick="selectMissingStatsHalqa(null)">‹ رجوع للحلقات</span></div>';
-      html += '<div style="font-weight:700;color:var(--wine);font-size:0.8rem;margin-bottom:0.5rem;">' + escapeHTML(getHalqaLabel(missingStatsLiveHalqa)) + ' — 🕐 اختاري الفترة:</div>';
-      html += '<div style="display:flex;flex-wrap:wrap;gap:0.4rem;">' +
-        periods.map(p => '<button class="icon-btn-sm" style="padding:0.4rem 0.8rem;font-size:0.75rem;" onclick="selectMissingStatsPeriod(\'' + p + '\')">فترة ' + toAr(p) + '</button>').join('') +
+      if (!missingStatsLivePeriod || !periods.includes(missingStatsLivePeriod)) missingStatsLivePeriod = periods[0];
+      const p = missingStatsLivePeriod;
+
+      // شريط الفترات — نفس شكل شريط التبويبات، بس أصغر عشان ما ياخذ مساحة كبيرة
+      html += '<div style="display:flex;justify-content:space-between;margin-bottom:0.5rem;padding:0 0.3rem;box-sizing:border-box;">' +
+        periods.map(pk => '<div class="group-tab' + (pk === p ? ' active' : '') + '" style="padding:0.12rem 0;font-size:0.55rem;white-space:nowrap;" onclick="selectMissingStatsPeriod(\'' + pk + '\')">فترة ' + toAr(pk) + '</div>').join('') +
         '</div>';
-    } else {
-      // خطوة 3: الأعمدة الثلاثة لهذي الحلقة+الفترة بس
-      const h = missingStatsLiveHalqa, p = missingStatsLivePeriod;
+
       const inHalqaPeriod = s => getStudentHalqaId(s.id) === h && getStudentPeriod(s.id) === p;
       const dayKey = liveKeyFor(h, p, liveClosingActive);
-      html += '<div style="margin-bottom:0.5rem;"><span style="cursor:pointer;color:var(--muted);font-size:0.72rem;" onclick="selectMissingStatsPeriod(null)">‹ رجوع للفترات</span></div>';
-      html += '<div style="font-weight:700;color:var(--wine);font-size:0.8rem;margin-bottom:0.5rem;">' + escapeHTML(getHalqaLabel(h)) + ' — فترة ' + toAr(p) + '</div>';
 
       const missingAttend = maqAllStudents.filter(s => inHalqaPeriod(s) && !getAttendVal(currentWeek, dayKey, s.name));
       let cols = buildMissingStatsCol('☑️ التحضير', missingAttend);
