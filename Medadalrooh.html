@@ -1883,8 +1883,17 @@ function isSameAsLastPush(key, incomingRaw) {
 }
 
 // رفع مفتاح واحد لقاعدة البيانات (نادي عليها بعد أي تعديل محلي)
+// كل الحفظات لنفس المفتاح تصطف بالدور (Queue) — عشان ما تترسل بالتوازي وتتزاحم بترتيب غلط بسبب تأخر شبكة،
+// بينما مفاتيح مختلفة (مثلاً بيانات الحضور وبيانات الحاسبة) ما تنتظر بعضها إطلاقًا
+const _syncPushChains = {};
 async function syncPush(key) {
   if (!SYNC_KEYS.includes(key)) return;
+  const prevChain = _syncPushChains[key] || Promise.resolve();
+  const thisChain = prevChain.then(() => syncPushOnce(key), () => syncPushOnce(key));
+  _syncPushChains[key] = thisChain;
+  return thisChain;
+}
+async function syncPushOnce(key) {
   _lastLocalPush[key] = Date.now();
   try {
     const raw = localStorage.getItem(key);
