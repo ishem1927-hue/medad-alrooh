@@ -5287,7 +5287,7 @@ function renderMissingStats() {
     } else if (missingStatsActiveTab === 'taahud') {
       try {
         const taahudStudents = maqAllStudents.filter(s => studentHasTaahudByName(s.name) &&
-          getAttendVal(currentWeek, 5, s.name + '_taahud') !== 'done');
+          !getAttendVal(currentWeek, 5, s.name + '_taahud'));
         html += buildGroupedHtml('', taahudStudents, s => s.group && s.group.trim() ? s.group.trim() : 'بدون مجموعة', k => getGroupLabel(k));
       } catch(e2) {}
     }
@@ -10151,7 +10151,7 @@ function setWaImportTab(tab) {
   document.getElementById('waImportRangeBtn').textContent = waRangeBtnDefaultText();
   if (tab === 'taahud') {
     waLoadCaches();
-    renderWaTaahudResults(getTaahudEligibleStudents(), null, window._waTaahudAlreadyCommitted || []);
+    renderWaTaahudResults(getTaahudEligibleStudents(), window._waTaahudAlreadyCommitted || []);
   } else {
     waRenderPersistedSections();
     renderWaReviewQueue();
@@ -10605,12 +10605,12 @@ async function runWaTaahudImportAnalysis() {
   window._waTaahudSourceTag = sourceTag;
   window._waTaahudAlreadyCommitted = (window._waTaahudAlreadyCommitted || []).concat(alreadyCommitted);
 
-  renderWaTaahudResults(taahudStudents, computedWeek, window._waTaahudAlreadyCommitted);
+  renderWaTaahudResults(taahudStudents, window._waTaahudAlreadyCommitted);
   waSaveCaches();
 }
 
 // ===== عرض نتائج تحليل التعاهد (أسماء غير معروفة + مطابقة تقريبية + بطاقات مكررة) =====
-function renderWaTaahudResults(taahudStudents, computedWeek, alreadyCommitted) {
+function renderWaTaahudResults(taahudStudents, alreadyCommitted) {
   const resultsEl = document.getElementById('waImportResults');
   if (!resultsEl) return;
   let html = '';
@@ -10741,7 +10741,7 @@ function resolveWaTaahudUnknown(i) {
     }
   }
   waSaveCaches();
-  renderWaTaahudResults(getTaahudEligibleStudents(), null, window._waTaahudAlreadyCommitted || []);
+  renderWaTaahudResults(getTaahudEligibleStudents(), window._waTaahudAlreadyCommitted || []);
 }
 
 function resolveWaTaahudFuzzy(i, yes) {
@@ -10756,7 +10756,7 @@ function resolveWaTaahudFuzzy(i, yes) {
     window._waTaahudUnknownCache.push({ rawName: item.rawName, body: item.body, sender: item.sender, numbers: item.numbers });
   }
   waSaveCaches();
-  renderWaTaahudResults(getTaahudEligibleStudents(), null, window._waTaahudAlreadyCommitted || []);
+  renderWaTaahudResults(getTaahudEligibleStudents(), window._waTaahudAlreadyCommitted || []);
 }
 
 function resolveWaTaahudDuplicate(groupIdx, cardIdx) {
@@ -10767,7 +10767,7 @@ function resolveWaTaahudDuplicate(groupIdx, cardIdx) {
   window._waTaahudPendingReview = window._waTaahudPendingReview || [];
   window._waTaahudPendingReview.push({ stu: chosen.stu, numbers: chosen.numbers, body: chosen.body, sender: chosen.sender, sourceTag: window._waTaahudSourceTag || '', committed: false });
   waSaveCaches();
-  renderWaTaahudResults(getTaahudEligibleStudents(), null, window._waTaahudAlreadyCommitted || []);
+  renderWaTaahudResults(getTaahudEligibleStudents(), window._waTaahudAlreadyCommitted || []);
 }
 
 async function runWaImportAnalysis() {
