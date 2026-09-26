@@ -3969,6 +3969,7 @@ const ALERT_LABELS = {
   excused: 'غياب بعذر',
   no_challenge: 'إنجاز بدون تحدي',
   kubra_miss: 'عدم إنجاز المراجعة الكبرى',
+  taahud_miss: 'عدم إنجاز مراجعة التعاهد',
   event_removed: 'انسحاب تلقائي من المسابقة',
   eada_auto: 'تفعيل إعادة تلقائي',
 };
@@ -4012,6 +4013,15 @@ function setKubraAttendAlert(week, day, studentId, studentName, val) {
   const k = alertKey(week, day);
   const list = (attendAlerts[k] || []).filter(a => !(a.studentId === studentId && a.kind === 'kubra_miss'));
   if (val === 'miss') list.push({ studentId, studentName, kind: 'kubra_miss', ts: Date.now() });
+  attendAlerts[k] = list;
+  saveAttendAlerts();
+}
+
+function setTaahudAttendAlert(week, day, studentId, studentName, val) {
+  if (!studentId) return;
+  const k = alertKey(week, day);
+  const list = (attendAlerts[k] || []).filter(a => !(a.studentId === studentId && a.kind === 'taahud_miss'));
+  if (val === 'miss') list.push({ studentId, studentName, kind: 'taahud_miss', ts: Date.now() });
   attendAlerts[k] = list;
   saveAttendAlerts();
 }
@@ -4302,7 +4312,10 @@ function studentHasTaahudByName(name) {
 function setAttendThuTaahud(s, v) {
   const key = s + '_taahud';
   const cur = getAttendVal(currentWeek, currentDay, key);
-  setAttendVal(currentWeek, currentDay, key, cur === v ? null : v);
+  const newVal = cur === v ? null : v;
+  setAttendVal(currentWeek, currentDay, key, newVal);
+  const stu = maqAllStudents.find(x => x.name === s);
+  if (stu) setTaahudAttendAlert(currentWeek, currentDay, stu.id, stu.name, newVal);
   saveAttendData(); renderCurriculumTab();
 }
 
@@ -5555,8 +5568,8 @@ function buildDayEvalHTML(name, hasKubra, hasSplit, hasTaahud) {
     if (hasTaahud) {
       const valT = getAttendVal(currentWeek, currentDay, name + '_taahud');
       html += `
-      <button class="thu-btn ${valT==='done'?'sel-done':''}" onclick="setAttendThuTaahud('${name}','done')">${EMOJIS.taahud_done} تعاهد ✓</button>
-      <button class="thu-btn ${valT==='miss'?'sel-miss':''}" onclick="setAttendThuTaahud('${name}','miss')">${EMOJIS.taahud_miss} تعاهد ✗</button>`;
+      <button class="thu-btn ${valT==='done'?'sel-done':''}" onclick="setAttendThuTaahud('${name}','done')">♾️ تعاهد ✓</button>
+      <button class="thu-btn ${valT==='miss'?'sel-miss':''}" onclick="setAttendThuTaahud('${name}','miss')">♾️ تعاهد ✗</button>`;
     }
     html += `</div>`;
   } else {
