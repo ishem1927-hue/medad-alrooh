@@ -2957,6 +2957,8 @@ function confirmDelete() {
   students = students.filter(s => s.id !== id);
   saveStudents();
   if (halqaDist[id] !== undefined) { delete halqaDist[id]; saveHalqaDist(); }
+  purgeStudentAlerts(id);
+  if (typeof updateAlertsBadge === 'function') { try { updateAlertsBadge(); } catch(e) {} }
   renderStudents();
   if (typeof loadMaqStudents === 'function') loadMaqStudents();
   if (typeof renderCurriculumTab === 'function') { try { renderCurriculumTab(); } catch(e) {} }
@@ -3979,10 +3981,29 @@ function loadAttendAlerts() {
     const saved = localStorage.getItem(STORE_ALERTS);
     attendAlerts = saved ? JSON.parse(saved) : {};
   } catch(e) { attendAlerts = {}; }
+  try {
+    const validIds = new Set(students.map(s => s.id));
+    let changed = false;
+    Object.keys(attendAlerts).forEach(k => {
+      const before = attendAlerts[k] || [];
+      const after = before.filter(a => validIds.has(a.studentId));
+      if (after.length !== before.length) { attendAlerts[k] = after; changed = true; }
+    });
+    if (changed) saveAttendAlerts();
+  } catch(e) {}
 }
 function saveAttendAlerts() {
   try { localStorage.setItem(STORE_ALERTS, JSON.stringify(attendAlerts)); } catch(e) {}
   syncPush(STORE_ALERTS);
+}
+function purgeStudentAlerts(id) {
+  let changed = false;
+  Object.keys(attendAlerts).forEach(k => {
+    const before = attendAlerts[k] || [];
+    const after = before.filter(a => a.studentId !== id);
+    if (after.length !== before.length) { attendAlerts[k] = after; changed = true; }
+  });
+  if (changed) saveAttendAlerts();
 }
 
 function mapAttendValToAlertKind(val) {
