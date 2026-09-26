@@ -4358,13 +4358,8 @@ function generateAttendReport() {
     summary[s].thu = getAttendVal(w, 5, s);
     if (studentHasKubraByName(s)) {
       const stu = maqAllStudents.find(x => x.name === s);
-      const hasSplit = stu && getKubraSplit(stu.id).some(d => d && d.trim());
-      if (hasSplit) {
-        const vals = [1,2,3,4].map(d => getAttendVal(w, d, s + '_kubra'));
-        summary[s].kubra = vals.every(v => v === 'done') ? 'done' : 'miss';
-      } else {
-        summary[s].kubra = getAttendVal(w, 5, s + '_kubra');
-      }
+      const vals = stu ? [1,2,3,4].map(d => (getKubraSplit(stu.id)[d - 1] || '').trim()) : [];
+      summary[s].kubra = vals.every(v => v) ? 'done' : 'miss';
     } else {
       summary[s].kubra = null;
     }
@@ -5204,7 +5199,7 @@ function renderMissingStats() {
   const isThu = !isLive && currentDay === 5;
   const isSunWed = !isLive && currentDay >= 1 && currentDay <= 4;
   // تبويب الكبرى يظهر بالأحد-الأربعاء بس لو فيه طالبات فعلاً عندهن تقسيم كبرى (نظام التقسيم الحالي)
-  const hasSplitKubraStudents = isSunWed && maqAllStudents.some(s => studentHasKubraByName(s.name) && getKubraSplit(s.id).some(d => d && d.trim()));
+  const hasSplitKubraStudents = isSunWed && maqAllStudents.some(s => studentHasKubraByName(s.name));
 
   // شريط التبويبات الأفقي (يظهر بس لما فيه أكثر من قائمة: الخميس، الأحد-الأربعاء مع تقسيم كبرى، أو الحلقة المباشرة)
   let tabsHtml = '';
@@ -5291,7 +5286,6 @@ function renderMissingStats() {
     if (missingStatsActiveTab === 'kubra') {
       try {
         const missingKubraDay = maqAllStudents.filter(s => studentHasKubraByName(s.name) &&
-          getKubraSplit(s.id).some(d => d && d.trim()) &&
           !(getKubraSplit(s.id)[currentDay - 1] || '').trim());
         html += buildGroupedHtml('', missingKubraDay, s => s.group && s.group.trim() ? s.group.trim() : 'بدون مجموعة', k => getGroupLabel(k));
       } catch(e2) {}
@@ -5569,7 +5563,7 @@ function renderDayTabsBar() {
   }
 }
 
-function buildDayEvalHTML(name, hasKubra, hasSplit, hasTaahud) {
+function buildDayEvalHTML(name, hasTaahud) {
   const day = ATTEND_DAYS[currentDay];
   const val = getAttendVal(currentWeek, currentDay, name);
   let html = `<div class="day-eval-label">📋 تقييم يوم ${day.label}</div>`;
@@ -5581,13 +5575,6 @@ function buildDayEvalHTML(name, hasKubra, hasSplit, hasTaahud) {
       <button class="thu-btn ${val==='miss'?'sel-miss':''}" onclick="setAttendThu('${name}','miss')">${EMOJIS.thu_miss} نقص</button>
       <button class="thu-btn ${val==='excused'?'sel-excused':''}" onclick="setAttendThu('${name}','excused')">${EMOJIS.excused} بعذر</button>
       <button class="thu-btn ${val==='absent'?'sel-absent':''}" onclick="setAttendThu('${name}','absent')">${EMOJIS.absent} غياب</button>`;
-    // كبرى بالخميس بس للطالبات اللي ما عندها تقسيم ٤ أيام (الوضع القديم)
-    if (hasKubra && !hasSplit) {
-      const valK = getAttendVal(currentWeek, currentDay, name + '_kubra');
-      html += `
-      <button class="thu-btn ${valK==='done'?'sel-done':''}" onclick="setAttendThuKubra('${name}','done')">${EMOJIS.kubra_done} كبرى ✓</button>
-      <button class="thu-btn ${valK==='miss'?'sel-miss':''}" onclick="setAttendThuKubra('${name}','miss')">${EMOJIS.kubra_miss} كبرى ✗</button>`;
-    }
     // ♾️ مراجعة التعاهد: زر تقييم يظهر كل خميس
     if (hasTaahud) {
       const valT = getAttendVal(currentWeek, currentDay, name + '_taahud');
@@ -5604,14 +5591,6 @@ function buildDayEvalHTML(name, hasKubra, hasSplit, hasTaahud) {
       <button class="sw-btn ${val==='excused'?'sel-excused':''}" onclick="setAttendSW('${name}','excused')">${EMOJIS.excused} بعذر</button>
       <button class="sw-btn ${val==='absent'?'sel-absent':''}" onclick="setAttendSW('${name}','absent')">${EMOJIS.absent} غياب</button>
     </div>`;
-    // كبرى بالأحد-الأربعاء بس للطالبات اللي عندها تقسيم ٤ أيام (كل يوم مستقل)
-    if (hasKubra && hasSplit) {
-      const valK = getAttendVal(currentWeek, currentDay, name + '_kubra');
-      html += `<div class="thu-options" style="opacity:0.85;margin-top:0.35rem;">
-        <button class="thu-btn ${valK==='done'?'sel-done':''}" onclick="setAttendThuKubra('${name}','done')">${EMOJIS.kubra_done} كبرى ✓</button>
-        <button class="thu-btn ${valK==='miss'?'sel-miss':''}" onclick="setAttendThuKubra('${name}','miss')">${EMOJIS.kubra_miss} كبرى ✗</button>
-      </div>`;
-    }
   }
   // زرّي "عوّضت مع التحدي / بدون التحدي" يبانون بس لو الطالبة كانت غايبة (بعذر أو بدون عذر) باليوم اللي قبله مباشرة
   // (يشمل كل الأيام المؤهلة بما فيها الخميس؛ الأحد مستثنى تلقائيًا لأن اليوم اللي قبله ليس من نوع sw)
@@ -5930,9 +5909,7 @@ function renderMaqStudents() {
     card.className = 'maq-student-card';
     card.id = `maqcard_${s.id}`;
 
-    const kubraShow = kb.hasKubra ? 'show' : '';
-    const hasSplit  = getKubraSplit(s.id).some(d => d && d.trim());
-    const evalHTML  = buildDayEvalHTML(s.name, kb.hasKubra, hasSplit, th.hasTaahud);
+    const evalHTML  = buildDayEvalHTML(s.name, th.hasTaahud);
     const isOpen    = openMaqCardId === s.id;
     const eventOn   = !!eventParticipants[s.id];
     const showEventBtn = EMOJIS.event_lbl && EMOJIS.event_lbl.trim();
@@ -5970,26 +5947,16 @@ function renderMaqStudents() {
         <div class="day-eval-box">${evalHTML}</div>
 
         ${(function(){
-          const hasSplit = getKubraSplit(s.id).some(d => d && d.trim());
-          if (hasSplit) {
-            if (currentDay === 5) return ''; // الخميس: ما تظهر كبرى إطلاقًا لو فيه تقسيم
-            const dayVal = getKubraSplit(s.id)[currentDay - 1] || '';
-            return `<div class="kubra-section show" id="kubra_section_${s.id}">
-              <div class="maq-field-group" style="margin-bottom:0">
-                <div class="maq-field-label">⭐ المراجعة الكبرى</div>
-                <input class="maq-field-input" id="kubra_${s.id}"
-                  placeholder="مثال: جزء عمّ"
-                  value="${dayVal}"
-                  oninput="onKubraDayChange(${s.id}, this.value)">
-              </div>
-            </div>`;
-          }
-          return `<div class="kubra-section ${kubraShow}" id="kubra_section_${s.id}">
+          if (!kb.hasKubra) return '';
+          if (currentDay === 5) return ''; // الخميس: ما تظهر كبرى إطلاقًا
+          const dayVal = getKubraSplit(s.id)[currentDay - 1] || '';
+          return `<div class="kubra-section show" id="kubra_section_${s.id}">
             <div class="maq-field-group" style="margin-bottom:0">
               <div class="maq-field-label">⭐ المراجعة الكبرى</div>
               <input class="maq-field-input" id="kubra_${s.id}"
-                placeholder="— بدون كبرى —"
-                value="${escapeHTML(kb.kubra)}" readonly>
+                placeholder="مثال: جزء عمّ"
+                value="${dayVal}"
+                oninput="onKubraDayChange(${s.id}, this.value)">
             </div>
           </div>`;
         })()}
