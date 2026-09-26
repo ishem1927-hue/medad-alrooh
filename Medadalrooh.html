@@ -5156,14 +5156,26 @@ function renderMissingStats() {
   if (!el) return;
   const isLive = curriculumViewMode === 'live';
   const isThu = !isLive && currentDay === 5;
+  const isSunWed = !isLive && currentDay >= 1 && currentDay <= 4;
+  // تبويب الكبرى يظهر بالأحد-الأربعاء بس لو فيه طالبات فعلاً عندهن تقسيم كبرى (نظام التقسيم الحالي)
+  const hasSplitKubraStudents = isSunWed && maqAllStudents.some(s => studentHasKubraByName(s.name) && getKubraSplit(s.id).some(d => d && d.trim()));
 
-  // شريط التبويبات الأفقي (يظهر بس لما فيه أكثر من قائمة، يعني بالخميس أو بالحلقة المباشرة)
+  // شريط التبويبات الأفقي (يظهر بس لما فيه أكثر من قائمة: الخميس، الأحد-الأربعاء مع تقسيم كبرى، أو الحلقة المباشرة)
   let tabsHtml = '';
   if (isThu) {
+    if (missingStatsActiveTab === 'kubra') missingStatsActiveTab = 'attend'; // الكبرى ما تعود تظهر بالخميس بعد التقسيم
+    const tabs = [
+      { key: 'attend', label: '☑️ التحضير اليومي' },
+      { key: 'taahud', label: '♾️ مراجعة التعاهد' },
+    ];
+    tabsHtml = '<div style="display:flex;justify-content:space-between;margin-bottom:0.6rem;padding:0 0.3rem;box-sizing:border-box;">' +
+      tabs.map(t => '<div class="group-tab' + (missingStatsActiveTab === t.key ? ' active' : '') + '" style="padding:0.3rem 0;font-size:0.62rem;white-space:nowrap;" onclick="setMissingStatsTab(\'' + t.key + '\')">' + t.label + '</div>').join('') +
+      '</div>';
+  } else if (isSunWed && hasSplitKubraStudents) {
+    if (missingStatsActiveTab === 'taahud') missingStatsActiveTab = 'attend'; // التعاهد خاص بالخميس بس
     const tabs = [
       { key: 'attend', label: '☑️ التحضير اليومي' },
       { key: 'kubra', label: '⭐️ المراجعة الكبرى' },
-      { key: 'taahud', label: '♾️ مراجعة التعاهد' },
     ];
     tabsHtml = '<div style="display:flex;justify-content:space-between;margin-bottom:0.6rem;padding:0 0.3rem;box-sizing:border-box;">' +
       tabs.map(t => '<div class="group-tab' + (missingStatsActiveTab === t.key ? ' active' : '') + '" style="padding:0.3rem 0;font-size:0.62rem;white-space:nowrap;" onclick="setMissingStatsTab(\'' + t.key + '\')">' + t.label + '</div>').join('') +
@@ -5171,7 +5183,7 @@ function renderMissingStats() {
   } else if (isLive) {
     // الحلقة المباشرة: التنقل صار حلقة ← فترة (بدل تبويبات ثابتة)، فما فيه شريط تبويبات علوي هنا
   } else if (missingStatsActiveTab !== 'attend') {
-    missingStatsActiveTab = 'attend'; // الأيام العادية ما فيها إلا قائمة التحضير
+    missingStatsActiveTab = 'attend'; // باقي الحالات ما فيها إلا قائمة التحضير
   }
 
   let html = tabsHtml;
@@ -5228,20 +5240,28 @@ function renderMissingStats() {
       }
       html += '<div style="display:flex;gap:1rem;flex-wrap:wrap;">' + cols + '</div>';
     }
+  } else if (isSunWed && hasSplitKubraStudents) {
+    // الأحد-الأربعاء (فيه طالبات مقسّمة الكبرى): تبويب التحضير أو تبويب الكبرى حسب الاختيار
+    if (missingStatsActiveTab === 'kubra') {
+      try {
+        const missingKubraDay = maqAllStudents.filter(s => studentHasKubraByName(s.name) &&
+          getKubraSplit(s.id).some(d => d && d.trim()) &&
+          !(getKubraSplit(s.id)[currentDay - 1] || '').trim());
+        html += buildGroupedHtml('', missingKubraDay, s => s.group && s.group.trim() ? s.group.trim() : 'بدون مجموعة', k => getGroupLabel(k));
+      } catch(e2) {}
+    } else {
+      const missingAttend = maqAllStudents.filter(s => !getAttendVal(currentWeek, currentDay, s.name));
+      html += buildGroupedHtml('', missingAttend, s => s.group && s.group.trim() ? s.group.trim() : 'بدون مجموعة', k => getGroupLabel(k), s => computeStudentDailyStatus(s.name, currentWeek, currentDay).excluded);
+    }
   } else if (!isThu) {
-    // الأيام العادية: التحضير مقسّم حسب المجموعة
+    // باقي الأيام العادية (بدون طالبات مقسّمة كبرى): التحضير مقسّم حسب المجموعة
     const missingAttend = maqAllStudents.filter(s => !getAttendVal(currentWeek, currentDay, s.name));
     html += buildGroupedHtml('☑️ التحضير اليومي', missingAttend, s => s.group && s.group.trim() ? s.group.trim() : 'بدون مجموعة', k => getGroupLabel(k), s => computeStudentDailyStatus(s.name, currentWeek, currentDay).excluded);
   } else {
-    // الخميس: تبويب واحد بس يظهر بكل مرة حسب الاختيار — بدون عنوان مكرر (التبويب فوق أصلاً يوضح الاسم)
+    // الخميس: تحضير يومي أو تعاهد بس (الكبرى ما تعود تظهر هنا بعد التقسيم) — بدون عنوان مكرر (التبويب فوق أصلاً يوضح الاسم)
     if (missingStatsActiveTab === 'attend') {
       const missingAttend = maqAllStudents.filter(s => !getAttendVal(currentWeek, currentDay, s.name));
       html += buildGroupedHtml('', missingAttend, s => s.group && s.group.trim() ? s.group.trim() : 'بدون مجموعة', k => getGroupLabel(k), s => computeStudentDailyStatus(s.name, currentWeek, currentDay).excluded);
-    } else if (missingStatsActiveTab === 'kubra') {
-      try {
-        const kubraStudents = maqAllStudents.filter(s => studentHasKubraByName(s.name) && getAttendVal(currentWeek, currentDay, s.name + '_kubra') !== 'done');
-        html += buildGroupedHtml('', kubraStudents, s => s.group && s.group.trim() ? s.group.trim() : 'بدون مجموعة', k => getGroupLabel(k));
-      } catch(e2) {}
     } else if (missingStatsActiveTab === 'taahud') {
       try {
         const taahudStudents = maqAllStudents.filter(s => studentHasTaahudByName(s.name) &&
