@@ -912,12 +912,6 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         <div style="font-size:0.95rem;color:var(--muted);margin-bottom:1.4rem;">اختاري القسم اللي تبين تفتحينه</div>
         <button class="icon-btn-sm accent" style="width:100%;padding:0.9rem;font-size:0.95rem;margin-bottom:0.8rem;" onclick="enterCurriculumMode('weekly')">📆 المتابعة الأسبوعية</button>
         <button class="icon-btn-sm accent" style="width:100%;padding:0.9rem;font-size:0.95rem;" onclick="enterCurriculumMode('live')">📱 الحلقة المباشرة</button>
-        <div style="margin-top:1.6rem;border-top:1px dashed var(--border);padding-top:1rem;">
-          <label style="display:flex;align-items:center;justify-content:center;gap:0.5rem;font-size:0.78rem;color:var(--muted);">
-            <input type="checkbox" id="curriculumAdminRememberToggle" onchange="toggleCurriculumAdminRemember(this.checked)">
-            تذكّري دخولي لمدة 48 ساعة
-          </label>
-        </div>
       </div>
 
       <div class="maq-wrap" id="curriculumMainWrap" style="display:none;">
@@ -1826,6 +1820,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   <div class="modal-card">
     <div class="modal-title">🔒 أدخلي الرمز</div>
     <input type="tel" inputmode="numeric" id="curriculumLockInput" class="form-input" placeholder="الرمز" style="width:100%;text-align:center;font-size:1.1rem;letter-spacing:0.3rem;margin-top:0.6rem;" onkeydown="if(event.key==='Enter')submitCurriculumLockCode()">
+    <label style="display:flex;align-items:center;justify-content:center;gap:0.5rem;font-size:0.78rem;color:var(--muted);margin-top:0.7rem;">
+      <input type="checkbox" id="curriculumLockRememberToggle">
+      تذكّري دخولي لمدة 48 ساعة
+    </label>
     <div class="modal-actions">
       <button class="modal-btn cancel" onclick="closeCurriculumLockModal()">إلغاء</button>
       <button class="modal-btn confirm" onclick="submitCurriculumLockCode()">دخول</button>
@@ -2125,6 +2123,8 @@ function openCurriculumTab(el) {
   }
   const input = document.getElementById('curriculumLockInput');
   if (input) input.value = '';
+  const rememberToggle = document.getElementById('curriculumLockRememberToggle');
+  if (rememberToggle) rememberToggle.checked = false;
   const modal = document.getElementById('curriculumLockModal');
   modal.classList.add('open');
   modal.style.display = 'flex';
@@ -2163,12 +2163,12 @@ function resumeCurriculumRole(role) {
 function submitCurriculumLockCode() {
   const input = document.getElementById('curriculumLockInput');
   const entered = input ? input.value.trim() : '';
+  const remember = document.getElementById('curriculumLockRememberToggle');
+  const rememberChecked = !!(remember && remember.checked);
   if (entered === '0000') {
     curriculumActiveRole = 'admin';
     closeCurriculumLockModal();
-    if (document.getElementById('curriculumAdminRememberToggle') && document.getElementById('curriculumAdminRememberToggle').checked) {
-      saveCurriculumRememberedRole('admin');
-    }
+    if (rememberChecked) saveCurriculumRememberedRole('admin');
     setTalqeenTab(_curriculumTabEl, 'panel-curriculum');
     showCurriculumChoiceScreen();
   } else if (entered === '0101') {
@@ -2185,17 +2185,6 @@ function submitCurriculumLockCode() {
     enterCurriculumMode('live');
   } else {
     showToast('❌ رمز غير صحيح');
-  }
-}
-function toggleCurriculumAdminRemember(checked) {
-  if (!checked) {
-    try {
-      const raw = localStorage.getItem('madad_curriculum_access');
-      if (raw) {
-        const data = JSON.parse(raw);
-        if (data && data.role === 'admin') localStorage.removeItem('madad_curriculum_access');
-      }
-    } catch(e) {}
   }
 }
 function showCurriculumChoiceScreen() {
