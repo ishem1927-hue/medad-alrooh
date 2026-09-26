@@ -1598,6 +1598,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       <button class="result-close" onclick="closeWaImportModal()">✕</button>
     </div>
     <div class="result-body">
+      <div id="waImportTabs" style="display:none;gap:4px;background:var(--surface2);border-radius:10px;padding:3px;margin-bottom:0.7rem;">
+        <div id="waImportTabHifz" onclick="setWaImportTab('hifz')" style="flex:1;text-align:center;padding:0.4rem 0;border-radius:8px;font-family:'Cairo';font-size:0.78rem;font-weight:700;cursor:pointer;background:var(--surface);color:var(--wine);">حفظ</div>
+        <div id="waImportTabTaahud" onclick="setWaImportTab('taahud')" style="flex:1;text-align:center;padding:0.4rem 0;border-radius:8px;font-family:'Cairo';font-size:0.78rem;font-weight:700;cursor:pointer;color:var(--muted);">تعاهد</div>
+      </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0.9rem;">
       <div style="display:flex;gap:0.7rem;margin-bottom:0.7rem;">
         <div style="flex:1;">
@@ -1605,7 +1609,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
           <input type="file" id="waImportFile" accept=".zip,.txt" style="display:none;" onchange="updateWaFileLabel('waImportFile','waImportFileLabel')">
           <label for="waImportFile" id="waImportFileLabel" class="wa-field-box">📎 اختيار ملف</label>
         </div>
-        <div style="flex:1;">
+        <div style="flex:1;" id="waImportGroupField">
           <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">👥 المجموعة</label>
           <div style="position:relative;">
             <select id="waImportGroup" onchange="document.getElementById('waImportGroupLabel').textContent=this.options[this.selectedIndex]?this.options[this.selectedIndex].text:'';" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;"></select>
@@ -1622,7 +1626,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
           <input type="hidden" id="waImportStart">
           <input type="hidden" id="waImportEnd">
         </div>
-        <div style="flex:1;">
+        <div style="flex:1;" id="waImportDayField">
           <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📅 اليوم المطلوب</label>
           <select id="waImportDay" class="wa-field-box">
             <option value="sun">الأحد</option>
@@ -1634,7 +1638,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         </div>
       </div>
 
-      <button class="add-btn" onclick="runWaImportAnalysis()">🔍 تحليل</button>
+      <button class="add-btn" onclick="waImportActiveTab==='taahud' ? runWaTaahudImportAnalysis() : runWaImportAnalysis()">🔍 تحليل</button>
       </div>
       <div id="waImportResults"></div>
       <div id="waReviewQueueBox"></div>
@@ -9960,6 +9964,12 @@ function waSaveCaches() {
       duplicateCache: (window._waDuplicateCache || []).map(g => g ? { stu: g.stu.id, dayKey: g.dayKey, cards: g.cards.map(c => ({ ...c, stu: c.stu.id })) } : null),
       seenKeys: seenKeysObj,
       sourceTag: window._waSourceTag || '',
+      taahudPendingReview: (window._waTaahudPendingReview || []).map(it => it ? { ...it, stu: it.stu.id } : null),
+      taahudUnknownCache: window._waTaahudUnknownCache || [],
+      taahudFuzzyCache: (window._waTaahudFuzzyConfirmCache || []).map(f => f ? { ...f, suggested: f.suggested.id } : null),
+      taahudDuplicateCache: (window._waTaahudDuplicateCache || []).map(g => g ? { stu: g.stu.id, cards: g.cards.map(c => ({ ...c, stu: c.stu.id })) } : null),
+      taahudSourceTag: window._waTaahudSourceTag || '',
+      taahudAlreadyCommitted: (window._waTaahudAlreadyCommitted || []).map(s => s.id),
     };
     localStorage.setItem(WA_IMPORT_STORAGE_KEY, JSON.stringify(state));
   } catch(e) {}
@@ -9981,6 +9991,12 @@ function waLoadCaches() {
     window._waSeenKeys = {};
     Object.keys(state.seenKeys || {}).forEach(k => { window._waSeenKeys[k] = new Set(state.seenKeys[k]); });
     window._waSourceTag = state.sourceTag || '';
+    window._waTaahudPendingReview = (state.taahudPendingReview || []).map(it => it ? { ...it, stu: findStu(it.stu) } : null).filter(it => !it || it.stu);
+    window._waTaahudUnknownCache = state.taahudUnknownCache || [];
+    window._waTaahudFuzzyConfirmCache = (state.taahudFuzzyCache || []).map(f => f ? { ...f, suggested: findStu(f.suggested) } : null).filter(f => !f || f.suggested);
+    window._waTaahudDuplicateCache = (state.taahudDuplicateCache || []).map(g => g ? { stu: findStu(g.stu), cards: g.cards.map(c => ({ ...c, stu: findStu(c.stu) })) } : null).filter(g => !g || g.stu);
+    window._waTaahudSourceTag = state.taahudSourceTag || '';
+    window._waTaahudAlreadyCommitted = (state.taahudAlreadyCommitted || []).map(findStu).filter(Boolean);
   } catch(e) {}
 }
 
@@ -10084,6 +10100,32 @@ function updateWaFileLabel(inputId, labelId) {
   if (inp && lbl) lbl.textContent = (inp.files && inp.files[0]) ? '📎 ' + inp.files[0].name : '📎 اختيار ملف';
 }
 
+let waImportActiveTab = 'hifz';
+function setWaImportTab(tab) {
+  waImportActiveTab = tab;
+  const tabHifz = document.getElementById('waImportTabHifz');
+  const tabTaahud = document.getElementById('waImportTabTaahud');
+  const groupField = document.getElementById('waImportGroupField');
+  const dayField = document.getElementById('waImportDayField');
+  if (tabHifz) tabHifz.style.background = tab === 'hifz' ? 'var(--surface)' : 'transparent';
+  if (tabHifz) tabHifz.style.color = tab === 'hifz' ? 'var(--wine)' : 'var(--muted)';
+  if (tabTaahud) tabTaahud.style.background = tab === 'taahud' ? 'var(--surface)' : 'transparent';
+  if (tabTaahud) tabTaahud.style.color = tab === 'taahud' ? 'var(--wine)' : 'var(--muted)';
+  if (groupField) groupField.style.display = tab === 'taahud' ? 'none' : '';
+  if (dayField) dayField.style.display = tab === 'taahud' ? 'none' : '';
+  document.getElementById('waImportFile').value = '';
+  updateWaFileLabel('waImportFile','waImportFileLabel');
+  document.getElementById('waImportStart').value = '';
+  document.getElementById('waImportEnd').value = '';
+  document.getElementById('waImportRangeBtn').textContent = waRangeBtnDefaultText();
+  if (tab === 'taahud') {
+    waLoadCaches();
+    renderWaTaahudResults(getTaahudEligibleStudents(), null, window._waTaahudAlreadyCommitted || []);
+  } else {
+    waRenderPersistedSections();
+    renderWaReviewQueue();
+  }
+}
 function openWaImportModal() {
   const sel = document.getElementById('waImportGroup');
   const groups = getGroups();
@@ -10094,13 +10136,53 @@ function openWaImportModal() {
   document.getElementById('waImportStart').value = '';
   document.getElementById('waImportEnd').value = '';
   document.getElementById('waImportRangeBtn').textContent = waRangeBtnDefaultText();
+  const tabsEl = document.getElementById('waImportTabs');
+  const showTabs = curriculumActiveRole === 'admin' && curriculumViewMode === 'weekly';
+  if (tabsEl) tabsEl.style.display = showTabs ? 'flex' : 'none';
   waLoadCaches();
-  waRenderPersistedSections();
-  renderWaReviewQueue();
+  setWaImportTab('hifz');
   document.getElementById('waImportOverlay').classList.add('open');
 }
 function closeWaImportModal() {
   document.getElementById('waImportOverlay').classList.remove('open');
+}
+
+// ===== نظام استيراد بطاقات مراجعة التعاهد (تبويب "تعاهد" داخل نفس نافذة الاستيراد) =====
+
+// كل الطالبات (بأي مجموعة) اللي عندهن تعاهد فعّال حاليًا — بدون أي قائمة أسماء ثابتة بالكود
+function getTaahudEligibleStudents() {
+  return students.filter(s => s.active !== false && !s.withdrawn && getTaahud(s.id).hasTaahud);
+}
+
+// يستخرج الاسم وقائمة أرقام المراجعات المنجزة من بطاقة "مراجعة التعاهد ♾️" — يتجاهل "تقسيم مراجعة التعاهد"
+function parseTaahudCard(body) {
+  const bodyClean = (body || '').replace(/\u2060/g, '');
+  const lines = bodyClean.split('\n');
+  const titleLine = lines.find(l => l.trim()) || '';
+  if (/تقسيم/.test(titleLine)) return null;
+  if (!/مراجعة\s*التعاهد/.test(normalizeForMatch2(titleLine))) return null;
+
+  let name = null;
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/الاسم\s*\*?:\s*\*?\s*(.*)/);
+    if (m) {
+      name = cleanPastedValue2((m[1] || '').replace(/\*/g, ''));
+      if (!name && lines[i+1]) name = cleanPastedValue2(lines[i+1].replace(/\*/g, ''));
+      break;
+    }
+  }
+  if (!name) return null;
+
+  const numbers = {};
+  lines.forEach(l => {
+    const matches = [...l.matchAll(/مراجعة\s*\(\s*(\d+)\s*\)\s*:\s*(.+)/g)];
+    matches.forEach(mm => {
+      const num = parseInt(mm[1], 10);
+      const mark = (mm[2] || '').trim();
+      if (mark) numbers[num] = mark;
+    });
+  });
+  return { name, numbers };
 }
 
 // يقرأ الملف المرفوع (zip أو txt) ويرجّع نص المحادثة كامل
@@ -10355,6 +10437,303 @@ function computeWaWeekIndex(startDate) {
   const diffDays = Math.floor((startDate - cycleStart) / (1000 * 60 * 60 * 24));
   if (diffDays < 0) return null;
   return Math.floor(diffDays / 7);
+}
+
+// ===== تحليل استيراد بطاقات التعاهد =====
+async function runWaTaahudImportAnalysis() {
+  const fileInput = document.getElementById('waImportFile');
+  const resultsEl = document.getElementById('waImportResults');
+  resultsEl.innerHTML = '';
+  const file = fileInput.files && fileInput.files[0];
+  if (!file) { showToast('اختاري الملف أول'); return; }
+
+  const startVal = document.getElementById('waImportStart').value;
+  const endVal = document.getElementById('waImportEnd').value;
+  if (!startVal || !endVal) { showToast('حددي نطاق الوقت'); return; }
+
+  const rangeStart = new Date(startVal);
+  const rangeEnd = new Date(endVal);
+
+  const computedWeek = computeWaWeekIndex(rangeStart);
+  if (computedWeek === null) {
+    resultsEl.innerHTML = `<div style="color:#c0392b;font-weight:700;">⚠️ ما قدرت أحدد تاريخ بداية الدورة الحالية من صفحة المواعيد. تأكدي إن فيه دورة نشطة مسجّلة.</div>`;
+    return;
+  }
+  if (pinnedWeek === null || computedWeek !== pinnedWeek || currentDay !== 5) {
+    resultsEl.innerHTML = `<div style="color:#c0392b;font-weight:700;">
+      ⚠️ عدم تطابق! التاريخ اللي حددتيه يقابل الأسبوع "${WEEK_NAMES[computedWeek] || (computedWeek+1)}"،
+      بينما المثبّت عندك حاليًا بالمتابعة هو الأسبوع "${pinnedWeek !== null ? WEEK_NAMES[pinnedWeek] : '—'}" — ولازم تكونين واقفة على يوم الخميس بنفس الأسبوع وقت الاعتماد.
+      ثبّتي الأسبوع الصحيح ويوم الخميس أول من تبويب المتابعة، أو راجعي التاريخ.
+    </div>`;
+    return;
+  }
+
+  let text;
+  try { text = await readWaImportFile(file); }
+  catch (e) { resultsEl.innerHTML = `<div style="color:#c0392b;">⚠️ ما قدرت أقرأ الملف: ${e.message}</div>`; return; }
+
+  const allMsgs = parseWaMessages(text);
+  const taahudStudents = getTaahudEligibleStudents();
+
+  const scopeKey = `taahud_${computedWeek}`;
+  window._waSeenKeys = window._waSeenKeys || {};
+  if (!window._waSeenKeys[scopeKey]) window._waSeenKeys[scopeKey] = new Set();
+  const seenSet = window._waSeenKeys[scopeKey];
+  const seenSnapshot = new Set(seenSet);
+
+  const unknown = [];
+  const fuzzyConfirm = [];
+  const studentCandidates = new Map();
+  const duplicateGroups = new Map();
+  const stuFirstSender = new Map();   // نفس منطق التكرار المعدّل: تكرار حقيقي = نفس الطالبة + نفس المرسل بس
+  const conflictedStudentIds = new Set();
+  const alreadyCommitted = [];
+
+  allMsgs.forEach(msg => {
+    if (msg.date < rangeStart || msg.date > rangeEnd) return;
+    const parsed = parseTaahudCard(msg.body);
+    if (!parsed) return;
+    if (!Object.keys(parsed.numbers).length) return; // بطاقة فاضية بالكامل — نتجاهلها، مو بطاقة حقيقية
+
+    const hits = findMatchingStudents2(parsed.name).filter(s => taahudStudents.some(ts => ts.id === s.id));
+    if (hits.length !== 1) {
+      const fuzzy = findWaFuzzyMatch(parsed.name, taahudStudents);
+      if (fuzzy.length === 1 || (fuzzy.length > 1 && fuzzy[0].dist < fuzzy[1].dist)) {
+        if (seenSnapshot.has('s:' + fuzzy[0].student.id)) return;
+        if (getAttendVal(computedWeek, 5, fuzzy[0].student.name + '_taahud')) {
+          alreadyCommitted.push(fuzzy[0].student);
+          seenSet.add('s:' + fuzzy[0].student.id);
+          return;
+        }
+        seenSet.add('s:' + fuzzy[0].student.id);
+        fuzzyConfirm.push({ rawName: parsed.name, body: msg.body, suggested: fuzzy[0].student, sender: msg.sender, numbers: parsed.numbers });
+      } else {
+        const rawKey = 'raw:' + normalizeForMatch2(parsed.name);
+        if (seenSnapshot.has(rawKey)) return;
+        seenSet.add(rawKey);
+        unknown.push({ rawName: parsed.name, body: msg.body, sender: msg.sender, numbers: parsed.numbers });
+      }
+      return;
+    }
+
+    const stu = hits[0];
+    if (seenSnapshot.has('s:' + stu.id)) return;
+
+    // ===== تعارض أسماء: نفس الطالبة انطابقت من مرسلين مختلفين — مو تكرار، يحتاج قرارك اليدوي =====
+    if (conflictedStudentIds.has(stu.id)) {
+      unknown.push({ rawName: parsed.name, body: msg.body, sender: msg.sender, numbers: parsed.numbers });
+      return;
+    }
+    const firstSender = stuFirstSender.get(stu.id);
+    if (firstSender === undefined) {
+      stuFirstSender.set(stu.id, msg.sender || '');
+    } else if (firstSender !== (msg.sender || '')) {
+      conflictedStudentIds.add(stu.id);
+      const prevCandidate = studentCandidates.get(stu.id);
+      const prevDup = duplicateGroups.get(stu.id);
+      if (prevCandidate) {
+        unknown.push({ rawName: prevCandidate.stu.name, body: prevCandidate.body, sender: prevCandidate.sender, numbers: prevCandidate.numbers });
+        studentCandidates.delete(stu.id);
+      }
+      if (prevDup) {
+        prevDup.cards.forEach(c => unknown.push({ rawName: c.stu.name, body: c.body, sender: c.sender, numbers: c.numbers }));
+        duplicateGroups.delete(stu.id);
+      }
+      unknown.push({ rawName: parsed.name, body: msg.body, sender: msg.sender, numbers: parsed.numbers });
+      return;
+    }
+
+    const candidate = { stu, numbers: parsed.numbers, body: msg.body, sender: msg.sender, msgDate: msg.date };
+    const prev = studentCandidates.get(stu.id);
+    const existingDup = duplicateGroups.get(stu.id);
+    if (existingDup) { existingDup.cards.push(candidate); return; }
+    if (prev) {
+      // نفس الطالبة + نفس المرسل أرسلت أكثر من بطاقة تعاهد — تحتاج اختيارك
+      duplicateGroups.set(stu.id, { stu, cards: [prev, candidate] });
+      studentCandidates.delete(stu.id);
+      return;
+    }
+    studentCandidates.set(stu.id, candidate);
+  });
+
+  const pendingReview = [];
+  const sourceTag = `${WEEK_NAMES[computedWeek] || (computedWeek+1)} — تعاهد`;
+  studentCandidates.forEach(c => {
+    if (getAttendVal(computedWeek, 5, c.stu.name + '_taahud')) {
+      alreadyCommitted.push(c.stu);
+    } else {
+      pendingReview.push({ stu: c.stu, numbers: c.numbers, body: c.body, sender: c.sender, sourceTag, committed: false });
+    }
+  });
+
+  window._waTaahudUnknownCache = (window._waTaahudUnknownCache || []).concat(unknown);
+  window._waTaahudFuzzyConfirmCache = (window._waTaahudFuzzyConfirmCache || []).concat(fuzzyConfirm);
+  window._waTaahudDuplicateCache = window._waTaahudDuplicateCache || [];
+  duplicateGroups.forEach(g => window._waTaahudDuplicateCache.push(g));
+  window._waTaahudPendingReview = (window._waTaahudPendingReview || []).concat(pendingReview);
+  window._waTaahudSourceTag = sourceTag;
+  window._waTaahudAlreadyCommitted = (window._waTaahudAlreadyCommitted || []).concat(alreadyCommitted);
+
+  renderWaTaahudResults(taahudStudents, computedWeek, window._waTaahudAlreadyCommitted);
+  waSaveCaches();
+}
+
+// ===== عرض نتائج تحليل التعاهد (أسماء غير معروفة + مطابقة تقريبية + بطاقات مكررة) =====
+function renderWaTaahudResults(taahudStudents, computedWeek, alreadyCommitted) {
+  const resultsEl = document.getElementById('waImportResults');
+  if (!resultsEl) return;
+  let html = '';
+  if ((window._waTaahudUnknownCache || []).some(u => u)) {
+    html += `<div id="waTaahudUnknownSection">`;
+    html += `<div style="font-weight:700;color:#c0392b;margin:0.6rem 0 0.3rem;">⚠️ أسماء غير معروفة (تعاهد):</div>`;
+    window._waTaahudUnknownCache.forEach((u, i) => {
+      if (!u) return;
+      html += `<div id="waTaahudUnknownRow_${i}" style="font-size:0.78rem;margin-bottom:0.4rem;">"${u.rawName}" <span style="color:var(--muted);">(المرسل: ${u.sender || 'غير معروف'})</span> —
+        <select id="waTaahudUnknownSel_${i}" style="font-family:'Cairo';font-size:0.75rem;">
+          <option value="">تجاهل</option>
+          ${taahudStudents.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+        </select>
+        <button class="icon-btn-sm accent" style="padding:0.15rem 0.5rem;" onclick="resolveWaTaahudUnknown(${i})">تطبيق</button>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  if ((window._waTaahudFuzzyConfirmCache || []).some(f => f)) {
+    html += `<div id="waTaahudFuzzySection">`;
+    html += `<div style="font-weight:700;color:#8a6d3b;margin:0.6rem 0 0.3rem;">🔍 مطابقة تقريبية (تعاهد — تأكدي منها):</div>`;
+    window._waTaahudFuzzyConfirmCache.forEach((f, i) => {
+      if (!f) return;
+      html += `<div id="waTaahudFuzzy_${i}" style="font-size:0.78rem;margin-bottom:0.5rem;border:1px solid var(--border);border-radius:8px;padding:0.5rem;">
+        <div>"${f.rawName}" <span style="color:var(--muted);font-size:0.7rem;">(المرسل: ${f.sender || 'غير معروف'})</span> ← <b>${f.suggested.name}</b>؟</div>
+        <div style="margin-top:0.3rem;">
+          <button class="icon-btn-sm accent" style="padding:0.15rem 0.5rem;" onclick="resolveWaTaahudFuzzy(${i}, true)">✅ نعم نفسها</button>
+          <button class="icon-btn-sm" style="padding:0.15rem 0.5rem;" onclick="resolveWaTaahudFuzzy(${i}, false)">❌ لا</button>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  if ((window._waTaahudDuplicateCache || []).some(g => g)) {
+    html += `<div id="waTaahudDuplicatesSection">`;
+    html += `<div style="font-weight:700;color:#c0392b;margin:0.6rem 0 0.3rem;">🔁 بطاقات مكررة (تعاهد)</div>`;
+    window._waTaahudDuplicateCache.forEach((g, i) => {
+      if (!g) return;
+      html += `<div id="waTaahudDupGroup_${i}" style="margin-bottom:0.6rem;">
+        <div style="font-weight:700;color:var(--wine);font-size:0.8rem;margin-bottom:0.2rem;">${g.stu.name} — ${toAr(g.cards.length)} بطاقات (نفس المرسل)</div>
+        <div style="display:flex;gap:0.5rem;overflow-x:auto;">
+          ${g.cards.map((c, ci) => `
+            <div style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:8px;padding:0.5rem;background:var(--surface2);">
+              <div style="white-space:pre-wrap;background:#fff;border-radius:6px;padding:0.4rem;font-size:0.7rem;color:var(--ink);max-height:150px;overflow-y:auto;margin-bottom:0.4rem;">${c.body}</div>
+              <button class="icon-btn-sm accent" style="width:100%;padding:0.3rem;font-size:0.72rem;" onclick="resolveWaTaahudDuplicate(${i}, ${ci})">✅ استخدمي هذي</button>
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  resultsEl.innerHTML = html;
+
+  const footerEl = document.getElementById('waImportFooterResults');
+  if (footerEl) {
+    let footerHtml = '';
+    if (alreadyCommitted && alreadyCommitted.length) {
+      footerHtml += `<div style="font-weight:700;color:var(--green);margin:0.6rem 0 0.3rem;">✓ معتمدة سابقًا (${alreadyCommitted.length}):</div>`;
+      footerHtml += `<div style="font-size:0.78rem;">${alreadyCommitted.map((s,i)=>`<div>${i+1}. ${s.name} ✓</div>`).join('')}</div>`;
+    }
+    footerEl.innerHTML = footerHtml;
+  }
+  renderWaTaahudReviewQueue();
+}
+
+// ===== قائمة مراجعة بطاقات التعاهد قبل الاعتماد النهائي =====
+function renderWaTaahudReviewQueue() {
+  const box = document.getElementById('waReviewQueueBox');
+  if (!box) return;
+  const queue = window._waTaahudPendingReview || [];
+  const activeCount = queue.filter(it => !it.committed).length;
+  if (!activeCount) { box.innerHTML = ''; return; }
+  let html = `<div style="font-weight:700;color:var(--wine);margin:0.8rem 0 0.4rem;border-top:2px solid var(--border);padding-top:0.6rem;">📝 مراجعة بطاقات التعاهد (${activeCount})</div>`;
+  queue.forEach((item, i) => {
+    if (item.committed) return;
+    const numsText = Object.keys(item.numbers).sort((a,b)=>a-b).map(n => `(${toAr(n)})`).join('، ');
+    html += `<div id="waTaahudReviewCard_${i}" style="border:1px solid var(--border);border-radius:10px;padding:0.6rem;margin-bottom:0.6rem;background:var(--surface2);">
+      <div style="font-size:0.68rem;color:var(--accent);font-weight:700;margin-bottom:0.2rem;">📍 ${item.sourceTag || ''}</div>
+      <div style="font-weight:700;color:var(--wine);margin-bottom:0.3rem;">${item.stu.name}</div>
+      <div style="font-size:0.72rem;color:var(--muted);margin-bottom:0.2rem;">♾️ المراجعات المكتوبة: ${numsText || '—'}</div>
+      <div style="font-size:0.72rem;color:var(--muted);margin-bottom:0.2rem;">💬 رسالتها:</div>
+      <div style="white-space:pre-wrap;background:#fff;border-radius:8px;padding:0.5rem;font-size:0.75rem;color:var(--ink);max-height:180px;overflow-y:auto;margin-bottom:0.4rem;">${item.body}</div>
+      <div style="display:flex;gap:0.4rem;margin-top:0.5rem;">
+        <button class="icon-btn-sm accent" style="flex:1;padding:0.4rem;font-weight:700;" onclick="commitWaTaahudReviewCard(${i})">✅ اعتماد تعاهد منجز</button>
+        <button class="icon-btn-sm" style="padding:0.4rem 0.7rem;background:var(--surface2);color:var(--muted);" onclick="dismissWaTaahudReviewCard(${i})" title="تجاهل بدون اعتماد">✕</button>
+      </div>
+    </div>`;
+  });
+  box.innerHTML = html;
+}
+
+function dismissWaTaahudReviewCard(i) {
+  const queue = window._waTaahudPendingReview || [];
+  const item = queue[i];
+  if (!item) return;
+  item.committed = true;
+  waSaveCaches();
+  renderWaTaahudReviewQueue();
+}
+
+// اعتماد بطاقة تعاهد — مجرد وصول بطاقة غير فاضية = منجز؛ نستخدم waSetIfChanged عشان ما نقلب القيمة لو محفوظة أصلًا (setAttendThuTaahud دالة تبديل)
+function commitWaTaahudReviewCard(i) {
+  const queue = window._waTaahudPendingReview || [];
+  const item = queue[i];
+  if (!item || item.committed) { showToast('اتحفظت هالبطاقة أصلًا'); return; }
+  waSetIfChanged(setAttendThuTaahud, item.stu.name, 'done');
+  item.committed = true;
+  waSaveCaches();
+  renderWaTaahudReviewQueue();
+  showToast('اتحفظ تعاهد ' + item.stu.name);
+}
+
+function resolveWaTaahudUnknown(i) {
+  const item = window._waTaahudUnknownCache && window._waTaahudUnknownCache[i];
+  if (!item) return;
+  const sel = document.getElementById('waTaahudUnknownSel_' + i);
+  const stuId = sel ? sel.value : '';
+  window._waTaahudUnknownCache[i] = null;
+  if (stuId) {
+    const stu = students.find(s => String(s.id) === String(stuId));
+    if (stu) {
+      window._waTaahudPendingReview = window._waTaahudPendingReview || [];
+      window._waTaahudPendingReview.push({ stu, numbers: item.numbers, body: item.body, sender: item.sender, sourceTag: window._waTaahudSourceTag || '', committed: false });
+    }
+  }
+  waSaveCaches();
+  renderWaTaahudResults(getTaahudEligibleStudents(), null, window._waTaahudAlreadyCommitted || []);
+}
+
+function resolveWaTaahudFuzzy(i, yes) {
+  const item = window._waTaahudFuzzyConfirmCache && window._waTaahudFuzzyConfirmCache[i];
+  if (!item) return;
+  window._waTaahudFuzzyConfirmCache[i] = null;
+  if (yes) {
+    window._waTaahudPendingReview = window._waTaahudPendingReview || [];
+    window._waTaahudPendingReview.push({ stu: item.suggested, numbers: item.numbers, body: item.body, sender: item.sender, sourceTag: window._waTaahudSourceTag || '', committed: false });
+  } else {
+    window._waTaahudUnknownCache = window._waTaahudUnknownCache || [];
+    window._waTaahudUnknownCache.push({ rawName: item.rawName, body: item.body, sender: item.sender, numbers: item.numbers });
+  }
+  waSaveCaches();
+  renderWaTaahudResults(getTaahudEligibleStudents(), null, window._waTaahudAlreadyCommitted || []);
+}
+
+function resolveWaTaahudDuplicate(groupIdx, cardIdx) {
+  const g = window._waTaahudDuplicateCache && window._waTaahudDuplicateCache[groupIdx];
+  if (!g) return;
+  const chosen = g.cards[cardIdx];
+  window._waTaahudDuplicateCache[groupIdx] = null;
+  window._waTaahudPendingReview = window._waTaahudPendingReview || [];
+  window._waTaahudPendingReview.push({ stu: chosen.stu, numbers: chosen.numbers, body: chosen.body, sender: chosen.sender, sourceTag: window._waTaahudSourceTag || '', committed: false });
+  waSaveCaches();
+  renderWaTaahudResults(getTaahudEligibleStudents(), null, window._waTaahudAlreadyCommitted || []);
 }
 
 async function runWaImportAnalysis() {
