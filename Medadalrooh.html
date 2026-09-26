@@ -2957,8 +2957,6 @@ function confirmDelete() {
   students = students.filter(s => s.id !== id);
   saveStudents();
   if (halqaDist[id] !== undefined) { delete halqaDist[id]; saveHalqaDist(); }
-  purgeStudentAlerts(id);
-  if (typeof updateAlertsBadge === 'function') { try { updateAlertsBadge(); } catch(e) {} }
   renderStudents();
   if (typeof loadMaqStudents === 'function') loadMaqStudents();
   if (typeof renderCurriculumTab === 'function') { try { renderCurriculumTab(); } catch(e) {} }
@@ -3981,29 +3979,10 @@ function loadAttendAlerts() {
     const saved = localStorage.getItem(STORE_ALERTS);
     attendAlerts = saved ? JSON.parse(saved) : {};
   } catch(e) { attendAlerts = {}; }
-  try {
-    const validIds = new Set(students.map(s => s.id));
-    let changed = false;
-    Object.keys(attendAlerts).forEach(k => {
-      const before = attendAlerts[k] || [];
-      const after = before.filter(a => validIds.has(a.studentId));
-      if (after.length !== before.length) { attendAlerts[k] = after; changed = true; }
-    });
-    if (changed) saveAttendAlerts();
-  } catch(e) {}
 }
 function saveAttendAlerts() {
   try { localStorage.setItem(STORE_ALERTS, JSON.stringify(attendAlerts)); } catch(e) {}
   syncPush(STORE_ALERTS);
-}
-function purgeStudentAlerts(id) {
-  let changed = false;
-  Object.keys(attendAlerts).forEach(k => {
-    const before = attendAlerts[k] || [];
-    const after = before.filter(a => a.studentId !== id);
-    if (after.length !== before.length) { attendAlerts[k] = after; changed = true; }
-  });
-  if (changed) saveAttendAlerts();
 }
 
 function mapAttendValToAlertKind(val) {
@@ -10452,6 +10431,8 @@ async function runWaImportAnalysis() {
   const fuzzyConfirm = []; // مطابقة تقريبية — تحتاج تأكيدك قبل التفعيل
   const studentCandidates = new Map(); // stu.id -> أفضل بطاقة لحد الآن (لمقارنة التكرارات واختيار الأكمل)
   const duplicateGroups = new Map(); // stu.id -> {stu, cards:[...], dayKey} — بطاقات متساوية بالاكتمال، تحتاج اختيارك
+  const stuFirstSender = new Map(); // stu.id -> أول مرسل انطابق عليه بهالتحليل (نفرّق تكرار حقيقي عن تعارض أسماء)
+  const conflictedStudentIds = new Set(); // stu.id ظهر من أكثر من مرسل مختلف — كل بطاقاته تروح لقائمة "غير معروفة" يدويًا
 
   // نطاق الأسبوع الكامل (للكبرى المنفصلة)
   const cur = scheduleRows.find(r => !r.done && isCurrentScheduleEntry(r.startDate, r.endDate));
@@ -10553,7 +10534,33 @@ async function runWaImportAnalysis() {
 
     const candidate = { stu, parsed, status, dayMatches, actualDayLabel, body: msg.body, sender: msg.sender, msgDate: msg.date };
 
-    // لو فيه بطاقة سابقة لنفس الطالبة (بنفس هالتحليل)، نقارن: لو وحدة أكمل بوضوح نمسكها، ولو متساويتين تمامًا نحطهم بقائمة "بطاقات مكررة" تختارين بنفسك
+    // ===== تعارض أسماء: نفس الطالبة انطابقت من مرسلين مختلفين — هذا مو تكرار، يحتاج قرارك اليدوي =====
+    if (conflictedStudentIds.has(stu.id)) {
+      // سبق تعارضت هالطالبة بهالتحليل — أي بطاقة ثانية لها تروح مباشرة لقائمة "غير معروفة"
+      unknown.push({ rawName: parsed.name, body: msg.body, sender: msg.sender, dayKey, groupVal });
+      return;
+    }
+    const firstSender = stuFirstSender.get(stu.id);
+    if (firstSender === undefined) {
+      stuFirstSender.set(stu.id, msg.sender || '');
+    } else if (firstSender !== (msg.sender || '')) {
+      // أول تعارض لهالطالبة: نسحب أي بطاقة سابقة متبناة لها (من studentCandidates أو duplicateGroups) ونحطها كلها بقائمة "غير معروفة"
+      conflictedStudentIds.add(stu.id);
+      const prevCandidate = studentCandidates.get(stu.id);
+      const prevDup = duplicateGroups.get(stu.id);
+      if (prevCandidate) {
+        unknown.push({ rawName: prevCandidate.parsed.name, body: prevCandidate.body, sender: prevCandidate.sender, dayKey, groupVal });
+        studentCandidates.delete(stu.id);
+      }
+      if (prevDup) {
+        prevDup.cards.forEach(c => unknown.push({ rawName: c.parsed.name, body: c.body, sender: c.sender, dayKey, groupVal }));
+        duplicateGroups.delete(stu.id);
+      }
+      unknown.push({ rawName: parsed.name, body: msg.body, sender: msg.sender, dayKey, groupVal });
+      return;
+    }
+
+    // لو فيه بطاقة سابقة لنفس الطالبة (بنفس هالتحليل ونفس المرسل)، نقارن: لو وحدة أكمل بوضوح نمسكها، ولو متساويتين تمامًا نحطهم بقائمة "بطاقات مكررة" تختارين بنفسك
     const prev = studentCandidates.get(stu.id);
     const existingDup = duplicateGroups.get(stu.id);
     if (existingDup) {
