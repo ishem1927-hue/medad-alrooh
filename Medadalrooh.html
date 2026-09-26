@@ -10160,7 +10160,7 @@ function parseTaahudCard(body) {
   const lines = bodyClean.split('\n');
   const titleLine = lines.find(l => l.trim()) || '';
   if (/تقسيم/.test(titleLine)) return null;
-  if (!/مراجعة\s*التعاهد/.test(normalizeForMatch2(titleLine))) return null;
+  if (!/مراجع[ةه]\s*التعاهد/.test(titleLine)) return null;
 
   let name = null;
   for (let i = 0; i < lines.length; i++) {
