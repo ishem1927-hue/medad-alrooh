@@ -10686,7 +10686,10 @@ function commitWaTaahudReviewCard(i) {
   const queue = window._waTaahudPendingReview || [];
   const item = queue[i];
   if (!item || item.committed) { showToast('اتحفظت هالبطاقة أصلًا'); return; }
-  waSetIfChanged(setAttendThuTaahud, item.stu.name, 'done');
+  // فحص المفتاح الصحيح مباشرة (بلاحقة _taahud) قبل الاستدعاء — setAttendThuTaahud دالة تبديل (toggle)،
+  // فلو استدعيناها وهي محفوظة 'done' أصلًا بدون هالفحص، بتلغي القيمة وترجعها فاضية بدل ما تثبتها
+  const cur = getAttendVal(currentWeek, currentDay, item.stu.name + '_taahud');
+  if (cur !== 'done') setAttendThuTaahud(item.stu.name, 'done');
   item.committed = true;
   waSaveCaches();
   renderWaTaahudReviewQueue();
