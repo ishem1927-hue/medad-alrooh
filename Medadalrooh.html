@@ -964,8 +964,6 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
             <div class="emoji-row"><input id="e_chal" onchange="saveEmojiEdit()"><input id="e_chal_lbl" placeholder="إنجاز مع التحدي" onchange="saveEmojiEdit()"></div>
             <div class="emoji-row"><input id="e_full" onchange="saveEmojiEdit()"><input id="e_full_lbl" placeholder="إنجاز بدون التحدي" onchange="saveEmojiEdit()"></div>
             <div class="emoji-row"><input id="e_miss" onchange="saveEmojiEdit()"><input id="e_miss_lbl" placeholder="نقص في الإنجاز" onchange="saveEmojiEdit()"></div>
-            <div class="emoji-row"><input id="e_kubra_done" onchange="saveEmojiEdit()"><input id="e_kubra_done_lbl" placeholder="إنجاز المراجعة الكبرى" onchange="saveEmojiEdit()"></div>
-            <div class="emoji-row"><input id="e_kubra_miss" onchange="saveEmojiEdit()"><input id="e_kubra_miss_lbl" placeholder="عدم إنجاز المراجعة الكبرى" onchange="saveEmojiEdit()"></div>
             <div class="emoji-row"><input id="e_taahud_done" onchange="saveEmojiEdit()"><input id="e_taahud_done_lbl" placeholder="إنجاز مراجعة التعاهد" onchange="saveEmojiEdit()"></div>
             <div class="emoji-row"><input id="e_taahud_miss" onchange="saveEmojiEdit()"><input id="e_taahud_miss_lbl" placeholder="عدم إنجاز مراجعة التعاهد" onchange="saveEmojiEdit()"></div>
             <div class="emoji-row"><input id="e_excused" onchange="saveEmojiEdit()"><input id="e_excused_lbl" placeholder="غياب بعذر" onchange="saveEmojiEdit()"></div>
@@ -3205,7 +3203,6 @@ function loadAttendStudentsList() {
 let EMOJIS = {
   sat_attend: '🤍', sat2_attend: '🤍', sw_full: '🩵', sw_challenge: '💙', sw_miss: '💔',
   thu_done: '💙', thu_full: '🩵', thu_miss: '💔',
-  kubra_done: '🩶', kubra_miss: '❤️‍🩹',
   taahud_done: '♾️', taahud_miss: '🚫',
   excused: '⚪️', absent: '⚫️', star: '✈️',
   absent_comp: '🟡',
@@ -3667,10 +3664,6 @@ function openAttendSettings(subTab) {
     document.getElementById('e_full_lbl').value = EMOJIS.sw_full_lbl || 'إنجاز بدون التحدي';
     document.getElementById('e_miss').value = EMOJIS.sw_miss;
     document.getElementById('e_miss_lbl').value = EMOJIS.sw_miss_lbl || 'نقص في الإنجاز';
-    document.getElementById('e_kubra_done').value = EMOJIS.kubra_done;
-    document.getElementById('e_kubra_done_lbl').value = EMOJIS.kubra_done_lbl || 'إنجاز المراجعة الكبرى';
-    document.getElementById('e_kubra_miss').value = EMOJIS.kubra_miss;
-    document.getElementById('e_kubra_miss_lbl').value = EMOJIS.kubra_miss_lbl || 'عدم إنجاز المراجعة الكبرى';
     document.getElementById('e_taahud_done').value = EMOJIS.taahud_done;
     document.getElementById('e_taahud_done_lbl').value = EMOJIS.taahud_done_lbl || 'إنجاز مراجعة التعاهد';
     document.getElementById('e_taahud_miss').value = EMOJIS.taahud_miss;
@@ -3727,10 +3720,6 @@ function saveEmojiEdit() {
     EMOJIS.sw_miss = g('e_miss') || EMOJIS.sw_miss;
     EMOJIS.sw_miss_lbl = g('e_miss_lbl') || 'نقص في الإنجاز';
     EMOJIS.thu_miss = EMOJIS.sw_miss;
-    EMOJIS.kubra_done = g('e_kubra_done') || EMOJIS.kubra_done;
-    EMOJIS.kubra_done_lbl = g('e_kubra_done_lbl') || 'إنجاز المراجعة الكبرى';
-    EMOJIS.kubra_miss = g('e_kubra_miss') || EMOJIS.kubra_miss;
-    EMOJIS.kubra_miss_lbl = g('e_kubra_miss_lbl') || 'عدم إنجاز المراجعة الكبرى';
     EMOJIS.taahud_done = g('e_taahud_done') || EMOJIS.taahud_done;
     EMOJIS.taahud_done_lbl = g('e_taahud_done_lbl') || 'إنجاز مراجعة التعاهد';
     EMOJIS.taahud_miss = g('e_taahud_miss') || EMOJIS.taahud_miss;
@@ -4348,7 +4337,7 @@ function generateAttendReport() {
   const weekName = WEEK_NAMES[w];
   const summary = {};
   const isFinalWeek = (w === WEEK_NAMES.length - 1);
-  ATTEND_STUDENTS.forEach(s => { summary[s] = { sat: null, sw: [], thu: null, kubra: null, taahud: null, sat2: null }; });
+  ATTEND_STUDENTS.forEach(s => { summary[s] = { sat: null, sw: [], thu: null, taahud: null, sat2: null }; });
   ATTEND_STUDENTS.forEach(s => { summary[s].sat = getAttendVal(w, 0, s); });
   for (let d = 1; d <= 4; d++) {
     ATTEND_STUDENTS.forEach(s => { summary[s].sw.push(getAttendVal(w, d, s)); });
@@ -4356,13 +4345,6 @@ function generateAttendReport() {
   ATTEND_STUDENTS.forEach(s => { summary[s].swComp = [1,2,3,4].map(d => { const v = getAttendVal(w, d, s + '_comp'); return v === 'challenge' || v === 'nochallenge'; }); });
   ATTEND_STUDENTS.forEach(s => {
     summary[s].thu = getAttendVal(w, 5, s);
-    if (studentHasKubraByName(s)) {
-      const stu = maqAllStudents.find(x => x.name === s);
-      const vals = stu ? [1,2,3,4].map(d => (getKubraSplit(stu.id)[d - 1] || '').trim()) : [];
-      summary[s].kubra = vals.every(v => v) ? 'done' : 'miss';
-    } else {
-      summary[s].kubra = null;
-    }
     // ♾️ مراجعة التعاهد: تُقيّم بس بالحلقة الختامية (آخر خميس بالدورة)
     if (isFinalWeek && studentHasTaahudByName(s)) {
       summary[s].taahud = getAttendVal(w, 5, s + '_taahud');
@@ -4390,8 +4372,6 @@ function generateAttendReport() {
     else if (d.thu === 'miss') emojis += EMOJIS.thu_miss;
     else if (d.thu === 'excused') emojis += EMOJIS.excused;
     else if (d.thu === 'absent') emojis += EMOJIS.absent;
-    if (d.kubra === 'done') emojis += EMOJIS.kubra_done;
-    else if (d.kubra === 'miss') emojis += EMOJIS.kubra_miss;
     if (d.taahud === 'done') emojis += EMOJIS.taahud_done;
     else if (d.taahud === 'miss') emojis += EMOJIS.taahud_miss;
     if (d.sat2 === 'attend') emojis += EMOJIS.sat2_attend;
@@ -4410,7 +4390,6 @@ function generateAttendReport() {
       return !isFirstAbsenceInCycle(s, w, idx + 1);
     })) return false;
     if (d.thu !== 'done') return false;
-    if (d.kubra !== null && d.kubra !== 'done') return false;
     if (d.taahud !== null && d.taahud !== 'done') return false;
     if (isFinalWeek && d.sat2 !== 'attend') return false;
     return true;
@@ -4440,8 +4419,6 @@ function generateAttendReport() {
   if (isFinalWeek) report3 += `${EMOJIS.sat2_attend} : ${EMOJIS.sat2_attend_lbl || 'حضور الحلقة الختامية'}\n`;
   report3 += `${EMOJIS.sw_challenge} : ${EMOJIS.sw_challenge_lbl || 'إنجاز مع التحدي'}\n`;
   report3 += `${EMOJIS.sw_miss} : ${EMOJIS.sw_miss_lbl || 'نقص في الإنجاز'}\n`;
-  report3 += `${EMOJIS.kubra_done} : ${EMOJIS.kubra_done_lbl || 'إنجاز المراجعة الكبرى'}\n`;
-  report3 += `${EMOJIS.kubra_miss} : ${EMOJIS.kubra_miss_lbl || 'عدم إنجاز المراجعة الكبرى'}\n`;
   report3 += `${EMOJIS.taahud_done} : ${EMOJIS.taahud_done_lbl || 'إنجاز مراجعة التعاهد'}\n`;
   report3 += `${EMOJIS.taahud_miss} : ${EMOJIS.taahud_miss_lbl || 'عدم إنجاز مراجعة التعاهد'}\n`;
   report3 += `${EMOJIS.excused} : ${EMOJIS.excused_lbl || 'غياب بعذر'}\n`;
@@ -5197,14 +5174,10 @@ function renderMissingStats() {
   if (!el) return;
   const isLive = curriculumViewMode === 'live';
   const isThu = !isLive && currentDay === 5;
-  const isSunWed = !isLive && currentDay >= 1 && currentDay <= 4;
-  // تبويب الكبرى يظهر بالأحد-الأربعاء بس لو فيه طالبات فعلاً عندهن تقسيم كبرى (نظام التقسيم الحالي)
-  const hasSplitKubraStudents = isSunWed && maqAllStudents.some(s => studentHasKubraByName(s.name));
 
-  // شريط التبويبات الأفقي (يظهر بس لما فيه أكثر من قائمة: الخميس، الأحد-الأربعاء مع تقسيم كبرى، أو الحلقة المباشرة)
+  // شريط التبويبات الأفقي (يظهر بس لما فيه أكثر من قائمة: الخميس، أو الحلقة المباشرة)
   let tabsHtml = '';
   if (isThu) {
-    if (missingStatsActiveTab === 'kubra') missingStatsActiveTab = 'attend'; // الكبرى ما تعود تظهر بالخميس بعد التقسيم
     const tabs = [
       { key: 'attend', label: '☑️ التحضير اليومي' },
       { key: 'taahud', label: '♾️ مراجعة التعاهد' },
@@ -5212,19 +5185,10 @@ function renderMissingStats() {
     tabsHtml = '<div style="display:flex;justify-content:space-between;margin-bottom:0.6rem;padding:0 0.3rem;box-sizing:border-box;">' +
       tabs.map(t => '<div class="group-tab' + (missingStatsActiveTab === t.key ? ' active' : '') + '" style="padding:0.3rem 0;font-size:0.62rem;white-space:nowrap;" onclick="setMissingStatsTab(\'' + t.key + '\')">' + t.label + '</div>').join('') +
       '</div>';
-  } else if (isSunWed && hasSplitKubraStudents) {
-    if (missingStatsActiveTab === 'taahud') missingStatsActiveTab = 'attend'; // التعاهد خاص بالخميس بس
-    const tabs = [
-      { key: 'attend', label: '☑️ التحضير اليومي' },
-      { key: 'kubra', label: '⭐️ المراجعة الكبرى' },
-    ];
-    tabsHtml = '<div style="display:flex;justify-content:space-between;margin-bottom:0.6rem;padding:0 0.3rem;box-sizing:border-box;">' +
-      tabs.map(t => '<div class="group-tab' + (missingStatsActiveTab === t.key ? ' active' : '') + '" style="padding:0.3rem 0;font-size:0.62rem;white-space:nowrap;" onclick="setMissingStatsTab(\'' + t.key + '\')">' + t.label + '</div>').join('') +
-      '</div>';
   } else if (isLive) {
     // الحلقة المباشرة: التنقل صار حلقة ← فترة (بدل تبويبات ثابتة)، فما فيه شريط تبويبات علوي هنا
   } else if (missingStatsActiveTab !== 'attend') {
-    missingStatsActiveTab = 'attend'; // باقي الحالات ما فيها إلا قائمة التحضير
+    missingStatsActiveTab = 'attend'; // باقي الأيام ما فيها إلا قائمة التحضير
   }
 
   let html = tabsHtml;
@@ -5281,20 +5245,8 @@ function renderMissingStats() {
       }
       html += '<div style="display:flex;gap:1rem;flex-wrap:wrap;">' + cols + '</div>';
     }
-  } else if (isSunWed && hasSplitKubraStudents) {
-    // الأحد-الأربعاء (فيه طالبات مقسّمة الكبرى): تبويب التحضير أو تبويب الكبرى حسب الاختيار
-    if (missingStatsActiveTab === 'kubra') {
-      try {
-        const missingKubraDay = maqAllStudents.filter(s => studentHasKubraByName(s.name) &&
-          !(getKubraSplit(s.id)[currentDay - 1] || '').trim());
-        html += buildGroupedHtml('', missingKubraDay, s => s.group && s.group.trim() ? s.group.trim() : 'بدون مجموعة', k => getGroupLabel(k));
-      } catch(e2) {}
-    } else {
-      const missingAttend = maqAllStudents.filter(s => !getAttendVal(currentWeek, currentDay, s.name));
-      html += buildGroupedHtml('', missingAttend, s => s.group && s.group.trim() ? s.group.trim() : 'بدون مجموعة', k => getGroupLabel(k), s => computeStudentDailyStatus(s.name, currentWeek, currentDay).excluded);
-    }
   } else if (!isThu) {
-    // باقي الأيام العادية (بدون طالبات مقسّمة كبرى): التحضير مقسّم حسب المجموعة
+    // الأيام العادية: التحضير مقسّم حسب المجموعة
     const missingAttend = maqAllStudents.filter(s => !getAttendVal(currentWeek, currentDay, s.name));
     html += buildGroupedHtml('☑️ التحضير اليومي', missingAttend, s => s.group && s.group.trim() ? s.group.trim() : 'بدون مجموعة', k => getGroupLabel(k), s => computeStudentDailyStatus(s.name, currentWeek, currentDay).excluded);
   } else {
@@ -11039,7 +10991,7 @@ async function runWaImportAnalysis() {
       matched.push({ student: stu, missingItems: parsed.missingItems, kubraMissing: false, rawName: parsed.name });
       return;
     }
-    const studentIsSplitKubra = studentHasKubraByName(stu.name) && getKubraSplit(stu.id).some(d => d && d.trim());
+    const studentIsSplitKubra = studentHasKubraByName(stu.name);
     // شرط وقت المسابقة: المشاركات بالمسابقة عندهم 12 ساعة بس من بداية النطاق (بدل 24 ساعة للباقي) — الخميس مستثنى
     const eventCutoff = new Date(rangeStart.getTime() + 12 * 60 * 60 * 1000);
     const eventLate = dayKey !== 'thu' && !!eventParticipants[stu.id] && msgDate instanceof Date && msgDate > eventCutoff;
@@ -11383,7 +11335,7 @@ function resolveWaUnknown(idx, dayKey) {
   const parsed = parseWaDailyCard(item.body, dayKey);
   if (!parsed) return;
   let status = parsed.missingItems.length > 0 ? 'miss' : (parsed.challengeDone ? 'challenge' : 'full');
-  const studentIsSplitKubra = studentHasKubraByName(stu.name) && getKubraSplit(stu.id).some(d => d && d.trim());
+  const studentIsSplitKubra = studentHasKubraByName(stu.name);
   window._waPendingReview = window._waPendingReview || [];
   window._waPendingReview.push({
     stu, status, parsed, body: item.body, dayKey,
@@ -11416,7 +11368,7 @@ function resolveWaNeedsConfirm(idx, apply, dayKey) {
   const rowEl = document.getElementById('waConfirm_' + idx);
   if (apply) {
     const stu = item.student, parsed = item.parsed, status = item.status;
-    const studentIsSplitKubra = studentHasKubraByName(stu.name) && getKubraSplit(stu.id).some(d => d && d.trim());
+    const studentIsSplitKubra = studentHasKubraByName(stu.name);
     window._waPendingReview = window._waPendingReview || [];
     window._waPendingReview.push({
       stu, status, parsed, body: item.body, dayKey,
@@ -11463,7 +11415,7 @@ function waApplyCardToStudent(stu, body, dayKey) {
   const parsed = parseWaDailyCard(body, dayKey);
   if (!parsed) return;
   const status = parsed.missingItems.length > 0 ? 'miss' : (parsed.challengeDone ? 'challenge' : 'full');
-  const studentIsSplitKubra = studentHasKubraByName(stu.name) && getKubraSplit(stu.id).some(d => d && d.trim());
+  const studentIsSplitKubra = studentHasKubraByName(stu.name);
   window._waPendingReview = window._waPendingReview || [];
   window._waPendingReview.push({
     stu, status, parsed, body, dayKey,
