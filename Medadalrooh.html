@@ -4338,7 +4338,12 @@ function generateAttendReport() {
   const summary = {};
   const isFinalWeek = (w === WEEK_NAMES.length - 1);
   ATTEND_STUDENTS.forEach(s => { summary[s] = { sat: null, sw: [], thu: null, taahud: null, sat2: null }; });
-  ATTEND_STUDENTS.forEach(s => { summary[s].sat = getAttendVal(w, 0, s); });
+  ATTEND_STUDENTS.forEach(s => {
+    const stu = maqAllStudents.find(x => x.name === s);
+    const h = stu && getStudentHalqaId(stu.id);
+    const p = stu && getStudentPeriod(stu.id);
+    summary[s].sat = (h && p) ? getAttendVal(liveCurrentWeek, liveKeyFor(h, p, false), s) : null;
+  });
   for (let d = 1; d <= 4; d++) {
     ATTEND_STUDENTS.forEach(s => { summary[s].sw.push(getAttendVal(w, d, s)); });
   }
@@ -4351,7 +4356,10 @@ function generateAttendReport() {
     } else {
       summary[s].taahud = null;
     }
-    summary[s].sat2 = isFinalWeek ? getAttendVal(w, 6, s) : null;
+    const stu2 = maqAllStudents.find(x => x.name === s);
+    const h2 = stu2 && getStudentHalqaId(stu2.id);
+    const p2 = stu2 && getStudentPeriod(stu2.id);
+    summary[s].sat2 = isFinalWeek ? ((h2 && p2) ? getAttendVal(liveCurrentWeek, liveKeyFor(h2, p2, true), s) : null) : null;
   });
 
   function studentEmojis(s) {
