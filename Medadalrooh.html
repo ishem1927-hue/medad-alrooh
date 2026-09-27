@@ -4082,7 +4082,7 @@ function updateAlertsBadge() {
 function openAlertsPanel() {
   const byHalqa = curriculumViewMode === 'live'; // الحلقة المباشرة → تجميع حسب الحلقة (المعلمة)
   const alertsDayKey = byHalqa ? liveAttendKey() : currentDay;
-  const list = (attendAlerts[alertKey(currentWeek, alertsDayKey)] || []).slice();
+  const list = (attendAlerts[alertKey(currentWeek, alertsDayKey)] || []).filter(a => maqAllStudents.some(x => x.id === a.studentId));
   const dayLabel = byHalqa ? (getHalqaLabel(currentLiveHalqa) + ' — الفترة ' + toAr(currentLivePeriod)) : ((ATTEND_DAYS[currentDay] || {}).label || '');
   const weekLabel = WEEK_NAMES[currentWeek] || '';
   let body = '';
@@ -4130,7 +4130,7 @@ function buildExpandedWeeklyAlertsHTML() {
   WEEK_NAMES.forEach((weekName, w) => {
     ATTEND_DAYS.forEach((day, d) => {
       if (!['sw', 'thu'].includes(day.type)) return;
-      const list = (attendAlerts[alertKey(w, d)] || []).slice();
+      const list = (attendAlerts[alertKey(w, d)] || []).filter(a => maqAllStudents.some(x => x.id === a.studentId));
       if (!list.length) return;
       hasAny = true;
       list.sort((a, b) => a.studentName.localeCompare(b.studentName, 'ar'));
@@ -4155,7 +4155,7 @@ function buildExpandedLiveAlertsHTML() {
       const pCount = getHalqaPeriodsCount(String(h));
       for (let p = 1; p <= pCount; p++) {
         const dayKey = liveKeyFor(h, p, isClosingRow);
-        const list = (attendAlerts[alertKey(weekIdx, dayKey)] || []).slice();
+        const list = (attendAlerts[alertKey(weekIdx, dayKey)] || []).filter(a => maqAllStudents.some(x => x.id === a.studentId));
         if (!list.length) continue;
         hasAny = true;
         list.sort((a, b) => a.studentName.localeCompare(b.studentName, 'ar'));
