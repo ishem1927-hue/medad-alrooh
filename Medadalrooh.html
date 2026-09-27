@@ -1650,11 +1650,6 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0.9rem;">
       <div style="display:flex;gap:0.7rem;margin-bottom:0.7rem;align-items:end;">
         <div style="flex:1;">
-          <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:flex;align-items:end;min-height:2.3em;margin-bottom:0.3rem;">📎 الملف</label>
-          <input type="file" id="waPlanImportFile" accept=".zip,.txt" style="display:none;" onchange="updateWaFileLabel('waPlanImportFile','waPlanImportFileLabel')">
-          <label for="waPlanImportFile" id="waPlanImportFileLabel" class="wa-field-box">📎 اختيار ملف</label>
-        </div>
-        <div style="flex:1;">
           <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:flex;align-items:end;min-height:2.3em;margin-bottom:0.3rem;">📱 الحلقة</label>
           <div style="position:relative;">
             <select id="waPlanImportHalqa" onchange="onWaPlanImportHalqaChange()" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;"></select>
@@ -1672,14 +1667,38 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         </div>
       </div>
 
-      <div style="margin-bottom:0.9rem;">
-        <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📅 التاريخ والوقت</label>
-        <button type="button" class="wa-field-box" id="waPlanImportRangeBtn" onclick="openWaRangePicker('waPlanImport')" style="justify-content:center;">حددي نطاق التاريخ</button>
-        <input type="hidden" id="waPlanImportStart">
-        <input type="hidden" id="waPlanImportEnd">
+      <div id="waPlanModeTabs" style="display:flex;gap:4px;background:var(--surface2);border-radius:10px;padding:3px;margin-bottom:0.7rem;">
+        <div id="waPlanModeTabImport" onclick="setWaPlanModeTab('import')" style="flex:1;text-align:center;padding:0.4rem 0;border-radius:8px;font-family:'Cairo';font-size:0.78rem;font-weight:700;cursor:pointer;background:var(--surface);color:var(--wine);">استيراد</div>
+        <div id="waPlanModeTabPaste" onclick="setWaPlanModeTab('paste')" style="flex:1;text-align:center;padding:0.4rem 0;border-radius:8px;font-family:'Cairo';font-size:0.78rem;font-weight:700;cursor:pointer;color:var(--muted);">لصق</div>
       </div>
 
-      <button class="add-btn" onclick="runWaPlanImportAnalysis()">🔍 تحليل</button>
+      <div id="waPlanTabImportBox">
+        <div style="display:flex;gap:0.7rem;margin-bottom:0.7rem;align-items:end;">
+          <div style="flex:1;">
+            <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:flex;align-items:end;min-height:2.3em;margin-bottom:0.3rem;">📎 الملف</label>
+            <input type="file" id="waPlanImportFile" accept=".zip,.txt" style="display:none;" onchange="updateWaFileLabel('waPlanImportFile','waPlanImportFileLabel')">
+            <label for="waPlanImportFile" id="waPlanImportFileLabel" class="wa-field-box">📎 اختيار ملف</label>
+          </div>
+        </div>
+
+        <div style="margin-bottom:0.9rem;">
+          <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📅 التاريخ والوقت</label>
+          <button type="button" class="wa-field-box" id="waPlanImportRangeBtn" onclick="openWaRangePicker('waPlanImport')" style="justify-content:center;">حددي نطاق التاريخ</button>
+          <input type="hidden" id="waPlanImportStart">
+          <input type="hidden" id="waPlanImportEnd">
+        </div>
+
+        <button class="add-btn" onclick="runWaPlanImportAnalysis()">🔍 تحليل</button>
+      </div>
+
+      <div id="waPlanTabPasteBox" style="display:none;">
+        <div style="margin-bottom:0.9rem;">
+          <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📋 الصقي النص النهائي هنا</label>
+          <textarea id="waPlanPasteText" rows="10" style="width:100%;font-family:'Cairo';font-size:0.8rem;border:1px solid var(--border);border-radius:10px;padding:0.6rem;box-sizing:border-box;resize:vertical;background:#fff;color:var(--ink);" placeholder="خطة الأسبوع...&#10;الطالبة: ...&#10;المقرر: ...&#10;الأحد: ...&#10;الإثنين: ...&#10;الثلاثاء: ...&#10;الأربعاء: ...&#10;الخميس: ..."></textarea>
+        </div>
+        <button class="add-btn" onclick="runWaPlanPasteApply()">✅ تطبيق</button>
+        <div id="waPlanPasteResults" style="margin-top:0.7rem;"></div>
+      </div>
       </div>
       <div id="waPlanImportResults"></div>
       <div id="waPlanReviewQueueBox"></div>
@@ -6341,7 +6360,114 @@ function openWaPlanImportModal() {
   document.getElementById('waPlanImportStart').value = '';
   document.getElementById('waPlanImportEnd').value = '';
   document.getElementById('waPlanImportRangeBtn').textContent = waRangeBtnDefaultText();
+  document.getElementById('waPlanPasteText').value = '';
+  document.getElementById('waPlanPasteResults').innerHTML = '';
+  window._waPlanPasteConflicts = null;
+  setWaPlanModeTab('import');
   document.getElementById('waPlanImportOverlay').classList.add('open');
+}
+// تبديل بين تبويب "استيراد" (القديم: ملف + تحليل) وتبويب "لصق" (الجديد: مربع نص + تطبيق مباشر) — داخل نفس نافذة استيراد خطط الحلقة المباشرة بس
+function setWaPlanModeTab(tab) {
+  const tImport = document.getElementById('waPlanModeTabImport');
+  const tPaste = document.getElementById('waPlanModeTabPaste');
+  const bImport = document.getElementById('waPlanTabImportBox');
+  const bPaste = document.getElementById('waPlanTabPasteBox');
+  if (tab === 'paste') {
+    tPaste.style.background = 'var(--surface)'; tPaste.style.color = 'var(--wine)';
+    tImport.style.background = 'transparent'; tImport.style.color = 'var(--muted)';
+    bPaste.style.display = 'block'; bImport.style.display = 'none';
+  } else {
+    tImport.style.background = 'var(--surface)'; tImport.style.color = 'var(--wine)';
+    tPaste.style.background = 'transparent'; tPaste.style.color = 'var(--muted)';
+    bImport.style.display = 'block'; bPaste.style.display = 'none';
+  }
+}
+
+// ===== تبويب "لصق": يطبّق كل الخطط الملصوقة دفعة وحدة على طالبات الحلقة/الفترة المختارة، بدون رفع ملف ولا تحليل ولا مراجعة بطاقة بطاقة =====
+// يكتب المقرر بخانة الخميس تلقائيًا (بعكس تبويب "استيراد" القديم اللي يسيبها يدوية) — ما يلمس النجوم ولا الحضور ولا الكبرى إطلاقًا
+function runWaPlanPasteApply() {
+  const halqaVal = document.getElementById('waPlanImportHalqa').value;
+  const periodVal = document.getElementById('waPlanImportPeriod').value;
+  const text = document.getElementById('waPlanPasteText').value;
+  const resultsEl = document.getElementById('waPlanPasteResults');
+  resultsEl.innerHTML = '';
+  if (!halqaVal || !periodVal) { showToast('حددي الحلقة والفترة أول'); return; }
+  if (!text.trim()) { showToast('الصقي النص أول'); return; }
+
+  const halqaStudents = maqAllStudents.filter(s => getStudentHalqaId(s.id) === halqaVal && getStudentPeriod(s.id) === periodVal && s.active !== false && !s.withdrawn);
+  const blocks = parseWeeklyPlanPaste2(text);
+
+  const applied = [];
+  const unmatched = [];
+  const conflicts = [];
+
+  blocks.forEach(block => {
+    const target = squashForMatch2(block.rawName);
+    let matches = halqaStudents.filter(st => squashForMatch2(st.name) === target);
+    if (!matches.length) matches = halqaStudents.filter(st => matchesNameLoose(block.rawName, st.name));
+    if (matches.length !== 1) { unmatched.push(block.rawName); return; }
+    const stu = matches[0];
+    const sg = stu.group && stu.group.trim() ? stu.group.trim() : '';
+    const sd = getStudentData(sg, currentWeek, stu.id);
+    const hasExisting = (sd.hifz && sd.hifz.trim()) || (sd.dayPlan || []).some(d => d && d.trim());
+    const newHifz = normalizePasteValue2(block.hifz);
+    const newDays = block.days.map(normalizePasteValue2);
+    if (hasExisting) {
+      conflicts.push({ stu, sg, oldHifz: sd.hifz || '', oldDays: (sd.dayPlan || ['','','','']).slice(), newHifz, newDays });
+      return;
+    }
+    sd.hifz = newHifz;
+    sd.dayPlan = newDays;
+    if (!sd.type) sd.type = 'jadeed';
+    applied.push(stu.name);
+  });
+
+  saveMaqData();
+  window._waPlanPasteConflicts = conflicts;
+
+  const dayLabels4 = ['الأحد','الاثنين','الثلاثاء','الأربعاء'];
+  let html = `<div style="font-weight:700;color:var(--green);margin-bottom:0.4rem;">✅ اتطبقت: ${applied.length} خطة</div>`;
+  if (applied.length) html += `<div style="font-size:0.78rem;margin-bottom:0.6rem;">${applied.map((n,i)=>`<div>${i+1}. ${escapeHTML(n)}</div>`).join('')}</div>`;
+  if (unmatched.length) {
+    html += `<div style="font-weight:700;color:#c0392b;margin:0.6rem 0 0.3rem;">❓ ما طابقت أي طالبة بهالحلقة/الفترة (${unmatched.length}):</div>`;
+    html += `<div style="font-size:0.78rem;">${unmatched.map((n,i)=>`<div>${i+1}. ${escapeHTML(n)}</div>`).join('')}</div>`;
+  }
+  if (conflicts.length) {
+    html += `<div style="font-weight:700;color:#b3691f;margin:0.6rem 0 0.3rem;">⚠️ عندها خطة مسجّلة مسبقًا لنفس الأسبوع — اختاري أيهم يبقى (${conflicts.length}):</div>`;
+    conflicts.forEach((c, i) => {
+      const oldTxt = `${c.oldHifz}\n` + dayLabels4.map((l,idx)=>`${l}: ${c.oldDays[idx]||''}`).join('\n');
+      const newTxt = `${c.newHifz}\n` + dayLabels4.map((l,idx)=>`${l}: ${c.newDays[idx]||''}`).join('\n');
+      html += `<div id="waPlanPasteConflict_${i}" style="border:1px solid var(--border);border-radius:8px;padding:0.5rem;margin-bottom:0.5rem;font-size:0.75rem;">
+        <div style="font-weight:700;margin-bottom:0.3rem;">${escapeHTML(c.stu.name)}</div>
+        <div style="background:#fff;border-radius:6px;padding:0.4rem;margin-bottom:0.3rem;white-space:pre-wrap;"><b>القديمة:</b><br>${escapeHTML(oldTxt)}</div>
+        <div style="background:#fff;border-radius:6px;padding:0.4rem;margin-bottom:0.4rem;white-space:pre-wrap;"><b>الجديدة:</b><br>${escapeHTML(newTxt)}</div>
+        <div style="display:flex;gap:0.4rem;">
+          <button class="sw-btn" onclick="resolveWaPlanPasteConflict(${i}, 'new')">✅ استخدمي الجديدة</button>
+          <button class="sw-btn" onclick="resolveWaPlanPasteConflict(${i}, 'old')">↩️ خليها القديمة</button>
+        </div>
+      </div>`;
+    });
+  }
+  resultsEl.innerHTML = html;
+}
+
+function resolveWaPlanPasteConflict(i, choice) {
+  const c = (window._waPlanPasteConflicts || [])[i];
+  if (!c) return;
+  const box = document.getElementById('waPlanPasteConflict_' + i);
+  if (choice === 'new') {
+    const sd = getStudentData(c.sg, currentWeek, c.stu.id);
+    sd.hifz = c.newHifz;
+    sd.dayPlan = c.newDays;
+    if (!sd.type) sd.type = 'jadeed';
+    saveMaqData();
+    if (box) box.innerHTML = `<span style="color:var(--green);font-weight:700;">✅ ${escapeHTML(c.stu.name)} — اتحدّثت بالخطة الجديدة</span>`;
+    showToast('اتحدّثت خطة ' + c.stu.name);
+  } else {
+    if (box) box.innerHTML = `<span style="color:var(--muted);font-weight:700;">↩️ ${escapeHTML(c.stu.name)} — خلّيناها بخطتها القديمة</span>`;
+    showToast('خلّيت خطة ' + c.stu.name + ' القديمة');
+  }
+  window._waPlanPasteConflicts[i] = null;
 }
 function closeWaPlanImportModal() {
   document.getElementById('waPlanImportOverlay').classList.remove('open');
