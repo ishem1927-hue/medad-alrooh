@@ -1862,7 +1862,7 @@ const ALL_DATA_KEYS = [
   'madad_ideas_categories_tamkeen', 'madad_ideas_list_tamkeen',
   'madad_ideas_categories_tilawah', 'madad_ideas_list_tilawah',
   'madad_ideas_categories_tafsir', 'madad_ideas_list_tafsir',
-  'madad_pinned_week', 'madad_pinned_week_live', 'madad_pinned_day', 'madad_cycle_number',
+  'madad_pinned_week', 'madad_pinned_week_live', 'madad_pinned_closing_live', 'madad_pinned_day', 'madad_cycle_number',
   'madad_cycle_star_list', 'madad_cycle_star_weeks', 'madad_weekly_excellent',
   'madad_group_names', 'madad_halqa_names', 'madad_group_count', 'madad_halqa_count', 'madad_halqa_periods',
   'madad_halqa_dist', 'madad_event_participants', 'madad_kubra_splits', 'madad_archive',
@@ -1928,7 +1928,7 @@ async function syncPushOnce(key) {
 }
 
 // جلب كل المفاتيح من قاعدة البيانات وتحديث localStorage محليًا
-const KEYS_CLEAR_IF_MISSING = ['madad_pinned_week', 'madad_pinned_week_live', 'madad_pinned_day']; // مفاتيح تُمسح محليًا لو ما لها صف بالسحابة (يعني انمسحت عمدًا)
+const KEYS_CLEAR_IF_MISSING = ['madad_pinned_week', 'madad_pinned_week_live', 'madad_pinned_closing_live', 'madad_pinned_day']; // مفاتيح تُمسح محليًا لو ما لها صف بالسحابة (يعني انمسحت عمدًا)
 async function syncPullAll() {
   try {
     const { data, error } = await supabaseClient
@@ -2226,7 +2226,7 @@ function enterCurriculumMode(mode) {
   curriculumViewMode = mode;
   // نحمّل أسبوع/تثبيت الوضع الجديد (مستقل تمامًا عن الوضع الثاني)
   if (mode === 'weekly') { currentWeek = weeklyCurrentWeek; pinnedWeek = weeklyPinnedWeek; }
-  else if (mode === 'live') { currentWeek = liveCurrentWeek; pinnedWeek = livePinnedWeek; }
+  else if (mode === 'live') { currentWeek = liveCurrentWeek; pinnedWeek = livePinnedWeek; if (livePinnedClosing) liveClosingActive = true; }
   document.getElementById('curriculumChoiceScreen').style.display = 'none';
   document.getElementById('curriculumMainWrap').style.display = '';
   // نضبط اليوم الحالي على أول يوم متاح بالمتابعة الأسبوعية لو اليوم الحالي مو من ضمنها (الحلقة المباشرة صار لها تنقلها الخاص: حلقة ← فترة)
@@ -3800,6 +3800,8 @@ let pinnedWeek = null;
 // نظام تثبيت مستقل لكل وضع: كل من المتابعة الأسبوعية والحلقة المباشرة يحتفظ بأسبوعه وتثبيته لحاله
 let weeklyCurrentWeek = 0, weeklyPinnedWeek = null;
 let liveCurrentWeek = 0, livePinnedWeek = null;
+let livePinnedClosing = false; // هل المثبّت بالحلقة المباشرة هو تبويب "الحلقة الختامية" (مو أسبوع عادي)؟ — أسبوعها المرتبط يبقى بـ livePinnedWeek = آخر أسبوع
+const CLOSING_PIN_KEY = 'madad_pinned_closing_live';
 let weekTapState = { index: null, count: 0, timer: null };
 
 // أسماء المجموعات والحلقات المباشرة (قابلة للتعديل) + عددها
@@ -3875,6 +3877,7 @@ function loadPinnedWeek() {
   if (v !== null && v !== '' && v !== 'null') { weeklyPinnedWeek = parseInt(v); weeklyCurrentWeek = weeklyPinnedWeek; }
   var vl = localStorage.getItem('madad_pinned_week_live');
   if (vl !== null && vl !== '' && vl !== 'null') { livePinnedWeek = parseInt(vl); liveCurrentWeek = livePinnedWeek; }
+  livePinnedClosing = livePinnedWeek !== null && localStorage.getItem(CLOSING_PIN_KEY) === 'true';
   // الافتراضي عند التحميل (قبل ما تدخل أي وضع) = حالة المتابعة الأسبوعية
   pinnedWeek = weeklyPinnedWeek; currentWeek = weeklyCurrentWeek;
 }
@@ -3895,6 +3898,7 @@ async function unpinBoth() {
   if (isLive) { livePinnedWeek = null; } else { weeklyPinnedWeek = null; pinnedDay = null; }
   localStorage.removeItem(weekKey);
   if (!isLive) localStorage.removeItem('madad_pinned_day');
+  const closingCleared = isLive ? clearPinnedClosing() : null; // تثبيت الحلقة الختامية يلغي معه (محليًا فورًا، وبالسحابة بالخلفية)
   updatePinnedBadge();
   try { renderWeekBar(); } catch(e) {}
   try { renderDayTabsBar(); } catch(e) {}
@@ -3918,6 +3922,7 @@ async function unpinBoth() {
         if (res && res.error) { cloudFailed = true; console.warn('unpin day push failed', res.error); }
       } catch(e) { cloudFailed = true; console.warn('unpin day push failed', e); }
     }
+    if (closingCleared && !(await closingCleared)) cloudFailed = true;
   }
   if (cloudFailed) {
     showToast('⚠️ انلغى التثبيت هنا بس، لكن فشل الحذف من السحابة — يمكن يرجع بجهاز ثاني');
@@ -3926,12 +3931,39 @@ async function unpinBoth() {
   }
 }
 
+// يلغي تثبيت "الحلقة الختامية" محليًا فورًا ثم يمسح صفها من السحابة. يرجّع true لو نجح (أو ما كان مثبّت أصلاً)
+async function clearPinnedClosing() {
+  if (!livePinnedClosing) return true;
+  livePinnedClosing = false;
+  localStorage.removeItem(CLOSING_PIN_KEY);
+  _lastLocalPush[CLOSING_PIN_KEY] = Date.now();
+  _lastLocalPushValue[CLOSING_PIN_KEY] = 'null';
+  try {
+    const res = await supabaseClient.from('madad_sync').delete().eq('key', CLOSING_PIN_KEY);
+    if (res && res.error) { console.warn('unpin closing push failed', res.error); return false; }
+    return true;
+  } catch(e) { console.warn('unpin closing push failed', e); return false; }
+}
+
+// تثبيت تبويب "الحلقة الختامية" — يثبّت آخر أسبوع (اللي مبنية عليه بياناتها) + علامة إنها هي المثبّتة
+function savePinnedClosing() {
+  const last = WEEK_NAMES.length - 1;
+  pinnedWeek = last;
+  livePinnedWeek = last;
+  livePinnedClosing = true;
+  localStorage.setItem('madad_pinned_week_live', last);
+  localStorage.setItem(CLOSING_PIN_KEY, 'true');
+  if (typeof syncPush === 'function') { syncPush('madad_pinned_week_live'); syncPush(CLOSING_PIN_KEY); }
+  renderWeekBar();
+}
+
 function savePinnedWeek(w) {
   pinnedWeek = w;
   if (curriculumViewMode === 'live') {
     livePinnedWeek = w;
     localStorage.setItem('madad_pinned_week_live', w);
     if (typeof syncPush === 'function') syncPush('madad_pinned_week_live');
+    clearPinnedClosing(); // تثبيت أسبوع عادي يلغي تثبيت الحلقة الختامية لو كانت مثبّتة
   } else {
     weeklyPinnedWeek = w;
     localStorage.setItem('madad_pinned_week', w);
@@ -3948,13 +3980,12 @@ function savePinnedDay(d) {
 
 function updatePinnedBadge() {
   var badge = document.getElementById('pinnedWeekBadge');
-  var pinBtn = document.getElementById('pinWeekBtn');
   var isLive = curriculumViewMode === 'live';
   var onCurriculumTab = document.getElementById('panel-curriculum') && document.getElementById('panel-curriculum').classList.contains('active');
   if (badge) {
     if ((pinnedWeek !== null || (!isLive && pinnedDay !== null)) && onCurriculumTab) {
       var parts = [];
-      if (pinnedWeek !== null) parts.push(toAr(pinnedWeek + 1));
+      if (pinnedWeek !== null) parts.push(isLive && livePinnedClosing ? 'الختامية' : toAr(pinnedWeek + 1));
       if (!isLive && pinnedDay !== null) {
         var shortDayLabels = {};
         var fullLbl = (ATTEND_DAYS[pinnedDay] || {}).label || '';
@@ -3962,19 +3993,10 @@ function updatePinnedBadge() {
       }
       badge.textContent = '📌 ' + parts.join('-');
       badge.style.display = 'inline-block';
-      var weekMismatch = pinnedWeek !== null && pinnedWeek !== currentWeek;
+      var weekMismatch = pinnedWeek !== null && (pinnedWeek !== currentWeek || (isLive && livePinnedClosing !== liveClosingActive));
       var dayMismatch = !isLive && pinnedDay !== null && pinnedDay !== currentDay;
       badge.style.background = (weekMismatch || dayMismatch) ? '#c0392b' : 'var(--wine)';
     } else { badge.style.display = 'none'; }
-  }
-  if (pinBtn) {
-    if (pinnedWeek === currentWeek) {
-      pinBtn.textContent = '✅ هذا هو الأسبوع الحالي';
-      pinBtn.style.background = 'var(--wine)'; pinBtn.style.color = '#fff';
-    } else {
-      pinBtn.textContent = '📌 ثبّتي هذا الأسبوع';
-      pinBtn.style.background = 'var(--surface2)'; pinBtn.style.color = 'var(--ink)';
-    }
   }
 }
 
@@ -5482,6 +5504,21 @@ function renderWeekBar() {
     closeBtn.onclick = () => {
       currentWeek = WEEK_NAMES.length - 1; // بيانات الحلقة الختامية مبنية على آخر أسبوع بالدورة
       liveClosingActive = true;
+      // نفس طريقة تثبيت الأسابيع: ٣ ضغطات متتالية على التبويب تثبّته
+      if (weekTapState.index === 'closing') {
+        weekTapState.count++;
+      } else {
+        weekTapState.index = 'closing';
+        weekTapState.count = 1;
+      }
+      clearTimeout(weekTapState.timer);
+      weekTapState.timer = setTimeout(() => { weekTapState.index = null; weekTapState.count = 0; }, 900);
+      if (weekTapState.count >= 3) {
+        weekTapState.index = null;
+        weekTapState.count = 0;
+        savePinnedClosing();
+        showToast('📍 تم تثبيت الحلقة الختامية');
+      }
       renderCurriculumTab();
     };
     el.appendChild(closeBtn);
@@ -9123,6 +9160,20 @@ if (typeof supabaseClient !== 'undefined') {
           localStorage.setItem('madad_pinned_week_live',w); livePinnedWeek=w;
           if (curriculumViewMode === 'live') { pinnedWeek=w; updatePinnedBadge(); }
         }
+      } catch(e) {}
+    }).subscribe();
+
+  // مزامنة آنية لتثبيت "الحلقة الختامية" (الحلقة المباشرة)
+  supabaseClient.channel('pinned_closing_live_ch')
+    .on('postgres_changes',{event:'*',schema:'public',table:'madad_sync',filter:'key=eq.' + CLOSING_PIN_KEY},function(payload){
+      try {
+        if (isOwnEcho(CLOSING_PIN_KEY, payload.new && payload.new.updated_at)) return;
+        var v = payload.new && payload.new.value;
+        var incomingRaw = (v === undefined || v === null) ? 'null' : String(v);
+        if (isSameAsLastPush(CLOSING_PIN_KEY, incomingRaw)) return;
+        livePinnedClosing = (v === true);
+        if (livePinnedClosing) localStorage.setItem(CLOSING_PIN_KEY, 'true'); else localStorage.removeItem(CLOSING_PIN_KEY);
+        if (curriculumViewMode === 'live') updatePinnedBadge();
       } catch(e) {}
     }).subscribe();
 
