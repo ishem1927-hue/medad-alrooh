@@ -524,6 +524,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   }
 
   .list-header { font-size: 0.75rem; color: var(--wine); font-weight: 700; margin-bottom: 0.7rem; display: flex; justify-content: space-between; align-items: center; }
+  .hasib-group-title { margin-top: 0.9rem; }
   .finance-summary-bar { display: flex; gap: 0.7rem; margin-bottom: 1.1rem; }
   .finance-stats-btn { cursor: pointer; }
   .finance-stats-btn:active { transform: scale(0.98); }
@@ -10084,7 +10085,7 @@ function renderHasib() {
     ? `<option value="custom" __SEL__>💳 ${customPay.label}</option>`
     : '';
 
-  list.forEach((s, idx) => {
+  const appendCard = (s, idx) => {
     const info = AMOUNTS[s.pay] || AMOUNTS.pending;
     const isPending = s.pay === 'pending';
     const card = document.createElement('div');
@@ -10121,7 +10122,26 @@ function renderHasib() {
       </div>
     `;
     el.appendChild(card);
-  });
+  };
+
+  if (hasibFilter === 'paid') {
+    const paidGroups = [
+      { title: 'المتجر',       methods: ['stc', 'mada', 'visa'] },
+      { title: 'التحويل',      methods: ['omani'] },
+      { title: 'طريقة أخرى',   methods: ['custom'] },
+    ];
+    paidGroups.forEach(g => {
+      const members = list.filter(s => g.methods.includes(s.pay));
+      if (members.length === 0) return;
+      const header = document.createElement('div');
+      header.className = 'list-header hasib-group-title';
+      header.innerHTML = `<span>${g.title}</span><span>${members.length}</span>`;
+      el.appendChild(header);
+      members.forEach(appendCard);
+    });
+  } else {
+    list.forEach(appendCard);
+  }
 }
 
 
