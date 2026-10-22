@@ -10010,8 +10010,9 @@ function clearHasib() {
 }
 
 function renderHasib() {
-  const activeIds = new Set(students.filter(s => s.active !== false).map(s => s.id));
-  const visibleHasibStudents = hasibStudents.filter(s => activeIds.has(s.id));
+  // تظهر بالحاسبة: النشيطة أو المسجّلة بالدورة القادمة (حتى لو معطّلة حاليًا)
+  const shownIds = new Set(students.filter(s => s.active !== false || s.nextCycle === true).map(s => s.id));
+  const visibleHasibStudents = hasibStudents.filter(s => shownIds.has(s.id));
   const paid = visibleHasibStudents.filter(s => s.pay !== 'pending' && s.pay !== 'kafala');
   const unpaid = visibleHasibStudents.filter(s => s.pay === 'pending');
   const free = visibleHasibStudents.filter(s => s.pay === 'kafala');
