@@ -2816,7 +2816,7 @@ function addStudent() {
   const name = document.getElementById('newName').value.trim();
   if (!name) { document.getElementById('newName').focus(); return; }
 
-  students.push({
+  const newStudent = {
     id: Date.now(),
     name,
     age: document.getElementById('newAge').value.trim(),
@@ -2826,7 +2826,9 @@ function addStudent() {
     joinCycleEmoji: CYCLE_JOIN_EMOJIS[currentCycleNumber] || EMOJIS.star || '',
     stopCycle: null,
     stopReason: ''
-  });
+  };
+  students.push(newStudent);
+  hasibStudents.push({ id: newStudent.id, name: newStudent.name, pay: 'pending' }); // تنضاف للحاسبة تلقائيًا بحالة مدفوع
 
   document.getElementById('newName').value = '';
   document.getElementById('newAge').value = '';
@@ -2912,8 +2914,15 @@ function toggleActive(id) {
     `هل تأكدين ${willActivate ? 'تفعيل' : 'تعطيل'} "${s.name}"؟`,
     () => {
       s.active = !s.active;
-      if (willActivate) clearStaleWeeklyPlan(s);
-      else s.group = '';
+      if (willActivate) {
+        clearStaleWeeklyPlan(s);
+        // تنضاف للحاسبة تلقائيًا (لو موجودة أصلًا تبقى بحالتها)
+        if (!hasibStudents.some(h => h.id === s.id)) hasibStudents.push({ id: s.id, name: s.name, pay: 'pending' });
+      } else {
+        s.group = '';
+        // تنشال من الحاسبة، إلا لو مسجّلة بالدورة القادمة
+        if (s.nextCycle !== true) hasibStudents = hasibStudents.filter(h => h.id !== s.id);
+      }
       saveStudents();
       renderStudents();
       if (typeof loadMaqStudents === 'function') loadMaqStudents();
