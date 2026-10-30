@@ -8152,33 +8152,74 @@ function closeDoneModal() {
   document.getElementById('doneModal').classList.remove('open');
   pendingDoneId = null;
 }
-// تعبئة تلقائية لمقرر الحفظ بالأرشيف عند إنهاء الدورة: بداية أول أسبوع + نهاية آخر أسبوع حفظ فيه كل طالبة (نفس مبدأ المراجعة التراكمية)
+// مقرر الحفظ التلقائي لطالبة بالدورة الحالية: بداية أول أسبوع + نهاية آخر أسبوع حفظ فيه (نفس مبدأ المراجعة التراكمية)
+// يرجع { text } لو انحسب، أو { reason } (بالعربي) لو ما انحسب — نفس الدالة تستخدمها التعبئة والفحص عشان ما يختلفون أبدًا
+function computeCycleHifzSummary(s) {
+  if (!s.group) return { reason: 'ما عندها مجموعة' };
+  const firstD = maqData[dk(s.group, 0, s.id)];
+  const firstTilawah = firstD && firstD.tilawah ? firstD.tilawah.trim() : '';
+  if (!firstTilawah) return { reason: 'ما انكتب لها تلاوة بالأسبوع الأول' };
+  let lastTilawah = '', lastWeekIdx = -1;
+  for (let w = 3; w >= 0; w--) {
+    const d = maqData[dk(s.group, w, s.id)];
+    if (d && d.tilawah && d.tilawah.trim() && d.type !== 'eada') { lastTilawah = d.tilawah.trim(); lastWeekIdx = w; break; }
+  }
+  if (!lastTilawah) return { reason: 'ما فيه تلاوة مكتوبة بأي أسبوع (أو كلها إعادة)' };
+  if (lastWeekIdx === 0) return { text: firstTilawah };
+  const start = getWeek1StartPoint(firstTilawah);
+  const end = getWeek4EndPoint(lastTilawah);
+  const startText = start.isStart ? start.surah : `${start.surah} ${toAr(start.ayah)}`;
+  const endText = end.isWhole ? end.surah : `${end.surah} ${toAr(end.ayah)}`;
+  return { text: `${startText} - ${endText}` };
+}
+// تعبئة تلقائية لمقرر الحفظ بالأرشيف عند إنهاء الدورة
 function autoFillArchiveHifzForCycle(cycleNum) {
-  students.filter(s => s.active !== false && s.group).forEach(s => {
-    const firstD = maqData[dk(s.group, 0, s.id)];
-    const firstTilawah = firstD && firstD.tilawah ? firstD.tilawah.trim() : '';
-    if (!firstTilawah) return;
-    let lastTilawah = '', lastWeekIdx = -1;
-    for (let w = 3; w >= 0; w--) {
-      const d = maqData[dk(s.group, w, s.id)];
-      if (d && d.tilawah && d.tilawah.trim() && d.type !== 'eada') { lastTilawah = d.tilawah.trim(); lastWeekIdx = w; break; }
-    }
-    if (!lastTilawah) return;
-    let mergedText;
-    if (lastWeekIdx === 0) {
-      mergedText = firstTilawah;
-    } else {
-      const start = getWeek1StartPoint(firstTilawah);
-      const end = getWeek4EndPoint(lastTilawah);
-      const startText = start.isStart ? start.surah : `${start.surah} ${toAr(start.ayah)}`;
-      const endText = end.isWhole ? end.surah : `${end.surah} ${toAr(end.ayah)}`;
-      mergedText = `${startText} - ${endText}`;
-    }
-    const k = archiveKey(s.id, cycleNum);
+  students.filter(s => s.active !== false).forEach(s => {
+    const sum = computeCycleHifzSummary(s);
+    if (!sum.text) return;
     const cur = getArchive(s.id, cycleNum);
-    if (!cur.hifz) archiveData[k] = Object.assign({}, cur, { hifz: mergedText });
+    if (!cur.hifz) archiveData[archiveKey(s.id, cycleNum)] = Object.assign({}, cur, { hifz: sum.text });
   });
   saveArchiveData();
+}
+// فحص قبل إنهاء الدورة: الطالبات النشيطات اللي أرشيفهن ناقص أو مبني على بيانات غلط، مع سبب كل وحدة (المنسحبات ما يدخلن بالفحص)
+function findDoneBlockers(cycleNum) {
+  const out = [];
+  students.filter(s => s.active !== false && !s.withdrawn && s.name).forEach(s => {
+    const reasons = [];
+    // ١) مقرر الدورة المنتهية: لازم يكون مكتوب بالأرشيف، أو قابل للتعبئة التلقائية
+    const cur = getArchive(s.id, cycleNum);
+    if (!(cur.hifz && cur.hifz.trim()) && !cur.excluded) {
+      const sum = computeCycleHifzSummary(s);
+      if (!sum.text) reasons.push(`مقرر دورة ${toAr(cycleNum)}: ${sum.reason}`);
+    }
+    // ٢) ثغرة: دورة سابقة كانت مشتركة فيها وما فيه لها مقرر بالأرشيف (يخلّي الكبرى والتعاهد تنحسب من دورة غلط)
+    let firstEnrolled = cycleNum; // الدورة المنتهية نفسها = مشتركة فيها (نشيطة الحين)
+    for (let c = cycleNum - 1; c >= 1; c--) {
+      if (!studentEnrolledInCycle(s, c)) continue;
+      firstEnrolled = c;
+      const e = getArchive(s.id, c);
+      if (!(e.hifz && e.hifz.trim()) && !e.excluded) reasons.push(`مقرر دورة ${toAr(c)} فاضي بالأرشيف`);
+    }
+    // ٣) "أول دورة" المسجّلة أحدث من أول دورة اشتركت فيها فعلاً — فالنظام يتجاهل دورات من حسابها
+    if (s.joinCycle && s.joinCycle > firstEnrolled) {
+      reasons.push(`أول دورة مسجّلة (${toAr(s.joinCycle)}) أحدث من أول دورة اشتركت فيها فعلاً (${toAr(firstEnrolled)})`);
+    }
+    if (reasons.length) out.push({ name: s.name, reasons });
+  });
+  return out.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+}
+function showDoneBlockersModal(blockers) {
+  const rows = blockers.map(b =>
+    '<div style="text-align:right;padding:0.5rem 0;border-bottom:1px solid var(--border);">' +
+      '<div style="font-weight:800;color:var(--wine);font-size:0.85rem;">' + escapeHTML(b.name) + '</div>' +
+      b.reasons.map(t => '<div style="font-size:0.78rem;color:var(--muted);">• ' + escapeHTML(t) + '</div>').join('') +
+    '</div>'
+  ).join('');
+  showInfoModal(
+    '⚠️ ما انتهت الدورة (' + toAr(blockers.length) + ' تحتاج مراجعة)',
+    '<div style="font-size:0.8rem;margin-bottom:0.5rem;text-align:right;">ما انمسح ولا تغيّر أي شي. عدّلي بياناتهن ثم اضغطي «تم» مرة ثانية.</div>' + rows
+  );
 }
 function confirmDone() {
   const startCount = document.getElementById('doneStartCountInput').value.trim();
@@ -8186,6 +8227,11 @@ function confirmDone() {
   if (!startCount || !endCount) { showToast('اكتبي عدد الطالبات في البداية والنهاية'); return; }
   const r = scheduleRows.find(x => x.id === pendingDoneId);
   if (r) {
+    const cycleNumForArchive = parseInt(toEnDigits(r.num), 10);
+    if (!isNaN(cycleNumForArchive)) {
+      const blockers = findDoneBlockers(cycleNumForArchive);
+      if (blockers.length) { showDoneBlockersModal(blockers); return; } // نافذة العدد تبقى مفتوحة وما يتغيّر أي شي
+    }
     r.done = true;
     r.startCount = startCount;
     r.endCount = endCount;
@@ -8203,7 +8249,6 @@ function confirmDone() {
       r.regTypes[s.name] = (h.pay === 'kafala') ? 'kafala' : 'paid';
     });
     saveSchedule();
-    const cycleNumForArchive = parseInt(toEnDigits(r.num), 10);
     if (!isNaN(cycleNumForArchive)) autoFillArchiveHifzForCycle(cycleNumForArchive);
     resetCycleStarData(); // تصفير القائمة استعدادًا للدورة الجديدة
   }
