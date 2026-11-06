@@ -6313,17 +6313,8 @@ function normalizePasteValue2(raw) {
   return s;
 }
 
-function applyPlan2ToStudent(student, plan) {
-  const group = student.group && student.group.trim() ? student.group.trim() : '';
-  const sd = getStudentData(group, currentWeek, student.id);
-  sd.hifz = normalizePasteValue2(plan.hifz);
-  sd.dayPlan = plan.days.map(normalizePasteValue2);
-  if (!sd.type) sd.type = 'jadeed';
-  saveMaqData();
-}
-
 // ===================== استيراد خطط قاعة التسميع (خطة + تقييم نجوم) =====================
-// يستخدم نفس دوال لصق الخطة (parseWeeklyPlanPaste2 / applyPlan2ToStudent) ونفس آلية مراجعة/اعتماد بطاقات استيراد واتساب
+// يستخدم نفس دالة لصق الخطة (parseWeeklyPlanPaste2) ونفس آلية مراجعة/اعتماد بطاقات استيراد واتساب
 // ===================== تقويم اختيار نطاق التاريخ (مشترك لكل نوافذ الاستيراد) =====================
 const WA_RANGE_MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 // target: 'waImport' (البطاقات اليومية) أو 'waPlanImport' (خطط الحلقة المباشرة) — يحدد وين تُكتب النتيجة
@@ -6410,6 +6401,7 @@ function openWaPlanImportModal() {
   document.getElementById('waPlanPasteText').value = '';
   document.getElementById('waPlanPasteResults').innerHTML = '';
   window._waPlanPasteConflicts = null;
+  window._waPlanKubraConflicts = null;
   setWaPlanModeTab('import');
   document.getElementById('waPlanImportOverlay').classList.add('open');
 }
@@ -6431,7 +6423,8 @@ function setWaPlanModeTab(tab) {
 }
 
 // ===== تبويب "لصق": يطبّق كل الخطط الملصوقة دفعة وحدة على طالبات الحلقة/الفترة المختارة، بدون رفع ملف ولا تحليل ولا مراجعة بطاقة بطاقة =====
-// يكتب المقرر بخانة الخميس تلقائيًا (بعكس تبويب "استيراد" القديم اللي يسيبها يدوية) — ما يلمس النجوم ولا الحضور ولا الكبرى إطلاقًا
+// يكتب المقرر بخانة الخميس تلقائيًا (بعكس تبويب "استيراد" القديم اللي يسيبها يدوية) — ما يلمس النجوم ولا الحضور
+// خطط "المراجعة الكبرى" (تبدأ بعنوانها) تنفصل عن الخطط الأسبوعية: بالأسبوع الأول بس تتسجل بتقسيم الكبرى لو مقررها يطابق الأرشيف، وإلا تنبيه بدون تسجيل
 function runWaPlanPasteApply() {
   const halqaVal = document.getElementById('waPlanImportHalqa').value;
   const periodVal = document.getElementById('waPlanImportPeriod').value;
@@ -6442,18 +6435,23 @@ function runWaPlanPasteApply() {
   if (!text.trim()) { showToast('الصقي النص أول'); return; }
 
   const halqaStudents = maqAllStudents.filter(s => getStudentHalqaId(s.id) === halqaVal && getStudentPeriod(s.id) === periodVal && s.active !== false && !s.withdrawn);
-  const blocks = parseWeeklyPlanPaste2(text);
+  const sections = splitKubraSections2(text);
+  const blocks = parseWeeklyPlanPaste2(sections.weeklyText);
+  const kubraBlocks = parseKubraDayPaste2(sections.kubraText);
+  const findInHalqa = rawName => {
+    const target = squashForMatch2(rawName);
+    let matches = halqaStudents.filter(st => squashForMatch2(st.name) === target);
+    if (!matches.length) matches = halqaStudents.filter(st => matchesNameLoose(rawName, st.name));
+    return matches.length === 1 ? matches[0] : null;
+  };
 
   const applied = [];
   const unmatched = [];
   const conflicts = [];
 
   blocks.forEach(block => {
-    const target = squashForMatch2(block.rawName);
-    let matches = halqaStudents.filter(st => squashForMatch2(st.name) === target);
-    if (!matches.length) matches = halqaStudents.filter(st => matchesNameLoose(block.rawName, st.name));
-    if (matches.length !== 1) { unmatched.push(block.rawName); return; }
-    const stu = matches[0];
+    const stu = findInHalqa(block.rawName);
+    if (!stu) { unmatched.push(block.rawName); return; }
     const sg = stu.group && stu.group.trim() ? stu.group.trim() : '';
     const sd = getStudentData(sg, currentWeek, stu.id);
     const hasExisting = (sd.hifz && sd.hifz.trim()) || (sd.dayPlan || []).some(d => d && d.trim());
@@ -6472,8 +6470,35 @@ function runWaPlanPasteApply() {
   saveMaqData();
   window._waPlanPasteConflicts = conflicts;
 
+  // ===== خطط المراجعة الكبرى: الأسبوع الأول بس (currentWeek === 0) — من الأسبوع الثاني وبعده تنبيه بدون تسجيل أي شي =====
+  const kubraApplied = [], kubraSame = [], kubraMismatch = [], kubraConflicts = [], kubraUnmatched = [], kubraLate = [];
+  kubraBlocks.forEach(block => {
+    const stu = findInHalqa(block.rawName);
+    if (!stu) { kubraUnmatched.push(block.rawName); return; }
+    if (currentWeek !== 0) { kubraLate.push(stu.name); return; }
+    const sg = stu.group && stu.group.trim() ? stu.group.trim() : '';
+    const archiveKubra = getKubra(sg, stu.id);
+    if (!archiveKubra.hasKubra || !sameKubraText2(block.mainText, archiveKubra.kubra)) {
+      kubraMismatch.push({ name: stu.name, msg: block.mainText, archive: archiveKubra.hasKubra ? archiveKubra.kubra : '' });
+      return;
+    }
+    const newDays = block.days.map(normalizePasteValue2);
+    const oldDays = getKubraSplit(stu.id).slice();
+    if (oldDays.some(d => d && d.trim())) {
+      if (oldDays.every((d, i) => normalizePasteValue2(d) === newDays[i])) kubraSame.push(stu.name);
+      else kubraConflicts.push({ stu, oldDays, newDays });
+      return;
+    }
+    kubraSplits['k' + stu.id] = newDays;
+    kubraApplied.push(stu.name);
+  });
+  if (kubraApplied.length) saveKubraSplits();
+  window._waPlanKubraConflicts = kubraConflicts;
+
   const dayLabels4 = ['الأحد','الاثنين','الثلاثاء','الأربعاء'];
-  let html = `<div style="font-weight:700;color:var(--green);margin-bottom:0.4rem;">✅ اتطبقت: ${applied.length} خطة</div>`;
+  const namesList = arr => `<div style="font-size:0.78rem;">${arr.map((n,i)=>`<div>${i+1}. ${escapeHTML(n)}</div>`).join('')}</div>`;
+  let html = '';
+  if (blocks.length || !kubraBlocks.length) html += `<div style="font-weight:700;color:var(--green);margin-bottom:0.4rem;">✅ اتطبقت: ${applied.length} خطة</div>`;
   if (applied.length) html += `<div style="font-size:0.78rem;margin-bottom:0.6rem;">${applied.map((n,i)=>`<div>${i+1}. ${escapeHTML(n)}</div>`).join('')}</div>`;
   if (unmatched.length) {
     html += `<div style="font-weight:700;color:#c0392b;margin:0.6rem 0 0.3rem;">❓ ما طابقت أي طالبة بهالحلقة/الفترة (${unmatched.length}):</div>`;
@@ -6495,7 +6520,56 @@ function runWaPlanPasteApply() {
       </div>`;
     });
   }
+
+  if (kubraBlocks.length) {
+    html += `<div style="border-top:1px dashed var(--border);margin-top:0.8rem;padding-top:0.6rem;font-weight:800;color:var(--wine);">⭐ خطط المراجعة الكبرى</div>`;
+    if (kubraApplied.length) html += `<div style="font-weight:700;color:var(--green);margin:0.4rem 0 0.3rem;">✅ اتسجّل تقسيم الكبرى: ${kubraApplied.length}</div>${namesList(kubraApplied)}`;
+    if (kubraSame.length) html += `<div style="font-weight:700;color:var(--muted);margin:0.6rem 0 0.3rem;">ℹ️ مسجّل مسبقًا بنفس التقسيم — ما تغيّر شي (${kubraSame.length}):</div>${namesList(kubraSame)}`;
+    if (kubraLate.length) html += `<div style="font-weight:700;color:#b3691f;margin:0.6rem 0 0.3rem;">⚠️ وصلت خطة كبرى بعد الأسبوع الأول — ما اتسجّل ولا اتغيّر شي (${kubraLate.length}):</div>${namesList(kubraLate)}`;
+    if (kubraMismatch.length) {
+      html += `<div style="font-weight:700;color:#b3691f;margin:0.6rem 0 0.3rem;">⚠️ مقرر الكبرى يختلف عن الأرشيف — ما اتسجّل التقسيم (${kubraMismatch.length}):</div>`;
+      kubraMismatch.forEach(m => {
+        html += `<div style="border:1px solid var(--border);border-radius:8px;padding:0.5rem;margin-bottom:0.4rem;font-size:0.75rem;">
+          <div style="font-weight:700;margin-bottom:0.3rem;">${escapeHTML(m.name)}</div>
+          <div style="background:#fff;border-radius:6px;padding:0.4rem;margin-bottom:0.3rem;"><b>بالرسالة:</b> ${escapeHTML(m.msg)}</div>
+          <div style="background:#fff;border-radius:6px;padding:0.4rem;"><b>بالأرشيف:</b> ${m.archive ? escapeHTML(m.archive) : 'ما عندها كبرى مسجّلة'}</div>
+        </div>`;
+      });
+    }
+    if (kubraUnmatched.length) html += `<div style="font-weight:700;color:#c0392b;margin:0.6rem 0 0.3rem;">❓ ما طابقت أي طالبة بهالحلقة/الفترة — كبرى (${kubraUnmatched.length}):</div>${namesList(kubraUnmatched)}`;
+    if (kubraConflicts.length) {
+      html += `<div style="font-weight:700;color:#b3691f;margin:0.6rem 0 0.3rem;">⚠️ عندها تقسيم كبرى مسجّل مسبقًا — اختاري أيهم يبقى (${kubraConflicts.length}):</div>`;
+      kubraConflicts.forEach((c, i) => {
+        const oldTxt = dayLabels4.map((l, idx) => `${l}: ${c.oldDays[idx] || ''}`).join('\n');
+        const newTxt = dayLabels4.map((l, idx) => `${l}: ${c.newDays[idx] || ''}`).join('\n');
+        html += `<div id="waPlanKubraConflict_${i}" style="border:1px solid var(--border);border-radius:8px;padding:0.5rem;margin-bottom:0.5rem;font-size:0.75rem;">
+          <div style="font-weight:700;margin-bottom:0.3rem;">${escapeHTML(c.stu.name)}</div>
+          <div style="background:#fff;border-radius:6px;padding:0.4rem;margin-bottom:0.3rem;white-space:pre-wrap;"><b>القديم:</b><br>${escapeHTML(oldTxt)}</div>
+          <div style="background:#fff;border-radius:6px;padding:0.4rem;margin-bottom:0.4rem;white-space:pre-wrap;"><b>الجديد:</b><br>${escapeHTML(newTxt)}</div>
+          <div style="display:flex;gap:0.4rem;">
+            <button class="sw-btn" onclick="resolveWaPlanKubraConflict(${i}, 'new')">✅ استخدمي الجديد</button>
+            <button class="sw-btn" onclick="resolveWaPlanKubraConflict(${i}, 'old')">↩️ خليه القديم</button>
+          </div>
+        </div>`;
+      });
+    }
+  }
   resultsEl.innerHTML = html;
+}
+
+function resolveWaPlanKubraConflict(i, choice) {
+  const c = (window._waPlanKubraConflicts || [])[i];
+  if (!c) return;
+  const box = document.getElementById('waPlanKubraConflict_' + i);
+  if (choice === 'new') {
+    applyKubra2ToStudent(c.stu, { days: c.newDays });
+    if (box) box.innerHTML = `<span style="color:var(--green);font-weight:700;">✅ ${escapeHTML(c.stu.name)} — اتحدّث تقسيم الكبرى بالجديد</span>`;
+    showToast('اتحدّث تقسيم الكبرى لـ ' + c.stu.name);
+  } else {
+    if (box) box.innerHTML = `<span style="color:var(--muted);font-weight:700;">↩️ ${escapeHTML(c.stu.name)} — خلّينا تقسيم الكبرى القديم</span>`;
+    showToast('خلّيت تقسيم ' + c.stu.name + ' القديم');
+  }
+  window._waPlanKubraConflicts[i] = null;
 }
 
 function resolveWaPlanPasteConflict(i, choice) {
@@ -7358,6 +7432,30 @@ function parseKubraDayPaste2(text) {
 
     return { rawName: name, days, mainText };
   }).filter(b => b.rawName);
+}
+
+// يفصل النص الملصوق لقسمين: خطط الكبرى (تبدأ من سطر عنوانها "خطة المراجعة الكبرى" وتنتهي عند عنوان خطة أسبوعية) وخطط الأسبوع (الباقي)
+function splitKubraSections2(text) {
+  const weekly = [], kubra = [];
+  let inKubra = false;
+  (text || '').split('\n').forEach(line => {
+    const norm = normalizeForMatch2(line);
+    const isTitle = !/الطالبه|الاسم|مقرر|الاحد|الاثنين|الثلاثاء|الثلاثا|الاربعاء|الاربعا|الخميس/.test(norm);
+    if (isTitle && /الكبري/.test(norm)) inKubra = true;
+    else if (isTitle && /خطه\s*(?:ال)?اسبوع|الخطه\s*الاسبوعيه/.test(norm)) inKubra = false;
+    (inKubra ? kubra : weekly).push(line);
+  });
+  return { weeklyText: weekly.join('\n'), kubraText: kubra.join('\n') };
+}
+// مقارنة مقرر الكبرى المكتوب بالرسالة مع المسجّل بالأرشيف — تتجاهل الهمزات/التاء المربوطة/الأرقام الإنجليزية/الشرطات/كلمة "سورة"/كلمات الوصل
+function normalizeKubraMq2(s) {
+  return normalizeForMatch2(toArabicDigits(s || ''))
+    .replace(/(^|\s)(?:سوره|من|الي|الى|و)(?=\s|$)/g, ' ')
+    .replace(/\s+/g, ' ').trim();
+}
+function sameKubraText2(a, b) {
+  const x = normalizeKubraMq2(a);
+  return !!x && x === normalizeKubraMq2(b);
 }
 
 function applyKubra2ToStudent(student, plan) {
