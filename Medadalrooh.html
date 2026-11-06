@@ -4035,7 +4035,6 @@ const ALERT_LABELS = {
   kubra_miss: 'عدم إنجاز المراجعة الكبرى',
   taahud_miss: 'عدم إنجاز مراجعة التعاهد',
   event_removed: 'انسحاب تلقائي من المسابقة',
-  eada_auto: 'تفعيل إعادة تلقائي',
 };
 const ALERT_PRIMARY_KINDS = ['miss', 'absent', 'excused', 'no_challenge'];
 
@@ -4090,7 +4089,7 @@ function setTaahudAttendAlert(week, day, studentId, studentName, val) {
   saveAttendAlerts();
 }
 
-// تنبيهات "ثانوية" (نتائج تلقائية غير مباشرة، زي الانسحاب من المسابقة أو تفعيل الإعادة)
+// تنبيهات "ثانوية" (نتائج تلقائية غير مباشرة، زي الانسحاب من المسابقة)
 function setSecondaryAttendAlert(week, day, studentId, studentName, kind, present) {
   if (!studentId) return;
   const k = alertKey(week, day);
@@ -4298,23 +4297,6 @@ function setAttendForKey(dayKey, s, v) {
   setAttendVal(currentWeek, dayKey, s, newVal);
   const stu = maqAllStudents.find(x => x.name === s);
   if (stu) setPrimaryAttendAlert(currentWeek, dayKey, stu.id, stu.name, newVal);
-  if (!liveClosingActive) {
-    if (stu) {
-      const sg = stu.group && stu.group.trim() ? stu.group.trim() : '';
-      if (newVal === 'absent' || newVal === 'excused') {
-        applyEadaRepeat(stu.id, sg);
-        saveMaqData();
-      } else {
-        // لو رجعنا "حضور" (أو مسحنا التحديد) بعد ما كانت غياب/بعذر فعّلت الإعادة غلط، نلغي الإعادة تلقائياً + نمسح تنبيهها
-        const sd = getStudentData(sg, currentWeek, stu.id);
-        if (sd.type === 'eada') {
-          sd.type = '';
-          saveMaqData();
-          setSecondaryAttendAlert(currentWeek, dayKey, stu.id, stu.name, 'eada_auto', false);
-        }
-      }
-    }
-  }
   saveAttendData(); renderCurriculumTab();
 }
 function setAttendThu(s, v) {
@@ -5344,24 +5326,51 @@ function getRatingFieldName() {
   return liveClosingActive ? 'ratingClosing' : 'rating';
 }
 
-// "إعادة": تعليم الأسبوع الحالي كإعادة + نسخ خطة الحفظ الأسبوعية (المقرر + تقسيم الأيام) من آخر أسبوع حقيقي
-// (مو إعادة) قبله — لو تكررت الإعادة أسابيع متتالية، ترجع دايمًا لآخر خطة حقيقية فعلية، مو لنص إعادة سابق
-function applyEadaRepeat(id, group) {
+// "إعادة" يدوية (زر 🔁 فوق حقل التلاوة، من الأسبوع الثاني): تعليم الأسبوع الحالي كإعادة + نسخ خطة الحفظ الأسبوعية
+// (المقرر + تقسيم الأيام) من آخر أسبوع حقيقي (مو إعادة) قبله — لو تكررت الإعادة أسابيع متتالية، ترجع دايمًا لآخر خطة حقيقية فعلية.
+// لو عندها خطة مسجلة لهذا الأسبوع تطلع رسالة تأكيد قبل الاستبدال. الضغطة الثانية تلغي العلامة وتمسح الخطة المنسوخة.
+// العلامة نفسها (type = 'eada') تستثني تلاوة هذا الأسبوع من المراجعة التراكمية بالأسبوع اللي بعده.
+function toggleEadaWeek(id) {
   if (currentWeek === 0) return;
+  const s = maqAllStudents.find(x => x.id === id);
+  if (!s) return;
+  const sg = s.group && s.group.trim() ? s.group.trim() : '';
+  const sd = getStudentData(sg, currentWeek, id);
+  if (sd.type === 'eada') {
+    sd.type = '';
+    sd.hifz = '';
+    sd.dayPlan = ['','','',''];
+    saveMaqData();
+    renderSatView();
+    showToast('اتلغت الإعادة لـ ' + s.name + ' ومسحت الخطة');
+    return;
+  }
+  if (sd.type === 'kharji') { showToast('⚠️ ' + s.name + ' معلّمة مقرر خارجي 🔀 — ألغي العلامة أول'); return; }
   let srcWeek = currentWeek - 1;
-  while (srcWeek >= 0 && maqData[dk(group, srcWeek, id)] && maqData[dk(group, srcWeek, id)].type === 'eada') srcWeek--;
-  if (srcWeek < 0) return;
-  const srcSd = maqData[dk(group, srcWeek, id)];
-  if (!srcSd) return;
-  const sd = getStudentData(group, currentWeek, id);
-  sd.type = 'eada';
-  sd.hifz = srcSd.hifz || '';
-  sd.dayPlan = srcSd.dayPlan ? srcSd.dayPlan.slice() : ['','','',''];
-  const stu = maqAllStudents.find(x => x.id === id);
-  if (stu) setSecondaryAttendAlert(currentWeek, liveAttendKey(), id, stu.name, 'eada_auto', true);
+  while (srcWeek >= 0 && maqData[dk(sg, srcWeek, id)] && maqData[dk(sg, srcWeek, id)].type === 'eada') srcWeek--;
+  const srcSd = srcWeek >= 0 ? maqData[dk(sg, srcWeek, id)] : null;
+  const srcHifz = srcSd && srcSd.hifz ? srcSd.hifz.trim() : '';
+  if (!srcHifz) { showToast('⚠️ ما فيه خطة سابقة أنسخها لـ ' + s.name); return; }
+  const apply = () => {
+    sd.type = 'eada';
+    sd.hifz = srcSd.hifz;
+    sd.dayPlan = srcSd.dayPlan ? srcSd.dayPlan.slice() : ['','','',''];
+    saveMaqData();
+    renderSatView();
+    showToast('🔁 اتسجّلت إعادة لـ ' + s.name);
+  };
+  const curHifz = sd.hifz ? sd.hifz.trim() : '';
+  if (curHifz || sd.dayPlan.some(d => d && d.trim())) {
+    showConfirmModal('استبدال الخطة بالإعادة',
+      '<div style="margin-bottom:0.5rem;">عند <b>' + escapeHTML(s.name) + '</b> خطة مسجّلة لهذا الأسبوع' + (curHifz ? ': ' + escapeHTML(curHifz) : '') + '.</div>'
+      + '<div>تبين أستبدلها بخطة الإعادة (من الأسبوع ' + toAr(srcWeek + 1) + '): <b>' + escapeHTML(srcHifz) + '</b>؟</div>',
+      apply);
+  } else {
+    apply();
+  }
 }
 
-// تقييم التسميع (🌟🌟🌟/🌟🌟/🌟) — يُحفظ على بيانات الأسبوع الحالي؛ 🌟 وحدة تُفعّل الإعادة تلقائيًا
+// تقييم التسميع (🌟🌟🌟/🌟🌟/🌟) — يُحفظ على بيانات الأسبوع الحالي
 function setRating(id, val) {
   const s = maqAllStudents.find(x => x.id === id);
   if (!s) return;
@@ -5369,7 +5378,6 @@ function setRating(id, val) {
   const sd = getStudentData(sg, currentWeek, id);
   const ratingField = getRatingFieldName();
   sd[ratingField] = (sd[ratingField] === val) ? '' : val;
-  if (ratingField === 'rating' && sd.rating === '1') applyEadaRepeat(id, sg);
   saveMaqData();
   renderSatView();
 }
@@ -5791,6 +5799,14 @@ function renderSatView() {
             return '<div class="maq-field-group" style="margin-bottom:0.5rem;">'
               +'<div class="maq-field-label" style="color:var(--wine);">'+label+'</div>'
               +'<div style="background:var(--surface2);border-radius:10px;padding:0.5rem 0.7rem;font-size:0.82rem;color:var(--ink);min-height:2rem;">'+content+'</div>'
+              +'</div>';
+          }
+
+          // 🔁 إعادة: زر يدوي فوق حقل التلاوة — من الأسبوع الثاني (الأسبوع الأول ما قبله أسبوع ينسخ منه)
+          if (!isClosing && currentWeek > 0) {
+            var isEadaWeek = sd.type === 'eada';
+            out += '<div class="sat-options" style="margin-bottom:0.5rem;">'
+              +'<button class="sat-btn '+(isEadaWeek?'sel-attend':'')+'" onclick="toggleEadaWeek('+s.id+')">🔁 إعادة'+(isEadaWeek?' ✓':'')+'</button>'
               +'</div>';
           }
 
@@ -7484,17 +7500,8 @@ function togglePrevMaqExclude(id) {
   if (!s) return;
   const sg = s.group && s.group.trim() ? s.group.trim() : '';
   const prevSd = getStudentData(sg, currentWeek - 1, id);
-  const turningOff = prevSd.type === 'eada';
-  prevSd.type = turningOff ? '' : 'eada';
+  prevSd.type = prevSd.type === 'eada' ? '' : 'eada';
   saveMaqData();
-  if (turningOff) {
-    // نمسح تنبيه "تفعيل إعادة تلقائي" لهالطالبة أينما كان مسجّل (مهما كان أسبوعه/يومه)، لأن الإعادة نفسها انلغت
-    Object.keys(attendAlerts).forEach(k => {
-      attendAlerts[k] = (attendAlerts[k] || []).filter(a => !(a.studentId === id && a.kind === 'eada_auto'));
-    });
-    saveAttendAlerts();
-    updateAlertsBadge();
-  }
   renderSatView();
 }
 
