@@ -4720,7 +4720,13 @@ function startNewCycle() {
       // نحفظ آخر سورة وصلتها كل طالبة قبل ما نمسح بيانات المتابعة، عشان تفضل ثابتة لين تسجّل خطة جديدة فعليًا
       students.forEach(s => {
         const info = getSimpleCurrentSurah(s.id, s.group || '');
-        if (info) s.savedCurrentSurahText = info;
+        if (info) { s.savedCurrentSurahText = info; return; }
+        // ما فيه مقرر حفظ مكتوب بالمتابعة: نأخذ نقطة النهاية من مقرر هذي الدورة بالأرشيف، عشان ما تبقى نقطة قديمة من دورة سابقة
+        const arch = getArchive(s.id, currentCycleNumber);
+        if (arch.hifz && arch.hifz.trim() && !arch.excluded) {
+          const end = getWeek4EndPoint(getLastSegmentText(arch.hifz));
+          if (getSurahIndex(end.surah) !== -1) s.savedCurrentSurahText = end.isWhole ? end.surah : `${end.surah} ${toAr(end.ayah)}`;
+        }
       });
       const finishedCycle = currentCycleNumber;
       currentCycleNumber = finishedCycle + 1;
