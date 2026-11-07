@@ -1596,6 +1596,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         <div id="waImportTabTaahud" onclick="setWaImportTab('taahud')" style="flex:1;text-align:center;padding:0.4rem 0;border-radius:8px;font-family:'Cairo';font-size:0.78rem;font-weight:700;cursor:pointer;color:var(--muted);">تعاهد</div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0.9rem;">
+      <div id="waImportModeTabs" style="display:flex;gap:4px;background:var(--surface2);border-radius:10px;padding:3px;margin-bottom:0.7rem;">
+        <div id="waImportModeTabImport" onclick="setWaImportMode('import')" style="flex:1;text-align:center;padding:0.4rem 0;border-radius:8px;font-family:'Cairo';font-size:0.78rem;font-weight:700;cursor:pointer;background:var(--surface);color:var(--wine);">استيراد</div>
+        <div id="waImportModeTabPaste" onclick="setWaImportMode('paste')" style="flex:1;text-align:center;padding:0.4rem 0;border-radius:8px;font-family:'Cairo';font-size:0.78rem;font-weight:700;cursor:pointer;color:var(--muted);">لصق</div>
+      </div>
+      <div id="waImportImportBox">
       <div style="display:flex;gap:0.7rem;margin-bottom:0.7rem;">
         <div style="flex:1;">
           <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📎 ملف المحادثة</label>
@@ -1632,6 +1637,24 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       </div>
 
       <button class="add-btn" onclick="waImportActiveTab==='taahud' ? runWaTaahudImportAnalysis() : runWaImportAnalysis()">🔍 تحليل</button>
+      </div>
+
+      <div id="waImportPasteBox" style="display:none;">
+        <div style="margin-bottom:0.7rem;">
+          <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">👥 المجموعة</label>
+          <div style="position:relative;">
+            <select id="waImportPasteGroup" onchange="document.getElementById('waImportPasteGroupLabel').textContent=this.options[this.selectedIndex]?this.options[this.selectedIndex].text:'';" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;"></select>
+            <div id="waImportPasteGroupLabel" class="wa-field-box" style="pointer-events:none;position:relative;"></div>
+            <span style="position:absolute;left:0.5rem;top:50%;transform:translateY(-50%);font-size:0.7rem;color:var(--muted);pointer-events:none;">⌄</span>
+          </div>
+        </div>
+        <div style="margin-bottom:0.9rem;">
+          <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📋 الصقي النص النهائي هنا</label>
+          <textarea id="waImportPasteText" rows="10" style="width:100%;font-family:'Cairo';font-size:0.8rem;border:1px solid var(--border);border-radius:10px;padding:0.6rem;box-sizing:border-box;resize:vertical;background:#fff;color:var(--ink);" placeholder="الأحد | 2026-11-08 20:00&#10;اسم الطالبة | كاملة&#10;اسم الطالبة | كاملة + تحدي&#10;اسم الطالبة | ناقصة: بند، بند&#10;اسم الطالبة | غايبة"></textarea>
+        </div>
+        <button class="add-btn" onclick="runWaImportPasteApply()">✅ تطبيق</button>
+        <div id="waImportPasteResults" style="margin-top:0.7rem;"></div>
+      </div>
       </div>
       <div id="waImportResults"></div>
       <div id="waReviewQueueBox"></div>
@@ -10371,7 +10394,7 @@ function waLoadCaches() {
 }
 
 // يبني نفس أقسام "تحتاج قرار" من الكاش المحفوظ، بدون حاجة لإعادة تحليل ملف — يُستدعى فور فتح النافذة
-function waRenderPersistedSections() {
+function waRenderPersistedSections(intro = '📌 حالات محفوظة من جلسة سابقة لسا ما اتحلّت:') {
   const resultsEl = document.getElementById('waImportResults');
   if (!resultsEl) return;
   const hasAny = (window._waUnknownCache || []).some(u => u) ||
@@ -10380,7 +10403,7 @@ function waRenderPersistedSections() {
     (window._waNeedsConfirmCache || []).some(c => c);
   if (!hasAny) return;
 
-  let html = `<div style="font-weight:700;color:var(--muted);margin-bottom:0.6rem;font-size:0.75rem;">📌 حالات محفوظة من جلسة سابقة لسا ما اتحلّت:</div>`;
+  let html = `<div style="font-weight:700;color:var(--muted);margin-bottom:0.6rem;font-size:0.75rem;">${intro}</div>`;
   const groupStudentsFor = gv => students.filter(s => s.group === gv && s.active !== false && !s.withdrawn);
 
   if ((window._waUnknownCache || []).some(u => u)) {
@@ -10471,6 +10494,7 @@ function updateWaFileLabel(inputId, labelId) {
 }
 
 let waImportActiveTab = 'hifz';
+let waImportMode = 'import'; // 'import' (ملف المحادثة) أو 'paste' (لصق قائمة جاهزة) — يخص تبويب "حفظ" بس
 function setWaImportTab(tab) {
   waImportActiveTab = tab;
   const tabHifz = document.getElementById('waImportTabHifz');
@@ -10483,6 +10507,9 @@ function setWaImportTab(tab) {
   if (tabTaahud) tabTaahud.style.color = tab === 'taahud' ? 'var(--wine)' : 'var(--muted)';
   if (groupField) groupField.style.display = tab === 'taahud' ? 'none' : '';
   if (dayField) dayField.style.display = tab === 'taahud' ? 'none' : '';
+  const modeTabs = document.getElementById('waImportModeTabs');
+  if (modeTabs) modeTabs.style.display = tab === 'hifz' ? 'flex' : 'none'; // اللصق للبطاقات اليومية بس، مو للتعاهد
+  setWaImportMode('import');
   document.getElementById('waImportFile').value = '';
   updateWaFileLabel('waImportFile','waImportFileLabel');
   document.getElementById('waImportStart').value = '';
@@ -10493,14 +10520,19 @@ function setWaImportTab(tab) {
     renderWaTaahudResults(getTaahudEligibleStudents(), window._waTaahudAlreadyCommitted || []);
   } else {
     waRenderPersistedSections();
-    renderWaReviewQueue();
   }
 }
 function openWaImportModal() {
   const sel = document.getElementById('waImportGroup');
+  const pasteSel = document.getElementById('waImportPasteGroup');
   const groups = getGroups();
-  sel.innerHTML = groups.map(g => `<option value="${g}">${getGroupLabel(toEnDigits(g))}</option>`).join('') || '<option value="">لا توجد مجموعات</option>';
+  const groupOptions = groups.map(g => `<option value="${g}">${getGroupLabel(toEnDigits(g))}</option>`).join('') || '<option value="">لا توجد مجموعات</option>';
+  sel.innerHTML = groupOptions;
+  pasteSel.innerHTML = groupOptions;
   document.getElementById('waImportGroupLabel').textContent = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : '';
+  document.getElementById('waImportPasteGroupLabel').textContent = pasteSel.options[pasteSel.selectedIndex] ? pasteSel.options[pasteSel.selectedIndex].text : '';
+  document.getElementById('waImportPasteText').value = '';
+  document.getElementById('waImportPasteResults').innerHTML = '';
   document.getElementById('waImportFile').value = '';
   updateWaFileLabel('waImportFile','waImportFileLabel');
   document.getElementById('waImportStart').value = '';
@@ -11109,6 +11141,45 @@ function resolveWaTaahudDuplicate(groupIdx, cardIdx) {
   renderWaTaahudResults(getTaahudEligibleStudents(), window._waTaahudAlreadyCommitted || []);
 }
 
+// ===== مساعدات مشتركة بين تبويبي "استيراد" و"لصق" لبطاقات الحفظ اليومية =====
+
+// هل نطاق الوقت + اليوم المطلوب يطابقان الأسبوع واليوم المثبّتين حاليًا بالمتابعة؟ يرجّع { computedWeek } أو { errorHtml }
+function waCheckImportScope(rangeStart, dayKey) {
+  const computedWeek = computeWaWeekIndex(rangeStart);
+  if (computedWeek === null) {
+    return { errorHtml: `<div style="color:#c0392b;font-weight:700;">⚠️ ما قدرت أحدد تاريخ بداية الدورة الحالية من صفحة المواعيد. تأكدي إن فيه دورة نشطة مسجّلة.</div>` };
+  }
+  if (pinnedWeek === null || computedWeek !== pinnedWeek || currentDay !== WA_DAY_TO_INDEX[dayKey]) {
+    return { errorHtml: `<div style="color:#c0392b;font-weight:700;">
+      ⚠️ عدم تطابق! التاريخ اللي حددتيه يقابل الأسبوع "${WEEK_NAMES[computedWeek] || (computedWeek+1)}" ويوم "${WA_DAY_LABELS[dayKey]}"،
+      بينما المثبّت عندك حاليًا بالمتابعة هو الأسبوع "${pinnedWeek !== null ? WEEK_NAMES[pinnedWeek] : '—'}" واليوم "${(ATTEND_DAYS[currentDay] || {}).label || '—'}".
+      ثبّتي الأسبوع/اليوم الصحيح أول من تبويب المتابعة، أو راجعي التاريخ.
+    </div>` };
+  }
+  return { computedWeek };
+}
+
+// شرط وقت المسابقة: المشاركات بالمسابقة عندهم 12 ساعة بس من بداية النطاق (بدل 24 ساعة للباقي) — الخميس مستثنى
+function waIsEventLate(stu, dayKey, rangeStart, msgDate) {
+  return dayKey !== 'thu' && !!eventParticipants[stu.id] && msgDate instanceof Date && msgDate > new Date(rangeStart.getTime() + 12 * 60 * 60 * 1000);
+}
+
+// قسم آخر الصفحة (إعلامي بس): معتمدة سابقًا + غايبات
+function waRenderImportFooter(alreadyCommitted, absentees) {
+  const footerEl = document.getElementById('waImportFooterResults');
+  if (!footerEl) return;
+  let footerHtml = '';
+  if (alreadyCommitted.length) {
+    footerHtml += `<div style="font-weight:700;color:var(--green);margin:0.6rem 0 0.3rem;">✓ معتمدة سابقًا لنفس النطاق (${alreadyCommitted.length}):</div>`;
+    footerHtml += `<div style="font-size:0.78rem;">${alreadyCommitted.map((s, i) => `<div>${i+1}. ${s.name} ✓</div>`).join('')}</div>`;
+  }
+  if (absentees.length) {
+    footerHtml += `<div style="font-weight:700;color:var(--muted);margin:0.6rem 0 0.3rem;">👻 غايبات (${absentees.length}):</div>`;
+    footerHtml += `<div id="waAbsenteesList" style="font-size:0.78rem;">${absentees.map((s, i) => `<div data-sid="${s.id}">${i+1}. ${s.name}</div>`).join('')}</div>`;
+  }
+  footerEl.innerHTML = footerHtml;
+}
+
 async function runWaImportAnalysis() {
   const fileInput = document.getElementById('waImportFile');
   const resultsEl = document.getElementById('waImportResults');
@@ -11128,20 +11199,9 @@ async function runWaImportAnalysis() {
   const rangeEnd = new Date(endVal);
 
   // ===== تحقق تطابق الأسبوع واليوم مع المثبّت حاليًا =====
-  const computedWeek = computeWaWeekIndex(rangeStart);
-  const expectedDayIdx = WA_DAY_TO_INDEX[dayKey];
-  if (computedWeek === null) {
-    resultsEl.innerHTML = `<div style="color:#c0392b;font-weight:700;">⚠️ ما قدرت أحدد تاريخ بداية الدورة الحالية من صفحة المواعيد. تأكدي إن فيه دورة نشطة مسجّلة.</div>`;
-    return;
-  }
-  if (pinnedWeek === null || computedWeek !== pinnedWeek || currentDay !== expectedDayIdx) {
-    resultsEl.innerHTML = `<div style="color:#c0392b;font-weight:700;">
-      ⚠️ عدم تطابق! التاريخ اللي حددتيه يقابل الأسبوع "${WEEK_NAMES[computedWeek] || (computedWeek+1)}" ويوم "${WA_DAY_LABELS[dayKey]}"،
-      بينما المثبّت عندك حاليًا بالمتابعة هو الأسبوع "${pinnedWeek !== null ? WEEK_NAMES[pinnedWeek] : '—'}" واليوم "${(ATTEND_DAYS[currentDay] || {}).label || '—'}".
-      ثبّتي الأسبوع/اليوم الصحيح أول من تبويب المتابعة، أو راجعي التاريخ.
-    </div>`;
-    return;
-  }
+  const scope = waCheckImportScope(rangeStart, dayKey);
+  if (scope.errorHtml) { resultsEl.innerHTML = scope.errorHtml; return; }
+  const computedWeek = scope.computedWeek;
 
   let text;
   try { text = await readWaImportFile(file); }
@@ -11363,9 +11423,7 @@ async function runWaImportAnalysis() {
       return;
     }
     const studentIsSplitKubra = studentHasKubraByName(stu.name);
-    // شرط وقت المسابقة: المشاركات بالمسابقة عندهم 12 ساعة بس من بداية النطاق (بدل 24 ساعة للباقي) — الخميس مستثنى
-    const eventCutoff = new Date(rangeStart.getTime() + 12 * 60 * 60 * 1000);
-    const eventLate = dayKey !== 'thu' && !!eventParticipants[stu.id] && msgDate instanceof Date && msgDate > eventCutoff;
+    const eventLate = waIsEventLate(stu, dayKey, rangeStart, msgDate);
     pendingReview.push({
       stu, status, parsed, body, dayKey,
       kubraApplicable: !!(studentIsSplitKubra && parsed.kubraLine),
@@ -11486,21 +11544,171 @@ async function runWaImportAnalysis() {
   window._waSourceTag = waSourceTag;
   window._waPendingReview = (window._waPendingReview || []).concat(pendingReview);
 
-  // ===== قسم آخر الصفحة (إعلامي بس): معتمدة سابقًا + غايبات =====
-  const footerEl = document.getElementById('waImportFooterResults');
-  let footerHtml = '';
-  if (alreadyCommitted.length) {
-    footerHtml += `<div style="font-weight:700;color:var(--green);margin:0.6rem 0 0.3rem;">✓ معتمدة سابقًا لنفس النطاق (${alreadyCommitted.length}):</div>`;
-    footerHtml += `<div style="font-size:0.78rem;">${alreadyCommitted.map((s, i) => `<div>${i+1}. ${s.name} ✓</div>`).join('')}</div>`;
-  }
-  if (absentees.length) {
-    footerHtml += `<div style="font-weight:700;color:var(--muted);margin:0.6rem 0 0.3rem;">👻 غايبات (${absentees.length}):</div>`;
-    footerHtml += `<div id="waAbsenteesList" style="font-size:0.78rem;">${absentees.map((s, i) => `<div data-sid="${s.id}">${i+1}. ${s.name}</div>`).join('')}</div>`;
-  }
-  if (footerEl) footerEl.innerHTML = footerHtml;
+  waRenderImportFooter(alreadyCommitted, absentees);
   waSaveCaches();
   renderWaReviewQueue();
   renderCurriculumTab();
+}
+
+// ===== تبويب "لصق" بنافذة استيراد البطاقات اليومية =====
+// بدل رفع ملف المحادثة: تلصقين قائمة جاهزة (سطر لكل طالبة) وتدخل نفس قائمة المراجعة والاعتماد (نفس أزرار الاعتماد والتراجع وسجل الاعتمادات).
+// السطر الأول: اليوم | بداية النطاق (تاريخ ووقت)       مثال:  الأحد | 2026-11-08 20:00
+// باقي الأسطر: الاسم | الحالة | [كبرى: منجزة أو ناقصة] | [وقت إرسال البطاقة — للمشاركات بالمسابقة بس]
+// الحالة: كاملة — كاملة + تحدي — ناقصة: بند، بند — غايبة — راجعيها: ملاحظة
+
+// تبديل بين تبويب "استيراد" (ملف المحادثة) وتبويب "لصق" داخل نافذة استيراد البطاقات اليومية
+function setWaImportMode(mode) {
+  waImportMode = mode;
+  const isPaste = mode === 'paste';
+  const tImport = document.getElementById('waImportModeTabImport');
+  const tPaste = document.getElementById('waImportModeTabPaste');
+  tImport.style.background = isPaste ? 'transparent' : 'var(--surface)';
+  tImport.style.color = isPaste ? 'var(--muted)' : 'var(--wine)';
+  tPaste.style.background = isPaste ? 'var(--surface)' : 'transparent';
+  tPaste.style.color = isPaste ? 'var(--wine)' : 'var(--muted)';
+  document.getElementById('waImportImportBox').style.display = isPaste ? 'none' : 'block';
+  document.getElementById('waImportPasteBox').style.display = isPaste ? 'block' : 'none';
+  if (waImportActiveTab === 'hifz') renderWaReviewQueue(); // زر "اعتمدي الكل" يظهر بتبويب اللصق بس
+}
+
+// اسم اليوم بأي كتابة (الأحد/الاحد، الإثنين/الاثنين...) → مفتاح اليوم (sun…thu)
+function waParsePasteDay(txt) {
+  const n = normalizeForMatch2(txt);
+  if (!n) return null;
+  return Object.keys(WA_DAY_LABELS).find(k => [WA_DAY_LABELS[k], ...(WA_DAY_ALT_LABELS[k] || [])].some(nm => normalizeForMatch2(nm) === n)) || null;
+}
+
+// تاريخ + وقت بصيغة 2026-11-08 20:00 (يقبل الأرقام العربية) → Date، أو null لو الصيغة ما انقرت
+function waParsePasteDate(txt) {
+  const m = toEnDigits(txt || '').match(/(\d{4})-(\d{1,2})-(\d{1,2})[\sT]+(\d{1,2}):(\d{2})/);
+  return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], 0) : null;
+}
+
+// يفكّ سطر طالبة من القائمة الملصوقة. يرجّع null لو الحالة ما انفهمت
+function waParsePasteRow(line) {
+  const parts = line.replace(/[‎‏⁠﻿*]/g, '').split('|').map(p => p.trim());
+  const name = parts[0].replace(/^[\d٠-٩]+[.)]\s*/, '').trim();
+  if (!name || parts.length < 2) return null;
+  const stateTxt = parts[1];
+  const state = normalizeForMatch2(stateTxt);
+  const afterColon = stateTxt.replace(/^[^:：]*[:：]?/, '').trim();
+  const tail = parts.slice(2).join(' | ');
+  const kubraMatch = normalizeForMatch2(tail).match(/كبري\s+(منجز|ناقص|غير)/);
+  const base = { name, kubra: kubraMatch ? (kubraMatch[1] === 'منجز' ? 'done' : 'miss') : null, time: waParsePasteDate(tail) };
+  if (/^غ[ايئ]+ب/.test(state)) return { ...base, kind: 'absent' };
+  if (/^راجع/.test(state)) return { ...base, kind: 'review', note: afterColon };
+  if (/^ناقص/.test(state)) return { ...base, kind: 'card', status: 'miss', items: afterColon.split(/[،,]/).map(x => x.trim()).filter(Boolean) };
+  if (/^كامل/.test(state)) return { ...base, kind: 'card', status: /تحدي/.test(state) && !/بدون\s+(ال)?تحدي/.test(state) ? 'challenge' : 'full', items: [] };
+  return null;
+}
+
+// النص اللي يظهر بشاشة المراجعة مكان "رسالتها" — يلخّص سطر القائمة الملصوقة
+function waPasteBody(row) {
+  const st = row.status === 'miss' ? 'ناقصة' + (row.items.length ? ': ' + row.items.join('، ') : '') : (row.status === 'challenge' ? 'كاملة + تحدي' : 'كاملة');
+  return 'من قائمة اللصق — ' + st + (row.kubra ? ' — كبرى: ' + (row.kubra === 'done' ? 'منجزة' : 'ناقصة') : '');
+}
+
+// بطاقة مراجعة جاهزة من سطر ملصوق (نفس شكل بطاقات الاستيراد القديم)
+function waPasteReviewItem(stu, row, body, dayKey, rangeStart, sourceTag) {
+  return {
+    stu, status: row.status, body, dayKey,
+    kubraApplicable: !!(row.kubra && studentHasKubraByName(stu.name)),
+    kubraDone: row.kubra === 'done',
+    sourceTag,
+    eventLate: waIsEventLate(stu, dayKey, rangeStart, row.time),
+  };
+}
+
+function runWaImportPasteApply() {
+  const resultsEl = document.getElementById('waImportPasteResults');
+  resultsEl.innerHTML = '';
+  const groupVal = document.getElementById('waImportPasteGroup').value;
+  const lines = document.getElementById('waImportPasteText').value.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (!groupVal) { showToast('حددي المجموعة أول'); return; }
+  if (!lines.length) { showToast('الصقي النص أول'); return; }
+
+  // ===== السطر الأول: اليوم + بداية النطاق، ونتحقق إنهم يطابقون الأسبوع/اليوم المثبّتين (نفس فحص الاستيراد القديم) =====
+  const headParts = lines[0].split('|').map(p => p.trim());
+  const dayKey = waParsePasteDay(headParts[0]);
+  const rangeStart = waParsePasteDate(headParts[1]);
+  if (!dayKey || !rangeStart) {
+    resultsEl.innerHTML = `<div style="color:#c0392b;font-weight:700;">⚠️ السطر الأول لازم يكون اليوم وبداية النطاق، مثل: الأحد | 2026-11-08 20:00</div>`;
+    return;
+  }
+  const scope = waCheckImportScope(rangeStart, dayKey);
+  if (scope.errorHtml) { resultsEl.innerHTML = scope.errorHtml; return; }
+  const computedWeek = scope.computedWeek;
+  const checkDayIdx = WA_DAY_TO_INDEX[dayKey];
+
+  const groupStudents = students.filter(s => s.group === groupVal && s.active !== false && !s.withdrawn);
+  const groupLabel = getGroupLabel(toEnDigits(groupVal));
+  const sourceTag = `${WEEK_NAMES[computedWeek] || (computedWeek+1)} — ${WA_DAY_LABELS[dayKey]} — ${groupLabel}`;
+  // نفس تتبع الاستيراد القديم: طالبة سبق ظهرت لنفس (أسبوع+يوم+مجموعة) ما تنضاف مرة ثانية
+  const scopeKey = `${computedWeek}_${dayKey}_${groupVal}`;
+  window._waSeenKeys = window._waSeenKeys || {};
+  if (!window._waSeenKeys[scopeKey]) window._waSeenKeys[scopeKey] = new Set();
+  const seenSet = window._waSeenKeys[scopeKey];
+
+  const pending = [], absentees = [], alreadyCommitted = [];
+  const needLook = [], unreadable = [], unmatched = [], duplicates = [], skippedSeen = [], noTime = [];
+  const mentioned = new Set();
+  let unknownCards = 0;
+
+  lines.slice(1).forEach(line => {
+    const row = waParsePasteRow(line);
+    if (!row) { unreadable.push(line); return; }
+    const hits = findMatchingStudents2(row.name).filter(s => groupStudents.some(gs => gs.id === s.id));
+    if (hits.length !== 1) {
+      if (row.kind === 'card') {
+        // بطاقة باسم ما انربط بطالبة: تروح لقسم "أسماء غير معروفة" الموجود أصلًا، تختارين الطالبة وتنضاف للمراجعة
+        window._waUnknownCache = (window._waUnknownCache || []).concat([{
+          rawName: row.name, body: waPasteBody(row), sender: 'قائمة اللصق', dayKey, groupVal,
+          pasted: { status: row.status, kubra: row.kubra, timeMs: row.time ? row.time.getTime() : null, rangeStartMs: rangeStart.getTime(), sourceTag },
+        }]);
+        unknownCards++;
+      } else {
+        unmatched.push(row.name);
+      }
+      return;
+    }
+    const stu = hits[0];
+    if (mentioned.has(stu.id)) { duplicates.push(stu.name); return; }
+    mentioned.add(stu.id);
+    if (row.kind === 'absent') { absentees.push(stu); return; }
+    if (row.kind === 'review') { needLook.push(row.note ? `${stu.name} — ${row.note}` : stu.name); return; }
+    if (waIsAlreadyCommitted(stu.name, computedWeek, checkDayIdx)) { alreadyCommitted.push(stu); return; }
+    if (seenSet.has('s:' + stu.id)) { skippedSeen.push(stu.name); return; }
+    seenSet.add('s:' + stu.id);
+    pending.push(waPasteReviewItem(stu, row, waPasteBody(row), dayKey, rangeStart, sourceTag));
+    if (dayKey !== 'thu' && eventParticipants[stu.id] && !row.time) noTime.push(stu.name);
+  });
+
+  // ===== الملخص: يتأكد إن كل طالبات المجموعة انحسبن، وينبّه على أي شي ما انقرا =====
+  const notMentioned = groupStudents.filter(s => !mentioned.has(s.id)).map(s => s.name);
+  const tally = [
+    [pending.length, 'بطاقة بالمراجعة'], [alreadyCommitted.length, 'معتمدة سابقًا'], [absentees.length, 'غايبة'],
+    [needLook.length, 'تحتاج نظرك'], [unknownCards, 'اسم ما انربط'], [skippedSeen.length, 'سبق ظهرت'], [notMentioned.length, 'ما ذُكرت بالقائمة'],
+  ].filter(t => t[0]);
+  const listHtml = (title, color, arr) => arr.length
+    ? `<div style="font-weight:700;color:${color};margin:0.6rem 0 0.3rem;">${title} (${arr.length}):</div><div style="font-size:0.78rem;">${arr.map(escapeHTML).join('<br>')}</div>`
+    : '';
+  resultsEl.innerHTML =
+    `<div style="font-weight:700;color:var(--green);margin-bottom:0.3rem;">📋 دخلت المراجعة: ${pending.length} بطاقة — ما راح تنحفظ إلا بعد اعتمادك بالأسفل</div>`
+    + `<div style="font-size:0.75rem;color:var(--muted);">${groupLabel}: ${groupStudents.length} طالبة = ${tally.map(t => `${t[0]} ${t[1]}`).join(' + ')}</div>`
+    + listHtml('⚠️ طالبات من المجموعة ما ذُكرن بالقائمة', '#c0392b', notMentioned)
+    + listHtml('❓ أسطر ما فهمتها', '#c0392b', unreadable)
+    + listHtml('❓ أسماء (غايبة/تحتاج نظرك) ما عرفت أي طالبة هي', '#c0392b', unmatched)
+    + listHtml('👀 تحتاج نظرك', '#b3691f', needLook)
+    + listHtml('⏰ مشاركات بالمسابقة بدون وقت إرسال بالقائمة (ما انفحصت مهلتها)', '#b3691f', noTime)
+    + listHtml('↩️ سبق ظهرت لنفس النطاق وما أضفتها مرة ثانية', 'var(--muted)', skippedSeen)
+    + listHtml('🔁 مكررة بالقائمة (أخذت أول سطر بس)', 'var(--muted)', duplicates);
+
+  window._waSourceTag = sourceTag;
+  window._waPendingReview = (window._waPendingReview || []).concat(pending);
+  waRenderImportFooter(alreadyCommitted, absentees);
+  if (unknownCards) waRenderPersistedSections('📌 أسماء ما قدرت أربطها بطالبة — اختاري الطالبة:');
+  waSaveCaches();
+  renderWaReviewQueue();
 }
 
 // ===== شاشة المراجعة قبل الاعتماد النهائي =====
@@ -11511,7 +11719,9 @@ function renderWaReviewQueue() {
   const queue = window._waPendingReview || [];
   const activeCount = queue.filter(it => !it.committed).length;
   if (!activeCount) { box.innerHTML = ''; return; }
-  let html = `<div style="font-weight:700;color:var(--wine);margin:0.8rem 0 0.4rem;border-top:2px solid var(--border);padding-top:0.6rem;">📝 مراجعة البطاقات (${activeCount})</div>`;
+  const approveAllBtn = waImportMode === 'paste' && waImportActiveTab === 'hifz' && activeCount > 1
+    ? `<button class="icon-btn-sm accent" style="padding:0.3rem 0.7rem;font-weight:700;" onclick="commitAllWaReviewCards()">✅ اعتمدي الكل</button>` : '';
+  let html = `<div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;margin:0.8rem 0 0.4rem;border-top:2px solid var(--border);padding-top:0.6rem;"><span style="font-weight:700;color:var(--wine);">📝 مراجعة البطاقات (${activeCount})</span>${approveAllBtn}</div>`;
   queue.forEach((item, i) => {
     if (item.committed) return; // اتحفظت، ما تنعرض
     const planText = getWaDayPlanText(item.stu, item.dayKey);
@@ -11617,6 +11827,18 @@ function commitWaReviewCard(i) {
   renderCurriculumTab();
 }
 
+// اعتماد كل البطاقات المعلّقة بضغطة وحدة (تبويب اللصق) — كل بطاقة تنعتمد بحالتها الظاهرة قدامك، وبنفس خطوات الاعتماد الفردي (سجل + تراجع)
+function commitAllWaReviewCards() {
+  const queue = window._waPendingReview || [];
+  const indexes = queue.map((it, i) => (it && !it.committed) ? i : -1).filter(i => i !== -1);
+  if (!indexes.length) return;
+  const lateCount = indexes.filter(i => queue[i].eventLate).length;
+  showConfirmModal('اعتمدي الكل',
+    `<div>راح تنعتمد ${toAr(indexes.length)} بطاقة بحالاتها الظاهرة قدامك.</div>`
+    + (lateCount ? `<div style="margin-top:0.5rem;color:#c0392b;font-weight:700;">⏰ ${toAr(lateCount)} منهن وصلت بعد مهلة المسابقة، وراح تنسحب من المسابقة تلقائيًا.</div>` : ''),
+    () => indexes.forEach(i => commitWaReviewCard(i)));
+}
+
 // عرض/إخفاء صندوق سجل اعتمادات المتابعة الأسبوعية، وتحديث محتواه وقت الفتح
 function toggleWaDailyApprovalLog() {
   const box = document.getElementById('waDailyApprovalLogBox');
@@ -11703,17 +11925,23 @@ function resolveWaUnknown(idx, dayKey) {
     waSaveCaches();
     return;
   }
-  const parsed = parseWaDailyCard(item.body, dayKey);
-  if (!parsed) return;
-  let status = parsed.missingItems.length > 0 ? 'miss' : (parsed.challengeDone ? 'challenge' : 'full');
-  const studentIsSplitKubra = studentHasKubraByName(stu.name);
+  let reviewItem;
+  if (item.pasted) {
+    // بطاقة جاية من تبويب اللصق: حالتها محفوظة جاهزة (ما فيه نص رسالة ينقرا)
+    const p = item.pasted;
+    reviewItem = waPasteReviewItem(stu, { status: p.status, kubra: p.kubra, time: p.timeMs ? new Date(p.timeMs) : null }, item.body, dayKey, new Date(p.rangeStartMs), p.sourceTag);
+  } else {
+    const parsed = parseWaDailyCard(item.body, dayKey);
+    if (!parsed) return;
+    reviewItem = {
+      stu, status: parsed.missingItems.length > 0 ? 'miss' : (parsed.challengeDone ? 'challenge' : 'full'), parsed, body: item.body, dayKey,
+      kubraApplicable: !!(studentHasKubraByName(stu.name) && parsed.kubraLine),
+      kubraDone: !!parsed.kubraDone,
+      sourceTag: window._waSourceTag,
+    };
+  }
   window._waPendingReview = window._waPendingReview || [];
-  window._waPendingReview.push({
-    stu, status, parsed, body: item.body, dayKey,
-    kubraApplicable: !!(studentIsSplitKubra && parsed.kubraLine),
-    kubraDone: !!parsed.kubraDone,
-    sourceTag: window._waSourceTag,
-  });
+  window._waPendingReview.push(reviewItem);
   renderWaReviewQueue();
   showToast('أُضيفت للمراجعة: ' + stu.name + ' ✅');
 
