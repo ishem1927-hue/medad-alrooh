@@ -1640,7 +1640,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       </div>
 
       <div id="waImportPasteBox" style="display:none;">
-        <div style="margin-bottom:0.7rem;">
+        <div id="waImportPasteGroupField" style="margin-bottom:0.7rem;">
           <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">👥 المجموعة</label>
           <div style="position:relative;">
             <select id="waImportPasteGroup" onchange="document.getElementById('waImportPasteGroupLabel').textContent=this.options[this.selectedIndex]?this.options[this.selectedIndex].text:'';" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;"></select>
@@ -1650,7 +1650,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         </div>
         <div style="margin-bottom:0.9rem;">
           <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📋 الصقي النص النهائي هنا</label>
-          <textarea id="waImportPasteText" rows="10" style="width:100%;font-family:'Cairo';font-size:0.8rem;border:1px solid var(--border);border-radius:10px;padding:0.6rem;box-sizing:border-box;resize:vertical;background:#fff;color:var(--ink);" placeholder="الأحد | 2026-11-08 20:00&#10;اسم الطالبة | كاملة&#10;اسم الطالبة | كاملة + تحدي&#10;اسم الطالبة | ناقصة: بند، بند&#10;اسم الطالبة | غايبة"></textarea>
+          <textarea id="waImportPasteText" rows="10" style="width:100%;font-family:'Cairo';font-size:0.8rem;border:1px solid var(--border);border-radius:10px;padding:0.6rem;box-sizing:border-box;resize:vertical;background:#fff;color:var(--ink);"></textarea>
         </div>
         <button class="add-btn" onclick="runWaImportPasteApply()">✅ تطبيق</button>
         <div id="waImportPasteResults" style="margin-top:0.7rem;"></div>
@@ -10494,7 +10494,7 @@ function updateWaFileLabel(inputId, labelId) {
 }
 
 let waImportActiveTab = 'hifz';
-let waImportMode = 'import'; // 'import' (ملف المحادثة) أو 'paste' (لصق قائمة جاهزة) — يخص تبويب "حفظ" بس
+let waImportMode = 'import'; // 'import' (ملف المحادثة) أو 'paste' (لصق قائمة جاهزة) — بتبويبي "حفظ" و"تعاهد"
 function setWaImportTab(tab) {
   waImportActiveTab = tab;
   const tabHifz = document.getElementById('waImportTabHifz');
@@ -10507,8 +10507,14 @@ function setWaImportTab(tab) {
   if (tabTaahud) tabTaahud.style.color = tab === 'taahud' ? 'var(--wine)' : 'var(--muted)';
   if (groupField) groupField.style.display = tab === 'taahud' ? 'none' : '';
   if (dayField) dayField.style.display = tab === 'taahud' ? 'none' : '';
-  const modeTabs = document.getElementById('waImportModeTabs');
-  if (modeTabs) modeTabs.style.display = tab === 'hifz' ? 'flex' : 'none'; // اللصق للبطاقات اليومية بس، مو للتعاهد
+  const pasteGroupField = document.getElementById('waImportPasteGroupField');
+  if (pasteGroupField) pasteGroupField.style.display = tab === 'taahud' ? 'none' : '';
+  const pasteText = document.getElementById('waImportPasteText');
+  pasteText.value = '';
+  pasteText.placeholder = tab === 'taahud'
+    ? 'الخميس | 2026-11-12 20:00\nاسم الطالبة | منجزة\nاسم الطالبة | منجزة'
+    : 'الأحد | 2026-11-08 20:00\nاسم الطالبة | كاملة\nاسم الطالبة | كاملة + تحدي\nاسم الطالبة | ناقصة: بند، بند\nاسم الطالبة | غايبة';
+  document.getElementById('waImportPasteResults').innerHTML = '';
   setWaImportMode('import');
   document.getElementById('waImportFile').value = '';
   updateWaFileLabel('waImportFile','waImportFileLabel');
@@ -10531,8 +10537,6 @@ function openWaImportModal() {
   pasteSel.innerHTML = groupOptions;
   document.getElementById('waImportGroupLabel').textContent = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : '';
   document.getElementById('waImportPasteGroupLabel').textContent = pasteSel.options[pasteSel.selectedIndex] ? pasteSel.options[pasteSel.selectedIndex].text : '';
-  document.getElementById('waImportPasteText').value = '';
-  document.getElementById('waImportPasteResults').innerHTML = '';
   document.getElementById('waImportFile').value = '';
   updateWaFileLabel('waImportFile','waImportFileLabel');
   document.getElementById('waImportStart').value = '';
@@ -11620,6 +11624,7 @@ function waPasteReviewItem(stu, row, body, dayKey, rangeStart, sourceTag) {
 }
 
 function runWaImportPasteApply() {
+  if (waImportActiveTab === 'taahud') { runWaTaahudPasteApply(); return; }
   const resultsEl = document.getElementById('waImportPasteResults');
   resultsEl.innerHTML = '';
   const groupVal = document.getElementById('waImportPasteGroup').value;
@@ -11709,6 +11714,95 @@ function runWaImportPasteApply() {
   if (unknownCards) waRenderPersistedSections('📌 أسماء ما قدرت أربطها بطالبة — اختاري الطالبة:');
   waSaveCaches();
   renderWaReviewQueue();
+}
+
+// ===== لصق التعاهد (تبويب "تعاهد" ← "لصق") =====
+// السطر الأول: الخميس | بداية النطاق (تاريخ ووقت)      مثال:  الخميس | 2026-11-12 20:00
+// باقي الأسطر: اسم الطالبة | منجزة
+// المذكورات بالقائمة يتفعّل لهم "♾️ تعاهد ✓" بخميس الأسبوع المثبّت. اللي عندهن تعاهد وما انذكرن ما يتغيّر عليهن شي.
+// لو عندها "♾️ تعاهد ✗" مسجّل تطلع بطاقة قديم/جديد للاختيار.
+function runWaTaahudPasteApply() {
+  const resultsEl = document.getElementById('waImportPasteResults');
+  resultsEl.innerHTML = '';
+  const lines = document.getElementById('waImportPasteText').value.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (!lines.length) { showToast('الصقي النص أول'); return; }
+
+  const headParts = lines[0].split('|').map(p => p.trim());
+  const dayKey = waParsePasteDay(headParts[0]);
+  const rangeStart = waParsePasteDate(headParts[1]);
+  if (dayKey !== 'thu' || !rangeStart) {
+    resultsEl.innerHTML = `<div style="color:#c0392b;font-weight:700;">⚠️ السطر الأول لازم يكون الخميس وبداية النطاق، مثل: الخميس | 2026-11-12 20:00</div>`;
+    return;
+  }
+  const scope = waCheckImportScope(rangeStart, dayKey);
+  if (scope.errorHtml) { resultsEl.innerHTML = scope.errorHtml; return; }
+  const week = scope.computedWeek;
+  const eligible = getTaahudEligibleStudents();
+
+  const applied = [], alreadyDone = [], conflicts = [], unmatched = [], noTaahud = [], ambiguous = [], unreadable = [];
+  const seen = new Set();
+  lines.slice(1).forEach(line => {
+    const parts = line.split('|').map(p => p.trim());
+    if (!parts[0] || !/^منجز[هة]?$/.test(normalizeForMatch2(parts[1] || ''))) { unreadable.push(line); return; }
+    const all = findMatchingStudents2(parts[0]);
+    const hits = all.filter(st => eligible.some(e => e.id === st.id));
+    if (hits.length > 1) { ambiguous.push(parts[0]); return; }
+    if (!hits.length) { (all.length ? noTaahud : unmatched).push(parts[0]); return; }
+    const stu = hits[0];
+    if (seen.has(stu.id)) return;
+    seen.add(stu.id);
+    const cur = getAttendVal(week, 5, stu.name + '_taahud');
+    if (cur === 'done') { alreadyDone.push(stu.name); return; }
+    if (cur === 'miss') { conflicts.push({ stu, week }); return; }
+    setAttendVal(week, 5, stu.name + '_taahud', 'done');
+    setTaahudAttendAlert(week, 5, stu.id, stu.name, 'done');
+    applied.push(stu.name);
+  });
+  if (applied.length) { saveAttendData(); renderCurriculumTab(); }
+  window._waTaahudPasteConflicts = conflicts;
+  const notMentioned = eligible.filter(e => !seen.has(e.id) && getAttendVal(week, 5, e.name + '_taahud') !== 'done').map(e => e.name);
+
+  const namesList = arr => `<div style="font-size:0.78rem;">${arr.map((n, i) => `<div>${i + 1}. ${escapeHTML(n)}</div>`).join('')}</div>`;
+  let html = `<div style="font-weight:700;color:var(--green);margin-bottom:0.4rem;">✅ اتفعّل ${EMOJIS.taahud_done} تعاهد: ${applied.length}</div>`;
+  if (applied.length) html += namesList(applied);
+  if (alreadyDone.length) html += `<div style="font-weight:700;color:var(--muted);margin:0.6rem 0 0.3rem;">ℹ️ مسجّل لهم ✓ مسبقًا — ما تغيّر شي (${alreadyDone.length}):</div>${namesList(alreadyDone)}`;
+  if (conflicts.length) {
+    html += `<div style="font-weight:700;color:#b3691f;margin:0.6rem 0 0.3rem;">⚠️ عندها ${EMOJIS.taahud_miss} (عدم إنجاز) مسجّل — اختاري أيهم يبقى (${conflicts.length}):</div>`;
+    conflicts.forEach((c, i) => {
+      html += `<div id="waTaahudPasteConflict_${i}" style="border:1px solid var(--border);border-radius:8px;padding:0.5rem;margin-bottom:0.5rem;font-size:0.75rem;">
+        <div style="font-weight:700;margin-bottom:0.3rem;">${escapeHTML(c.stu.name)}</div>
+        <div style="background:#fff;border-radius:6px;padding:0.4rem;margin-bottom:0.3rem;"><b>القديم:</b> ${EMOJIS.taahud_miss} ${escapeHTML(EMOJIS.taahud_miss_lbl || 'عدم إنجاز مراجعة التعاهد')}</div>
+        <div style="background:#fff;border-radius:6px;padding:0.4rem;margin-bottom:0.4rem;"><b>الجديد:</b> ${EMOJIS.taahud_done} ${escapeHTML(EMOJIS.taahud_done_lbl || 'إنجاز مراجعة التعاهد')}</div>
+        <div style="display:flex;gap:0.4rem;">
+          <button class="sw-btn" onclick="resolveWaTaahudPasteConflict(${i}, 'new')">✅ استخدمي الجديد</button>
+          <button class="sw-btn" onclick="resolveWaTaahudPasteConflict(${i}, 'old')">↩️ خليه القديم</button>
+        </div>
+      </div>`;
+    });
+  }
+  if (unmatched.length) html += `<div style="font-weight:700;color:#c0392b;margin:0.6rem 0 0.3rem;">❓ ما طابقت أي طالبة (${unmatched.length}):</div>${namesList(unmatched)}`;
+  if (noTaahud.length) html += `<div style="font-weight:700;color:#c0392b;margin:0.6rem 0 0.3rem;">🚫 ما عندها مراجعة تعاهد هالدورة — ما اتسجّل (${noTaahud.length}):</div>${namesList(noTaahud)}`;
+  if (ambiguous.length) html += `<div style="font-weight:700;color:#c0392b;margin:0.6rem 0 0.3rem;">🔁 الاسم يطابق أكثر من طالبة — ما اتسجّل (${ambiguous.length}):</div>${namesList(ambiguous)}`;
+  if (unreadable.length) html += `<div style="font-weight:700;color:#c0392b;margin:0.6rem 0 0.3rem;">⚠️ سطور ما فهمتها (لازم "اسم | منجزة") (${unreadable.length}):</div>${namesList(unreadable)}`;
+  if (notMentioned.length) html += `<div style="font-weight:700;color:var(--muted);margin:0.6rem 0 0.3rem;">⏳ عندهن تعاهد وما انذكرن بالقائمة — بدون تغيير (${notMentioned.length}):</div>${namesList(notMentioned)}`;
+  resultsEl.innerHTML = html;
+}
+
+function resolveWaTaahudPasteConflict(i, choice) {
+  const c = (window._waTaahudPasteConflicts || [])[i];
+  if (!c) return;
+  const box = document.getElementById('waTaahudPasteConflict_' + i);
+  if (choice === 'new') {
+    setAttendVal(c.week, 5, c.stu.name + '_taahud', 'done');
+    setTaahudAttendAlert(c.week, 5, c.stu.id, c.stu.name, 'done');
+    saveAttendData(); renderCurriculumTab();
+    if (box) box.innerHTML = `<span style="color:var(--green);font-weight:700;">✅ ${escapeHTML(c.stu.name)} — اتحدّث التعاهد لـ ${EMOJIS.taahud_done}</span>`;
+    showToast('اتفعّل تعاهد ' + c.stu.name);
+  } else {
+    if (box) box.innerHTML = `<span style="color:var(--muted);font-weight:700;">↩️ ${escapeHTML(c.stu.name)} — خلّيناه ${EMOJIS.taahud_miss}</span>`;
+    showToast('خلّيت تعاهد ' + c.stu.name + ' القديم');
+  }
+  window._waTaahudPasteConflicts[i] = null;
 }
 
 // ===== شاشة المراجعة قبل الاعتماد النهائي =====
