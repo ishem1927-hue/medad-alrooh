@@ -4133,7 +4133,7 @@ function setSecondaryAttendAlert(week, day, studentId, studentName, kind, presen
 }
 
 function getAlertsCount(week, day) {
-  return (attendAlerts[alertKey(week, day)] || []).length;
+  return (attendAlerts[alertKey(week, day)] || []).filter(a => !isFlexPath(maqAllStudents.find(x => x.id === a.studentId))).length;
 }
 
 function updateAlertsBadge() {
@@ -4165,7 +4165,7 @@ function updateAlertsBadge() {
 function openAlertsPanel() {
   const byHalqa = curriculumViewMode === 'live'; // الحلقة المباشرة → تجميع حسب الحلقة (المعلمة)
   const alertsDayKey = byHalqa ? liveAttendKey() : currentDay;
-  const list = (attendAlerts[alertKey(currentWeek, alertsDayKey)] || []).filter(a => maqAllStudents.some(x => x.id === a.studentId && (byHalqa || !isFlexPath(x))));
+  const list = (attendAlerts[alertKey(currentWeek, alertsDayKey)] || []).filter(a => maqAllStudents.some(x => x.id === a.studentId && !isFlexPath(x)));
   const dayLabel = byHalqa ? (getHalqaLabel(currentLiveHalqa) + ' — الفترة ' + toAr(currentLivePeriod)) : ((ATTEND_DAYS[currentDay] || {}).label || '');
   const weekLabel = WEEK_NAMES[currentWeek] || '';
   let body = '';
@@ -5342,7 +5342,7 @@ function renderMissingStats() {
       const inHalqaPeriod = s => getStudentHalqaId(s.id) === h && getStudentPeriod(s.id) === p;
       const dayKey = liveKeyFor(h, p, liveClosingActive);
 
-      const missingAttend = maqAllStudents.filter(s => inHalqaPeriod(s) && !getAttendVal(currentWeek, dayKey, s.name));
+      const missingAttend = maqAllStudents.filter(s => inHalqaPeriod(s) && !isFlexPath(s) && !getAttendVal(currentWeek, dayKey, s.name));
       let cols = buildMissingStatsCol('☑️ التحضير', missingAttend);
 
       if (!liveClosingActive) {
@@ -5350,9 +5350,9 @@ function renderMissingStats() {
         cols += buildMissingStatsCol('📋 الخطط', missingPlans);
 
         if (currentWeek === 0) {
-          const hasKubraHere = maqAllStudents.some(s => inHalqaPeriod(s) && getKubra(s.group && s.group.trim() ? s.group.trim() : '', s.id).hasKubra);
+          const hasKubraHere = maqAllStudents.some(s => inHalqaPeriod(s) && !isFlexPath(s) && getKubra(s.group && s.group.trim() ? s.group.trim() : '', s.id).hasKubra);
           if (hasKubraHere) {
-            const missingKubra = maqAllStudents.filter(s => inHalqaPeriod(s) && (() => {
+            const missingKubra = maqAllStudents.filter(s => inHalqaPeriod(s) && !isFlexPath(s) && (() => {
               const g = s.group && s.group.trim() ? s.group.trim() : '';
               if (!getKubra(g, s.id).hasKubra) return false;
               const split = kubraSplits['k' + s.id] || [];
