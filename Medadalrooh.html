@@ -2314,7 +2314,7 @@ function saveHalqaDist() {
   syncPush('madad_halqa_dist');
 }
 
-let activeCardFilter = null; // null | 'hifz' | 'juz' | 'surah' | 'current' | 'name' | 'nextcycle' | 'regtype' | 'notes'
+let activeCardFilter = null; // null | 'hifz' | 'juz' | 'surah' | 'current' | 'name' | 'nextcycle' | 'regtype' | 'path' | 'notes'
 
 function toAr(n) {
   return n.toString().replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
@@ -2810,6 +2810,7 @@ supabaseClient
           if (typeof renderHasib === 'function') { try { renderHasib(); } catch(e2) {} }
         }
         if (typeof loadMaqStudents === 'function') loadMaqStudents();
+        if (typeof loadAttendStudentsList === 'function') loadAttendStudentsList();
         if (typeof renderCurriculumTab === 'function') { try { renderCurriculumTab(); } catch(e2) {} }
         const stModal = document.getElementById('studentsTableModal');
         if (stModal && stModal.classList.contains('open') && typeof renderStudentsTable === 'function') { try { renderStudentsTable(); } catch(e2) {} }
@@ -3070,6 +3071,7 @@ function renderStudents() {
       ['name', 'الاسم والعمر'],
       ['nextcycle', 'الدورة القادمة'],
       ['regtype', 'نوع التسجيل'],
+      ['path', 'المسار'],
       ['notes', 'ملاحظات'],
     ];
 
@@ -3082,7 +3084,7 @@ function renderStudents() {
       <div class="student-top">
         <div class="student-name-display" style="cursor:pointer;" onclick="toggleHifzPanel(${s.id})">
           <span class="student-num">${toAr(idx + 1)}</span>
-          <span>${getJoinCycleEmoji(s) ? getJoinCycleEmoji(s) + ' ' : ''}${s.name}${s.age ? ` <span style="font-weight:400;color:var(--muted);font-size:0.85em;">(${computeAutoAge(s).value} سنة)</span>${computeAutoAge(s).warning ? ` <span title="ما قدرنا نحدّث عمرها تلقائيًا — تاريخ بداية دورة انضمامها ناقص بتبويب المواعيد" style="cursor:help;">⚠️</span>` : ''}` : ''}${getPayTypeEmoji(s) ? ` ${getPayTypeEmoji(s)}` : ''}</span>
+          <span>${getJoinCycleEmoji(s) ? getJoinCycleEmoji(s) + ' ' : ''}${s.name}${s.age ? ` <span style="font-weight:400;color:var(--muted);font-size:0.85em;">(${computeAutoAge(s).value} سنة)</span>${computeAutoAge(s).warning ? ` <span title="ما قدرنا نحدّث عمرها تلقائيًا — تاريخ بداية دورة انضمامها ناقص بتبويب المواعيد" style="cursor:help;">⚠️</span>` : ''}` : ''}${getPayTypeEmoji(s) ? ` ${getPayTypeEmoji(s)}` : ''}</span>${isFlexPath(s) ? '<span style="font-size:0.68rem;font-weight:400;padding:0.1rem 0.5rem;border-radius:10px;border:1px solid var(--wine);color:var(--wine);white-space:nowrap;">مسار مرن</span>' : ''}
         </div>
       </div>
       <div class="student-meta" style="cursor:pointer;" onclick="toggleHifzPanel(${s.id})">
@@ -3164,6 +3166,14 @@ function renderStudents() {
           </select>
         ` : ''}
 
+        ${filt === 'path' ? `
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <span style="font-size:0.75rem;color:var(--ink);">المسار:</span>
+            <button type="button" onclick="setStudentPath(${s.id}, false)" style="font-size:0.78rem;padding:0.3rem 0.8rem;border-radius:16px;border:1.5px solid;cursor:pointer;font-family:inherit;${!isFlexPath(s)?'background:var(--wine);color:#fff;border-color:var(--wine);':'background:transparent;color:var(--ink);border-color:var(--border);'}">أساسي</button>
+            <button type="button" onclick="setStudentPath(${s.id}, true)" style="font-size:0.78rem;padding:0.3rem 0.8rem;border-radius:16px;border:1.5px solid;cursor:pointer;font-family:inherit;${isFlexPath(s)?'background:var(--wine);color:#fff;border-color:var(--wine);':'background:transparent;color:var(--ink);border-color:var(--border);'}">مرن</button>
+          </div>
+        ` : ''}
+
         ${filt === 'notes' ? `
           <textarea id="hifzNotes_${s.id}" style="width:100%;box-sizing:border-box;min-height:60px;font-family:inherit;font-size:0.82rem;padding:0.5rem;border:1px solid var(--border);border-radius:8px;" onchange="saveHifzNotes(${s.id}, this.value)">${s.hifzNotes || ''}</textarea>
         ` : ''}
@@ -3243,7 +3253,7 @@ function loadAttendStudentsList() {
     if (s) {
       const all = JSON.parse(s);
       ATTEND_STUDENTS = all
-        .filter(x => x.active !== false)
+        .filter(x => x.active !== false && !isFlexPath(x))
         .map(x => x.name)
         .sort((a, b) => a.trim().localeCompare(b.trim(), 'ar'));
     } else {
@@ -4155,7 +4165,7 @@ function updateAlertsBadge() {
 function openAlertsPanel() {
   const byHalqa = curriculumViewMode === 'live'; // الحلقة المباشرة → تجميع حسب الحلقة (المعلمة)
   const alertsDayKey = byHalqa ? liveAttendKey() : currentDay;
-  const list = (attendAlerts[alertKey(currentWeek, alertsDayKey)] || []).filter(a => maqAllStudents.some(x => x.id === a.studentId));
+  const list = (attendAlerts[alertKey(currentWeek, alertsDayKey)] || []).filter(a => maqAllStudents.some(x => x.id === a.studentId && (byHalqa || !isFlexPath(x))));
   const dayLabel = byHalqa ? (getHalqaLabel(currentLiveHalqa) + ' — الفترة ' + toAr(currentLivePeriod)) : ((ATTEND_DAYS[currentDay] || {}).label || '');
   const weekLabel = WEEK_NAMES[currentWeek] || '';
   let body = '';
@@ -4203,7 +4213,7 @@ function buildExpandedWeeklyAlertsHTML() {
   WEEK_NAMES.forEach((weekName, w) => {
     ATTEND_DAYS.forEach((day, d) => {
       if (!['sw', 'thu'].includes(day.type)) return;
-      const list = (attendAlerts[alertKey(w, d)] || []).filter(a => maqAllStudents.some(x => x.id === a.studentId));
+      const list = (attendAlerts[alertKey(w, d)] || []).filter(a => maqAllStudents.some(x => x.id === a.studentId && !isFlexPath(x)));
       if (!list.length) return;
       hasAny = true;
       list.sort((a, b) => a.studentName.localeCompare(b.studentName, 'ar'));
@@ -4517,7 +4527,7 @@ function generateAttendReport() {
   const sec4 = document.getElementById('wrSection4');
   if (EMOJIS.event_lbl && EMOJIS.event_lbl.trim()) {
     const participants = maqAllStudents
-      .filter(s => eventParticipants[s.id])
+      .filter(s => eventParticipants[s.id] && !isFlexPath(s))
       .map(s => firstTwoWords(s.name))
       .sort((a, b) => a.trim().localeCompare(b.trim(), 'ar'));
     if (participants.length > 0) {
@@ -4602,6 +4612,41 @@ function setRegType(id, val) {
   saveHasib();
   renderStudents();
   if (typeof renderHasib === 'function') { try { renderHasib(); } catch(e) {} }
+}
+
+// المسار: أساسي (الافتراضي) أو مرن. المرن = تظهر بالحلقة المباشرة فقط؛ تنشال من مجموعتها وبياناتها تنتقل لـ"بدون مجموعة" عشان ما تختفي من الحلقة المباشرة
+function setStudentPath(id, flex) {
+  const s = students.find(x => x.id === id);
+  if (!s || isFlexPath(s) === flex) return;
+  if (flex) {
+    const oldGroup = s.group && s.group.trim() ? s.group.trim() : '';
+    if (oldGroup) {
+      let moved = false;
+      Object.keys(maqData).forEach(key => {
+        const m = key.match(/^g(.*)_w(\d+)_(.+)$/);
+        if (!m || m[3] !== String(s.id) || m[1] !== oldGroup) return;
+        const target = dk('', parseInt(m[2], 10), s.id);
+        const t = maqData[target];
+        const targetEmpty = !t || (!(t.hifz || '').trim() && !(t.type || '').trim() && !(t.tilawah || '').trim() && !(t.dayPlan || []).some(d => d && d.trim()));
+        if (!targetEmpty) return;
+        maqData[target] = maqData[key];
+        delete maqData[key];
+        moved = true;
+      });
+      if (moved) saveMaqData();
+    }
+    s.group = '';
+    s.flexPath = true;
+  } else {
+    delete s.flexPath;
+  }
+  saveStudents();
+  renderStudents();
+  if (typeof loadMaqStudents === 'function') loadMaqStudents();
+  loadAttendStudentsList();
+  if (typeof renderCurriculumTab === 'function') { try { renderCurriculumTab(); } catch(e) {} }
+  if (typeof renderDailyReportPanel === 'function') { try { renderDailyReportPanel(); } catch(e) {} }
+  showToast(flex ? 'تم تفعيل المسار المرن ✅' : 'رجعت للمسار الأساسي ✅');
 }
 
 function setNextCycle(id, val) {
@@ -4748,6 +4793,7 @@ function startNewCycle() {
         }
         s.nextCycle = null;  // تصفير
         s.group = '';         // تصفير المجموعة
+        delete s.flexPath;    // تصفير المسار (يرجع أساسي)
       });
       halqaDist = {};
       saveHalqaDist();
@@ -5151,6 +5197,9 @@ async function loadMaqData() {
     .subscribe();
 });
 
+// المسار المرن: الطالبة تظهر بالحلقة المباشرة فقط (ما تدخل المتابعة اليومية ولا التقارير ولا نواقصها)
+function isFlexPath(s) { return !!s && s.flexPath === true; }
+
 function loadMaqStudents() {
   loadHalqaDist();
   try {
@@ -5160,7 +5209,7 @@ function loadMaqStudents() {
       maqAllStudents = all
         .filter(x => x.active !== false)
         .sort((a, b) => a.name.trim().localeCompare(b.name.trim(), 'ar'));
-      maqStudents = maqAllStudents;
+      maqStudents = maqAllStudents.filter(x => !isFlexPath(x));
     } else {
       maqAllStudents = []; maqStudents = [];
     }
@@ -5297,7 +5346,7 @@ function renderMissingStats() {
       let cols = buildMissingStatsCol('☑️ التحضير', missingAttend);
 
       if (!liveClosingActive) {
-        const missingPlans = maqAllStudents.filter(s => inHalqaPeriod(s) && (() => { const sd = getStudentData(s.group && s.group.trim() ? s.group.trim() : '', currentWeek, s.id); return !sd.hifz || !sd.hifz.trim(); })());
+        const missingPlans = maqAllStudents.filter(s => inHalqaPeriod(s) && !isFlexPath(s) && (() => { const sd = getStudentData(s.group && s.group.trim() ? s.group.trim() : '', currentWeek, s.id); return !sd.hifz || !sd.hifz.trim(); })());
         cols += buildMissingStatsCol('📋 الخطط', missingPlans);
 
         if (currentWeek === 0) {
@@ -5317,16 +5366,16 @@ function renderMissingStats() {
     }
   } else if (!isThu) {
     // الأيام العادية: التحضير مقسّم حسب المجموعة
-    const missingAttend = maqAllStudents.filter(s => !getAttendVal(currentWeek, currentDay, s.name));
+    const missingAttend = maqAllStudents.filter(s => !isFlexPath(s) && !getAttendVal(currentWeek, currentDay, s.name));
     html += buildGroupedHtml('☑️ التحضير اليومي', missingAttend, s => s.group && s.group.trim() ? s.group.trim() : 'بدون مجموعة', k => getGroupLabel(k), s => computeStudentDailyStatus(s.name, currentWeek, currentDay).excluded);
   } else {
     // الخميس: تحضير يومي أو تعاهد بس (الكبرى ما تعود تظهر هنا بعد التقسيم) — بدون عنوان مكرر (التبويب فوق أصلاً يوضح الاسم)
     if (missingStatsActiveTab === 'attend') {
-      const missingAttend = maqAllStudents.filter(s => !getAttendVal(currentWeek, currentDay, s.name));
+      const missingAttend = maqAllStudents.filter(s => !isFlexPath(s) && !getAttendVal(currentWeek, currentDay, s.name));
       html += buildGroupedHtml('', missingAttend, s => s.group && s.group.trim() ? s.group.trim() : 'بدون مجموعة', k => getGroupLabel(k), s => computeStudentDailyStatus(s.name, currentWeek, currentDay).excluded);
     } else if (missingStatsActiveTab === 'taahud') {
       try {
-        const taahudStudents = maqAllStudents.filter(s => studentHasTaahudByName(s.name) &&
+        const taahudStudents = maqAllStudents.filter(s => !isFlexPath(s) && studentHasTaahudByName(s.name) &&
           !getAttendVal(currentWeek, 5, s.name + '_taahud'));
         html += buildGroupedHtml('', taahudStudents, s => s.group && s.group.trim() ? s.group.trim() : 'بدون مجموعة', k => getGroupLabel(k));
       } catch(e2) {}
@@ -8195,7 +8244,7 @@ function renderDailyReportPanel() {
     <button class="day-tab ${d.idx === dailyReportDay ? 'active' : ''}" onclick="setDailyReportDay(${d.idx})">${d.label}</button>
   `).join('');
 
-  const active = students.filter(s => s.active !== false);
+  const active = students.filter(s => s.active !== false && !isFlexPath(s));
   const groupMap = {};
   active.forEach(s => {
     const g = (s.group && s.group.trim()) ? s.group.trim() : 'بدون مجموعة';
@@ -10620,7 +10669,7 @@ function closeWaImportModal() {
 
 // كل الطالبات (بأي مجموعة) اللي عندهن تعاهد فعّال حاليًا — بدون أي قائمة أسماء ثابتة بالكود
 function getTaahudEligibleStudents() {
-  return students.filter(s => s.active !== false && !s.withdrawn && getTaahud(s.id).hasTaahud);
+  return students.filter(s => s.active !== false && !s.withdrawn && !isFlexPath(s) && getTaahud(s.id).hasTaahud);
 }
 
 // يستخرج الاسم وقائمة أرقام المراجعات المنجزة من بطاقة "مراجعة التعاهد ♾️" — يتجاهل "تقسيم مراجعة التعاهد"
