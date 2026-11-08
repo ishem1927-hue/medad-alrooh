@@ -6447,6 +6447,7 @@ function openWaPlanImportModal() {
   document.getElementById('waPlanPasteResults').innerHTML = '';
   window._waPlanPasteConflicts = null;
   window._waPlanKubraConflicts = null;
+  window._waPlanKubraMismatch = null;
   setWaPlanModeTab('import');
   document.getElementById('waPlanImportOverlay').classList.add('open');
 }
@@ -6524,7 +6525,7 @@ function runWaPlanPasteApply() {
     const sg = stu.group && stu.group.trim() ? stu.group.trim() : '';
     const archiveKubra = getKubra(sg, stu.id);
     if (!archiveKubra.hasKubra || !sameKubraText2(block.mainText, archiveKubra.kubra)) {
-      kubraMismatch.push({ name: stu.name, msg: block.mainText, archive: archiveKubra.hasKubra ? archiveKubra.kubra : '' });
+      kubraMismatch.push({ stu, name: stu.name, msg: block.mainText, archive: archiveKubra.hasKubra ? archiveKubra.kubra : '', newDays: block.days.map(normalizePasteValue2) });
       return;
     }
     const newDays = block.days.map(normalizePasteValue2);
@@ -6539,6 +6540,7 @@ function runWaPlanPasteApply() {
   });
   if (kubraApplied.length) saveKubraSplits();
   window._waPlanKubraConflicts = kubraConflicts;
+  window._waPlanKubraMismatch = kubraMismatch;
 
   const dayLabels4 = ['الأحد','الاثنين','الثلاثاء','الأربعاء'];
   const namesList = arr => `<div style="font-size:0.78rem;">${arr.map((n,i)=>`<div>${i+1}. ${escapeHTML(n)}</div>`).join('')}</div>`;
@@ -6573,11 +6575,12 @@ function runWaPlanPasteApply() {
     if (kubraLate.length) html += `<div style="font-weight:700;color:#b3691f;margin:0.6rem 0 0.3rem;">⚠️ وصلت خطة كبرى بعد الأسبوع الأول — ما اتسجّل ولا اتغيّر شي (${kubraLate.length}):</div>${namesList(kubraLate)}`;
     if (kubraMismatch.length) {
       html += `<div style="font-weight:700;color:#b3691f;margin:0.6rem 0 0.3rem;">⚠️ مقرر الكبرى يختلف عن الأرشيف — ما اتسجّل التقسيم (${kubraMismatch.length}):</div>`;
-      kubraMismatch.forEach(m => {
-        html += `<div style="border:1px solid var(--border);border-radius:8px;padding:0.5rem;margin-bottom:0.4rem;font-size:0.75rem;">
+      kubraMismatch.forEach((m, i) => {
+        html += `<div id="waPlanKubraMismatch_${i}" style="border:1px solid var(--border);border-radius:8px;padding:0.5rem;margin-bottom:0.4rem;font-size:0.75rem;">
           <div style="font-weight:700;margin-bottom:0.3rem;">${escapeHTML(m.name)}</div>
           <div style="background:#fff;border-radius:6px;padding:0.4rem;margin-bottom:0.3rem;"><b>بالرسالة:</b> ${escapeHTML(m.msg)}</div>
           <div style="background:#fff;border-radius:6px;padding:0.4rem;"><b>بالأرشيف:</b> ${m.archive ? escapeHTML(m.archive) : 'ما عندها كبرى مسجّلة'}</div>
+          <div id="waPlanKubraMismatchAct_${i}" style="margin-top:0.4rem;"><button class="sw-btn" onclick="approveWaPlanKubraMismatch(${i})">اعتمدي تقسيم الرسالة</button></div>
         </div>`;
       });
     }
@@ -6600,6 +6603,38 @@ function runWaPlanPasteApply() {
     }
   }
   resultsEl.innerHTML = html;
+}
+
+// اعتماد تقسيم الرسالة لطالبة مقررها يختلف عن الأرشيف — يسجّل التقسيم فقط وما يلمس الأرشيف
+function approveWaPlanKubraMismatch(i) {
+  const m = (window._waPlanKubraMismatch || [])[i];
+  const act = document.getElementById('waPlanKubraMismatchAct_' + i);
+  if (!m || !act) return;
+  const oldDays = getKubraSplit(m.stu.id).slice();
+  if (oldDays.some(d => d && d.trim())) {
+    if (oldDays.every((d, k) => normalizePasteValue2(d) === m.newDays[k])) {
+      act.innerHTML = `<span style="color:var(--muted);font-weight:700;">ℹ️ مسجّل مسبقًا بنفس التقسيم — ما تغيّر شي</span>`;
+    } else {
+      const labels = ['الأحد','الاثنين','الثلاثاء','الأربعاء'];
+      const oldTxt = labels.map((l, k) => `${l}: ${oldDays[k] || ''}`).join('\n');
+      const newTxt = labels.map((l, k) => `${l}: ${m.newDays[k] || ''}`).join('\n');
+      const idx = window._waPlanKubraConflicts.length;
+      window._waPlanKubraConflicts.push({ stu: m.stu, oldDays, newDays: m.newDays });
+      act.innerHTML = `<div id="waPlanKubraConflict_${idx}" style="font-size:0.75rem;">
+        <div style="font-weight:700;color:#b3691f;margin-bottom:0.3rem;">⚠️ عندها تقسيم كبرى مسجّل مسبقًا — اختاري أيهم يبقى:</div>
+        <div style="background:#fff;border-radius:6px;padding:0.4rem;margin-bottom:0.3rem;white-space:pre-wrap;"><b>القديم:</b><br>${escapeHTML(oldTxt)}</div>
+        <div style="background:#fff;border-radius:6px;padding:0.4rem;margin-bottom:0.4rem;white-space:pre-wrap;"><b>الجديد:</b><br>${escapeHTML(newTxt)}</div>
+        <div style="display:flex;gap:0.4rem;">
+          <button class="sw-btn" onclick="resolveWaPlanKubraConflict(${idx}, 'new')">✅ استخدمي الجديد</button>
+          <button class="sw-btn" onclick="resolveWaPlanKubraConflict(${idx}, 'old')">↩️ خليه القديم</button>
+        </div></div>`;
+    }
+  } else {
+    applyKubra2ToStudent(m.stu, { days: m.newDays });
+    act.innerHTML = `<span style="color:var(--green);font-weight:700;">✅ اتسجّل تقسيم الكبرى (الأرشيف ما تغيّر)</span>`;
+    showToast('اتسجّل تقسيم الكبرى لـ ' + m.stu.name);
+  }
+  window._waPlanKubraMismatch[i] = null;
 }
 
 function resolveWaPlanKubraConflict(i, choice) {
