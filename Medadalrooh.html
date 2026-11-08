@@ -7492,15 +7492,43 @@ function splitKubraSections2(text) {
   });
   return { weeklyText: weekly.join('\n'), kubraText: kubra.join('\n') };
 }
-// مقارنة مقرر الكبرى المكتوب بالرسالة مع المسجّل بالأرشيف — تتجاهل الهمزات/التاء المربوطة/الأرقام الإنجليزية/الشرطات/كلمة "سورة"/كلمات الوصل
-function normalizeKubraMq2(s) {
-  return normalizeForMatch2(toArabicDigits(s || ''))
-    .replace(/(^|\s)(?:سوره|من|الي|الى|و)(?=\s|$)/g, ' ')
-    .replace(/\s+/g, ' ').trim();
+// عدد آيات كل سورة بترتيب المصحف (المجموع 6236) — تُستخدم لمعرفة أن "القلم" كاملة = "القلم 1-52"
+const SURAH_AYAT_COUNT = [7,286,200,176,120,165,206,75,129,109,123,111,43,52,99,128,111,110,98,135,112,78,118,64,77,227,93,88,69,60,34,30,73,54,45,83,182,88,75,85,54,53,89,59,37,35,38,29,18,45,60,49,62,55,78,96,29,22,24,13,14,11,11,18,12,12,30,52,52,44,28,28,20,56,40,31,50,40,46,42,29,19,36,25,22,17,19,26,30,20,15,21,11,8,8,19,5,8,8,11,11,8,3,9,5,4,7,3,6,3,5,4,5,6];
+
+// يحوّل مقرر الكبرى إلى "سورة:آية ← سورة:آية" (بداية ونهاية) عشان تختلف الكتابة ويبقى المقرر نفسه
+// مثال: "التحريم 7-12 - القلم" و "التحريم ٧ - القلم" → نفس النتيجة
+function kubraSpan2(text) {
+  const tokens = String(text || '')
+    .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+    .replace(/\d+/g, m => ' #' + m + '# ')
+    .replace(/-/g, ' ')
+    .split(/\s+/).filter(Boolean)
+    .map(t => /^#\d+#$/.test(t) ? t : normalizeForMatch2(t))
+    .filter(t => t && !['سوره', 'من', 'الي', 'الى', 'و'].includes(t));
+  const entries = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
+    if (/^#\d+#$/.test(t)) {
+      if (!entries.length) return null;
+      entries[entries.length - 1].nums.push(+t.slice(1, -1));
+      continue;
+    }
+    let idx = SURAH_PAGES.findIndex(r => normalizeForMatch2(r[0]) === t);
+    if (idx < 0 && i + 1 < tokens.length) {
+      idx = SURAH_PAGES.findIndex(r => normalizeForMatch2(r[0]) === t + ' ' + tokens[i + 1]);
+      if (idx >= 0) i++;
+    }
+    if (idx < 0) return null;
+    entries.push({ s: idx + 1, nums: [] });
+  }
+  if (!entries.length) return null;
+  const first = entries[0], last = entries[entries.length - 1];
+  const endAyah = last.nums.length ? last.nums[last.nums.length - 1] : SURAH_AYAT_COUNT[last.s - 1];
+  return first.s + ':' + (first.nums[0] || 1) + '>' + last.s + ':' + endAyah;
 }
 function sameKubraText2(a, b) {
-  const x = normalizeKubraMq2(a);
-  return !!x && x === normalizeKubraMq2(b);
+  const x = kubraSpan2(a);
+  return !!x && x === kubraSpan2(b);
 }
 
 function applyKubra2ToStudent(student, plan) {
