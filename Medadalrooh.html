@@ -2331,6 +2331,7 @@ function copySmartNames() {
   let list = students;
   if (currentFilter === 'active')   list = students.filter(s => s.active !== false);
   else if (currentFilter === 'inactive') list = students.filter(s => s.active === false);
+  else if (currentFilter === 'flex') list = students.filter(s => s.active !== false && isFlexPath(s));
   else if (currentFilter.startsWith('g_')) {
     const g = currentFilter.slice(2);
     list = students.filter(s => s.group === g && s.active !== false && !s.withdrawn);
@@ -2418,6 +2419,7 @@ function renderFilterBar() {
     <button class="filter-btn ${currentFilter==='all'?'active':''}" onclick="setFilter('all',this)">الكل</button>
     <button class="filter-btn ${currentFilter==='active'?'active':''}" onclick="setFilter('active',this)">النشيطات</button>
     <button class="filter-btn ${currentFilter==='inactive'?'active':''}" onclick="setFilter('inactive',this)">غير النشيطات</button>
+    <button class="filter-btn ${currentFilter==='flex'?'active':''}" onclick="setFilter('flex',this)">المسار المرن</button>
     <div style="position:relative;flex-shrink:0;">
       <button class="filter-btn ${currentFilter.startsWith('g_') ? 'active' : ''}" id="groupFilterBtn" onclick="toggleGroupDropdown(event)">${currentGroupLabel}</button>
     </div>
@@ -3036,6 +3038,7 @@ function renderStudents() {
   let list = students;
   if (currentFilter === 'active')   list = students.filter(s => s.active !== false);
   if (currentFilter === 'inactive') list = students.filter(s => s.active === false);
+  if (currentFilter === 'flex') list = students.filter(s => s.active !== false && isFlexPath(s));
   if (currentFilter.startsWith('g_')) {
     const g = currentFilter.slice(2);
     list = students.filter(s => s.group === g && s.active !== false);
