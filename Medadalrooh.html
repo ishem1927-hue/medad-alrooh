@@ -10483,6 +10483,17 @@ function waSaveCaches() {
   } catch(e) {}
 }
 
+// ذاكرة "سبق ظهرت": تنمسح تلقائيًا لما ما يكون فيه أي شي معلّق بأي قائمة مراجعة (عشان ما تبقى بيانات دورات قديمة تحجب طالبات)
+function waGetSeenSet(scopeKey) {
+  const hasLive = arr => (arr || []).some(x => x && !x.committed);
+  const nothingPending = !hasLive(window._waPendingReview) && !hasLive(window._waUnknownCache) && !hasLive(window._waFuzzyConfirmCache)
+    && !hasLive(window._waNeedsConfirmCache) && !hasLive(window._waDuplicateCache)
+    && !hasLive(window._waTaahudPendingReview) && !hasLive(window._waTaahudUnknownCache) && !hasLive(window._waTaahudFuzzyConfirmCache) && !hasLive(window._waTaahudDuplicateCache);
+  if (nothingPending || !window._waSeenKeys) window._waSeenKeys = {};
+  if (!window._waSeenKeys[scopeKey]) window._waSeenKeys[scopeKey] = new Set();
+  return window._waSeenKeys[scopeKey];
+}
+
 function waLoadCaches() {
   if (window._waCachesLoaded) return; // نحمّل مرة وحدة بس بالجلسة
   window._waCachesLoaded = true;
@@ -10997,9 +11008,7 @@ async function runWaTaahudImportAnalysis() {
   const taahudStudents = getTaahudEligibleStudents();
 
   const scopeKey = `taahud_${computedWeek}`;
-  window._waSeenKeys = window._waSeenKeys || {};
-  if (!window._waSeenKeys[scopeKey]) window._waSeenKeys[scopeKey] = new Set();
-  const seenSet = window._waSeenKeys[scopeKey];
+  const seenSet = waGetSeenSet(scopeKey);
   const seenSnapshot = new Set(seenSet);
 
   const unknown = [];
@@ -11331,9 +11340,7 @@ async function runWaImportAnalysis() {
 
   // ===== تتبع دائم لكل نطاق (أسبوع+يوم+مجموعة): أي طالبة أو اسم سبق ظهر بتحليل سابق (حتى لو ما اعتُمد بعد)، نتجاهله بالكامل هالمرة =====
   const scopeKey = `${computedWeek}_${dayKey}_${groupVal}`;
-  window._waSeenKeys = window._waSeenKeys || {};
-  if (!window._waSeenKeys[scopeKey]) window._waSeenKeys[scopeKey] = new Set();
-  const seenSet = window._waSeenKeys[scopeKey];
+  const seenSet = waGetSeenSet(scopeKey);
   const seenSnapshot = new Set(seenSet); // نسخة من قبل هالتحليل، عشان تكرارات نفس الملف بنفس الجلسة تنحسب صح فيما بينها
 
   // ===== فحص سريع: هل المجموعة المختارة تطابق الملف أصلًا؟ =====
@@ -11765,12 +11772,10 @@ function runWaImportPasteApply() {
   const sourceTag = `${WEEK_NAMES[computedWeek] || (computedWeek+1)} — ${WA_DAY_LABELS[dayKey]} — ${groupLabel}`;
   // نفس تتبع الاستيراد القديم: طالبة سبق ظهرت لنفس (أسبوع+يوم+مجموعة) ما تنضاف مرة ثانية
   const scopeKey = `${computedWeek}_${dayKey}_${groupVal}`;
-  window._waSeenKeys = window._waSeenKeys || {};
-  if (!window._waSeenKeys[scopeKey]) window._waSeenKeys[scopeKey] = new Set();
-  const seenSet = window._waSeenKeys[scopeKey];
+  const seenSet = waGetSeenSet(scopeKey);
 
   const pending = [], absentees = [], alreadyCommitted = [];
-  const needLook = [], unreadable = [], unmatched = [], duplicates = [], skippedSeen = [], noTime = [];
+  const needLook = [], unreadable = [], unmatched = [], duplicates = [], alreadyInQueue = [], noTime = [];
   const mentioned = new Set();
   let unknownCards = 0;
 
@@ -11797,7 +11802,7 @@ function runWaImportPasteApply() {
     if (row.kind === 'absent') { absentees.push(stu); return; }
     if (row.kind === 'review') { needLook.push(row.note ? `${stu.name} — ${row.note}` : stu.name); return; }
     if (waIsAlreadyCommitted(stu.name, computedWeek, checkDayIdx)) { alreadyCommitted.push(stu); return; }
-    if (seenSet.has('s:' + stu.id)) { skippedSeen.push(stu.name); return; }
+    if ((window._waPendingReview || []).some(it => it && !it.committed && it.stu.id === stu.id && it.dayKey === dayKey)) { alreadyInQueue.push(stu.name); return; }
     seenSet.add('s:' + stu.id);
     pending.push(waPasteReviewItem(stu, row, waPasteBody(row), dayKey, rangeStart, sourceTag));
     if (dayKey !== 'thu' && eventParticipants[stu.id] && !row.time) noTime.push(stu.name);
@@ -11807,7 +11812,7 @@ function runWaImportPasteApply() {
   const notMentioned = groupStudents.filter(s => !mentioned.has(s.id)).map(s => s.name);
   const tally = [
     [pending.length, 'بطاقة بالمراجعة'], [alreadyCommitted.length, 'معتمدة سابقًا'], [absentees.length, 'غايبة'],
-    [needLook.length, 'تحتاج نظرك'], [unknownCards, 'اسم ما انربط'], [skippedSeen.length, 'سبق ظهرت'], [notMentioned.length, 'ما ذُكرت بالقائمة'],
+    [needLook.length, 'تحتاج نظرك'], [unknownCards, 'اسم ما انربط'], [alreadyInQueue.length, 'بطاقتها بالمراجعة أصلًا'], [notMentioned.length, 'ما ذُكرت بالقائمة'],
   ].filter(t => t[0]);
   const listHtml = (title, color, arr) => arr.length
     ? `<div style="font-weight:700;color:${color};margin:0.6rem 0 0.3rem;">${title} (${arr.length}):</div><div style="font-size:0.78rem;">${arr.map(escapeHTML).join('<br>')}</div>`
@@ -11820,7 +11825,7 @@ function runWaImportPasteApply() {
     + listHtml('❓ أسماء (غايبة/تحتاج نظرك) ما عرفت أي طالبة هي', '#c0392b', unmatched)
     + listHtml('👀 تحتاج نظرك', '#b3691f', needLook)
     + listHtml('⏰ مشاركات بالمسابقة بدون وقت إرسال بالقائمة (ما انفحصت مهلتها)', '#b3691f', noTime)
-    + listHtml('↩️ سبق ظهرت لنفس النطاق وما أضفتها مرة ثانية', 'var(--muted)', skippedSeen)
+    + listHtml('↩️ بطاقتها بقائمة المراجعة أصلًا وما أضفتها مرة ثانية', 'var(--muted)', alreadyInQueue)
     + listHtml('🔁 مكررة بالقائمة (أخذت أول سطر بس)', 'var(--muted)', duplicates);
 
   window._waSourceTag = sourceTag;
