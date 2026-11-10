@@ -755,8 +755,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 <!-- ===================== شاشة تسجيل الدخول ===================== -->
 <div id="loginScreen" dir="rtl" style="display:flex;position:fixed;inset:0;z-index:2000;background:var(--surface);align-items:center;justify-content:center;padding:1.2rem;font-family:'Cairo';">
   <form id="loginForm" onsubmit="return submitLogin(event)" style="width:100%;max-width:380px;text-align:center;">
-    <div style="font-weight:800;font-size:1.3rem;color:var(--wine);margin-bottom:0.3rem;">مداد الروح</div>
-    <div style="font-size:0.85rem;color:var(--muted);margin-bottom:1.4rem;">سجّلي دخولك للمتابعة</div>
+    <img id="loginLogo" class="logo-img" alt="مداد الروح" style="visibility:hidden;">
+    <div style="font-size:0.85rem;color:var(--muted);margin-bottom:1.4rem;">تسجيل دخول</div>
     <input id="loginEmail" type="email" name="email" autocomplete="username" inputmode="email" dir="ltr" placeholder="الإيميل"
       style="width:100%;box-sizing:border-box;padding:0.8rem 0.9rem;border-radius:12px;border:1px solid var(--border);background:#fff;color:var(--ink);font-family:'Cairo';font-size:0.95rem;margin-bottom:0.6rem;text-align:left;">
     <input id="loginPassword" type="password" name="password" autocomplete="current-password" dir="ltr" placeholder="كلمة السر"
@@ -2030,7 +2030,7 @@ async function submitLogin(ev) {
 }
 
 function confirmLogout() {
-  showConfirmModal('تسجيل الخروج', 'تبين تطلعين من حسابك على هذا الجهاز؟', doLogout);
+  showConfirmModal('تسجيل الخروج', '', doLogout);
 }
 
 async function doLogout() {
@@ -2038,6 +2038,13 @@ async function doLogout() {
   try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch (e) {}
   showLoginScreen();
 }
+
+// شعار شاشة الدخول ياخذ صورته من شعار الصفحة الأولى (بدون تكرار الصورة داخل الملف)
+(function setLoginLogo() {
+  const homeLogo = document.querySelector('#home .logo-img');
+  const loginLogo = document.getElementById('loginLogo');
+  if (homeLogo && loginLogo) { loginLogo.src = homeLogo.src; loginLogo.style.visibility = 'visible'; }
+})();
 
 // لو ما فيه جلسة محفوظة نظهر شاشة الدخول (الإخفاء الفوري للمسجّلات يتم من سكربت صغير بأول الصفحة)
 (async function checkLoginOnStart() {
