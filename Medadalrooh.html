@@ -2019,6 +2019,7 @@ async function submitLogin(ev) {
     } else {
       try { localStorage.setItem(AUTH_LAST_EMAIL_KEY, email); } catch (e) {}
       hideLoginScreen();
+      window.scrollTo(0, 0);
       location.reload();
     }
   } catch (e) {
