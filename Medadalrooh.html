@@ -752,6 +752,28 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 </head>
 <body>
 
+<!-- ===================== شاشة تسجيل الدخول ===================== -->
+<div id="loginScreen" dir="rtl" style="display:flex;position:fixed;inset:0;z-index:2000;background:var(--surface);align-items:center;justify-content:center;padding:1.2rem;font-family:'Cairo';">
+  <form id="loginForm" onsubmit="return submitLogin(event)" style="width:100%;max-width:380px;text-align:center;">
+    <div style="font-weight:800;font-size:1.3rem;color:var(--wine);margin-bottom:0.3rem;">مداد الروح</div>
+    <div style="font-size:0.85rem;color:var(--muted);margin-bottom:1.4rem;">سجّلي دخولك للمتابعة</div>
+    <input id="loginEmail" type="email" name="email" autocomplete="username" inputmode="email" dir="ltr" placeholder="الإيميل"
+      style="width:100%;box-sizing:border-box;padding:0.8rem 0.9rem;border-radius:12px;border:1px solid var(--border);background:#fff;color:var(--ink);font-family:'Cairo';font-size:0.95rem;margin-bottom:0.6rem;text-align:left;">
+    <input id="loginPassword" type="password" name="password" autocomplete="current-password" dir="ltr" placeholder="كلمة السر"
+      style="width:100%;box-sizing:border-box;padding:0.8rem 0.9rem;border-radius:12px;border:1px solid var(--border);background:#fff;color:var(--ink);font-family:'Cairo';font-size:0.95rem;margin-bottom:0.4rem;text-align:left;">
+    <div id="loginError" style="min-height:1.3rem;font-size:0.8rem;color:var(--red);margin-bottom:0.5rem;"></div>
+    <button id="loginBtn" type="submit"
+      style="width:100%;padding:0.8rem;border-radius:12px;border:none;background:var(--green);color:white;font-family:'Cairo';font-size:0.95rem;font-weight:800;cursor:pointer;-webkit-tap-highlight-color:transparent;">دخول</button>
+    <button id="loginOtherBtn" type="button" onclick="loginUseOtherAccount()"
+      style="display:none;margin-top:0.9rem;background:none;border:none;color:var(--muted);font-family:'Cairo';font-size:0.82rem;text-decoration:underline;cursor:pointer;">حساب آخر</button>
+  </form>
+</div>
+<script>
+// إخفاء شاشة الدخول فورًا لو فيه جلسة محفوظة على هذا الجهاز (يمنع وميضها عند كل فتح)
+var AUTH_STORAGE_KEY = 'sb-btosiqsrpvrjajwhyrph-auth-token';
+try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('loginScreen').style.display = 'none'; } catch (e) {}
+</script>
+
 <!-- ===================== الشاشة الرئيسية ===================== -->
 <div class="screen active" id="home">
   <header class="home-header">
@@ -807,46 +829,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   </div>
 
   <div style="text-align:center;padding:0.5rem 1.2rem 2rem;">
-    <button onclick="openGlobalTransfer()"
-      style="background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:0.6rem 1.2rem;font-family:'Cairo';font-size:0.78rem;color:var(--muted);cursor:pointer;-webkit-tap-highlight-color:transparent;">
-      🔄 نقل البيانات بين الأجهزة
-    </button>
-  </div>
-</div>
-
-<!-- نافذة نقل البيانات الموحّدة -->
-<div id="globalTransferModal" onclick="if(event.target===this)closeGlobalTransfer()"
-  style="display:none;position:fixed;inset:0;background:rgba(20,15,8,0.55);align-items:center;justify-content:center;z-index:900;padding:1.2rem;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:1.4rem 1.2rem;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.2);max-height:85vh;overflow-y:auto;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;">
-      <div style="font-family:'Cairo';font-weight:800;font-size:1.05rem;color:var(--wine);">🔄 نقل البيانات بين الأجهزة</div>
-      <button onclick="closeGlobalTransfer()" style="background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;">✕</button>
-    </div>
-
-    <div style="background:var(--surface2);border-radius:14px;padding:1rem;margin-bottom:0.8rem;">
-      <div style="font-size:0.88rem;font-weight:700;color:var(--ink);margin-bottom:0.3rem;">📤 تصدير من هذا الجهاز</div>
-      <div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.6rem;">اختاري، ثم اضغطي — تُنسخ تلقائياً</div>
-      <select id="globalExportType"
-        style="width:100%;padding:0.6rem 0.7rem;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font-family:'Cairo';font-size:0.82rem;margin-bottom:0.6rem;-webkit-appearance:none;appearance:none;">
-        <option value="all">كل البيانات (شامل الحاسبة)</option>
-        <option value="noCalc">كل البيانات بدون الحاسبة</option>
-      </select>
-      <button onclick="exportGlobalData()"
-        style="width:100%;padding:0.75rem;border-radius:10px;border:none;background:var(--green);color:white;font-family:'Cairo';font-size:0.88rem;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;">
-        📤 نسخ البيانات
-      </button>
-    </div>
-
-    <div style="background:var(--surface2);border-radius:14px;padding:1rem;">
-      <div style="font-size:0.88rem;font-weight:700;color:var(--ink);margin-bottom:0.3rem;">📥 استيراد إلى هذا الجهاز</div>
-      <div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.8rem;">الصقي البيانات المنسوخة من الجهاز الآخر</div>
-      <textarea id="globalImportText" placeholder="الصقي البيانات هنا..."
-        style="width:100%;min-height:110px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0.7rem;font-family:'Cairo';font-size:0.75rem;color:var(--ink);resize:none;outline:none;direction:ltr;margin-bottom:0.7rem;"></textarea>
-      <button onclick="importGlobalData()"
-        style="width:100%;padding:0.75rem;border-radius:10px;border:none;background:#a060c8;color:white;font-family:'Cairo';font-size:0.88rem;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;">
-        📥 استيراد
-      </button>
-    </div>
+    <button onclick="confirmLogout()" aria-label="تسجيل الخروج" title="تسجيل الخروج"
+      style="background:var(--surface);border:1px solid var(--border);border-radius:50%;width:2.6rem;height:2.6rem;font-size:1.1rem;color:var(--muted);cursor:pointer;-webkit-tap-highlight-color:transparent;">🚪</button>
   </div>
 </div>
 
@@ -1874,7 +1858,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
 <script>
 // ===================== تنقل الشاشات =====================
-// ===================== نقل البيانات الموحّد (بين الأجهزة) =====================
+// ===================== مفاتيح البيانات =====================
 const ALL_DATA_KEYS = [
   'madad_students', 'madad_data', 'madad_emojis',
   'madad_text_tracker_title', 'madad_text_tracker_sub',
@@ -1892,7 +1876,6 @@ const ALL_DATA_KEYS = [
   'madad_halqa_dist', 'madad_event_participants', 'madad_kubra_splits', 'madad_archive',
   'madad_wa_plan_approval_log', 'madad_wa_daily_approval_log', 'madad_no_challenge_days',
 ];
-const CALC_ONLY_KEYS = ['hasibat_madad', 'hasibat_custom_pay', 'hasibat_obligations'];
 const MERGE_KEYS = ['madad_data', 'maqarrar_data', 'maqarrar_history', 'madad_halqa_dist', 'madad_event_participants', 'madad_kubra_splits', 'madad_archive'];
 
 
@@ -1983,73 +1966,91 @@ async function syncPullAll() {
   } catch (e) { console.warn('syncPullAll failed', e); }
 }
 
-function openGlobalTransfer() {
-  document.getElementById('globalImportText').value = '';
-  document.getElementById('globalTransferModal').style.display = 'flex';
-}
-function closeGlobalTransfer() {
-  document.getElementById('globalTransferModal').style.display = 'none';
-}
+// ===================== تسجيل الدخول والخروج =====================
+const AUTH_LAST_EMAIL_KEY = 'madad_last_login_email';
 
-function exportGlobalData() {
-  const type = document.getElementById('globalExportType').value;
-  const keys = type === 'noCalc' ? ALL_DATA_KEYS.filter(k => !CALC_ONLY_KEYS.includes(k)) : ALL_DATA_KEYS;
-
-  const obj = {};
-  keys.forEach(k => {
-    try {
-      const v = localStorage.getItem(k);
-      if (v !== null) obj[k] = v;
-    } catch(e) {}
-  });
-  const json = JSON.stringify(obj);
-
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(json).then(() => {
-      showInfoModal('✅ تم نسخ البيانات', 'افتحي التطبيق على الجهاز الآخر، اضغطي "نقل البيانات" ثم "استيراد" ثم الصقي.');
-    });
-  } else {
-    const ta = document.createElement('textarea');
-    ta.value = json;
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.focus();
-    ta.select();
-    try {
-      document.execCommand('copy');
-      showInfoModal('✅ تم نسخ البيانات', 'افتحي التطبيق على الجهاز الآخر، اضغطي "نقل البيانات" ثم "استيراد" ثم الصقي.');
-    } catch(e) {
-      showInfoModal('نسخ يدوي', 'اضغطي مطولاً على الخانة للصق البيانات يدوياً');
-    }
-    document.body.removeChild(ta);
-  }
+function getLastLoginEmail() {
+  try { return localStorage.getItem(AUTH_LAST_EMAIL_KEY) || ''; } catch (e) { return ''; }
 }
 
-function importGlobalData() {
-  const text = document.getElementById('globalImportText').value.trim();
-  if (!text) { showInfoModal('تنبيه', 'الصقي البيانات أولاً'); return; }
+function showLoginScreen() {
+  const email = getLastLoginEmail();
+  const emailInput = document.getElementById('loginEmail');
+  const pwInput = document.getElementById('loginPassword');
+  emailInput.value = email;
+  emailInput.readOnly = !!email;
+  pwInput.value = '';
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('loginOtherBtn').style.display = email ? 'inline-block' : 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  setTimeout(() => (email ? pwInput : emailInput).focus(), 50);
+}
+
+function hideLoginScreen() {
+  document.getElementById('loginScreen').style.display = 'none';
+}
+
+function loginUseOtherAccount() {
+  const emailInput = document.getElementById('loginEmail');
+  emailInput.readOnly = false;
+  emailInput.value = '';
+  document.getElementById('loginPassword').value = '';
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('loginOtherBtn').style.display = 'none';
+  emailInput.focus();
+}
+
+async function submitLogin(ev) {
+  if (ev) ev.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+  if (!email || !password) { errEl.textContent = 'اكتبي الإيميل وكلمة السر'; return false; }
+  errEl.textContent = '';
+  btn.disabled = true;
+  btn.textContent = 'جاري الدخول…';
   try {
-    const obj = JSON.parse(text);
-    Object.entries(obj).forEach(([k, v]) => {
-      try {
-        if (MERGE_KEYS.includes(k)) {
-          const existing = JSON.parse(localStorage.getItem(k) || '{}');
-          const incoming = JSON.parse(v || '{}');
-          const merged = Object.assign({}, existing, incoming);
-          localStorage.setItem(k, JSON.stringify(merged));
-        } else {
-          localStorage.setItem(k, v);
-        }
-      } catch(e) {}
-    });
-    showInfoModal('✅ تم الاستيراد', 'تم استيراد البيانات بنجاح، سيتم تحديث الصفحة الآن');
-    closeGlobalTransfer();
-    location.reload();
-  } catch(e) {
-    showInfoModal('⚠️ خطأ', 'خطأ في البيانات — تأكدي إنك لصقتِ النص الصحيح كاملاً');
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) {
+      errEl.textContent = (error.name === 'AuthRetryableFetchError')
+        ? 'تعذّر الاتصال، تأكدي من الإنترنت'
+        : (error.message === 'Invalid login credentials' ? 'الإيميل أو كلمة السر غير صحيحة' : 'تعذّر تسجيل الدخول، حاولي مرة ثانية');
+    } else {
+      try { localStorage.setItem(AUTH_LAST_EMAIL_KEY, email); } catch (e) {}
+      hideLoginScreen();
+      location.reload();
+    }
+  } catch (e) {
+    errEl.textContent = 'تعذّر الاتصال، تأكدي من الإنترنت';
   }
+  btn.disabled = false;
+  btn.textContent = 'دخول';
+  return false;
 }
+
+function confirmLogout() {
+  showConfirmModal('تسجيل الخروج', 'تبين تطلعين من حسابك على هذا الجهاز؟', doLogout);
+}
+
+async function doLogout() {
+  try { await supabaseClient.auth.signOut({ scope: 'local' }); } catch (e) {}
+  try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch (e) {}
+  showLoginScreen();
+}
+
+// لو ما فيه جلسة محفوظة نظهر شاشة الدخول (الإخفاء الفوري للمسجّلات يتم من سكربت صغير بأول الصفحة)
+(async function checkLoginOnStart() {
+  let hasSession = false;
+  try { hasSession = !!localStorage.getItem(AUTH_STORAGE_KEY); } catch (e) {}
+  if (!hasSession) {
+    try { const { data } = await supabaseClient.auth.getSession(); hasSession = !!(data && data.session); } catch (e) {}
+  }
+  if (hasSession) hideLoginScreen(); else showLoginScreen();
+})();
+supabaseClient.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_OUT') showLoginScreen();
+});
 
 
 function showScreen(id) {
