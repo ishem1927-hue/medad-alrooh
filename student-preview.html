@@ -32,10 +32,7 @@
   /* صفحة الطالبة */
   .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.9rem; }
   .topbar .t { font-weight: 600; color: var(--wine-deep); font-size: 0.95rem; }
-  .meta { font-size: 0.8rem; color: var(--muted); margin-top: 0.25rem; line-height: 1.8; }
-  .att { display: flex; align-items: center; justify-content: space-between; }
-  .att .lbl { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
-  .att .star { font-size: 1.3rem; margin-inline-start: 0.35rem; }
+  .meta { font-size: 0.78rem; color: var(--muted); margin-top: 0.15rem; }
   .sec-title { font-size: 0.78rem; font-weight: 600; color: var(--wine); margin-bottom: 0.35rem; }
   .sec-text { font-size: 0.85rem; line-height: 1.9; white-space: pre-wrap; word-break: break-word; }
   .login-box { background: var(--surface); border: 0.5px solid var(--border); border-radius: 16px; padding: 1.1rem; }
@@ -44,8 +41,15 @@
   .logout { background: none; border: 0.5px solid #EBCFDB; border-radius: 9px; padding: 0.2rem 0.65rem; font-family: 'Cairo'; font-size: 0.72rem; font-weight: 300; color: var(--muted); cursor: pointer; }
   .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 16px; padding: 0.85rem 1rem; margin-bottom: 0.7rem; }
   .name { font-size: 1.05rem; font-weight: 600; color: var(--wine-deep); }
-  .card.attcard { background: #EEF7F1; border-color: #DCEBE1; }
-  .att .val { font-size: 1.5rem; font-weight: 600; color: var(--green); }
+  .hdr { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 0.7rem; }
+  .av { flex: none; width: 52px; height: 52px; border-radius: 50%; background: #F3DCE5; color: var(--wine); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 600; }
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 0.7rem; }
+  .tile { background: var(--surface); border: 0.5px solid var(--border); border-radius: 16px; padding: 0.7rem 0.8rem; }
+  .tile.att { background: #EEF7F1; border-color: #DCEBE1; }
+  .tl { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.2rem; }
+  .tv { font-size: 1.15rem; font-weight: 600; color: var(--wine-deep); }
+  .tile.att .tv { color: var(--green); }
+  .svtoggle { display: block; width: 100%; margin-bottom: 0.7rem; padding: 0.7rem; border-radius: 12px; border: 0.5px solid #EBCFDB; background: var(--surface); color: var(--wine); font-family: 'Cairo'; font-size: 0.88rem; font-weight: 600; cursor: pointer; }
   .closing { text-align: center; background: #F6EEF9; color: #6F4A80; border-color: #EBDDF1; font-weight: 400; line-height: 1.9; font-size: 0.88rem; }
   .hrow { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0; border-top: 0.5px solid var(--border); font-size: 0.8rem; }
   .hrow:first-of-type { border-top: none; }
@@ -172,15 +176,16 @@ function renderPortal(p, surveyDone) {
   const top = `<div class="topbar"><div class="t">🎙️ مداد التلقين</div><button class="logout" onclick="logout()">خروج</button></div>`;
   const L = p.last;
   const attTxt = L.att != null ? toAr(L.att) + '٪' : '—';
-  const star = L.star ? `<span class="star">🌟</span>` : '';
+  const star = L.star ? ` <span class="star">🌟</span>` : '';
   let html = top;
 
-  html += `<div class="card">
-    <div class="name">أهلًا ${esc(p.display || p.name)}</div>
-    <div class="meta">${p.joinCycle ? `${esc(p.joinEmoji || '')} دورة الانضمام: دورة ${toAr(p.joinCycle)}<br>` : ''}📘 آخر دورة: دورة ${toAr(L.cycle)}</div>
-  </div>`;
+  const initial = String(p.display || p.name || '').trim().charAt(0);
+  html += `<div class="hdr"><div class="av">${esc(initial)}</div><div><div class="name">أهلًا ${esc(p.display || p.name)}</div>${p.joinCycle ? `<div class="meta">${esc(p.joinEmoji || '')} دورة الانضمام: دورة ${toAr(p.joinCycle)}</div>` : ''}</div></div>`;
 
-  html += `<div class="card attcard"><div class="att"><span class="lbl">نسبة الحضور</span><span><span class="val">${attTxt}</span>${star}</span></div></div>`;
+  html += `<div class="tiles">
+    <div class="tile att"><div class="tl">نسبة الحضور</div><div class="tv">${attTxt}${star}</div></div>
+    <div class="tile"><div class="tl">📘 آخر دورة</div><div class="tv">دورة ${toAr(L.cycle)}</div></div>
+  </div>`;
 
   let plan = `<div class="sec-title">📖 مقرر الحفظ</div><div class="sec-text">${L.hifz ? esc(L.hifz) : '<span class="empty">—</span>'}</div>`;
   if (L.kubra) plan += `<div class="row-sep"></div><div class="sec-title">🔁 المراجعة الكبرى</div><div class="sec-text">${esc(L.kubra)}</div>`;
@@ -205,9 +210,9 @@ function renderPortal(p, surveyDone) {
 
   html += surveyDone
     ? `<div class="card"><div class="thanks">وصل رأيك، جزاك الله خيرًا 🤍</div></div>`
-    : `<div class="card" id="surveyCard">
-        <div class="sec-title" style="font-size:0.95rem;">💬 شاركينا رأيك</div>
-        <div class="hint" style="margin-bottom:0.8rem;">الجزء الأول يوصل باسمك.</div>
+    : `<button type="button" class="svtoggle" id="svToggle">💬 شاركينا رأيك</button>
+      <div class="card hidden" id="surveyCard">
+        <div class="hint" style="margin-bottom:0.6rem;">الجزء الأول يوصل باسمك.</div>
         ${SURVEY.map(q => `<div class="q"><div class="qt">${q.title}</div><div class="opts">${q.opts.map(o => `<button type="button" class="opt" data-q="${q.id}" data-v="${o[0]}">${o[1]}</button>`).join('')}</div></div>`).join('')}
         <div class="q"><div class="qt">رأيك عن الدورة (اختياري)</div><textarea id="svComment" maxlength="1000"></textarea></div>
         <div class="row-sep"></div>
@@ -228,6 +233,8 @@ function renderPortal(p, surveyDone) {
     if (off) delete answers[b.dataset.q]; else answers[b.dataset.q] = b.dataset.v;
     document.querySelectorAll('.opt[data-q="' + b.dataset.q + '"]').forEach(x => x.classList.toggle('on', !off && x === b));
   }));
+  const tg = $('svToggle');
+  if (tg) tg.addEventListener('click', () => { tg.classList.add('hidden'); $('surveyCard').classList.remove('hidden'); });
   const sb = $('svBtn');
   if (sb) sb.addEventListener('click', submitSurvey);
 }
@@ -270,7 +277,6 @@ $('codeInput').addEventListener('paste', e => {
 });
 window.addEventListener('popstate', () => { if (currentCode) history.pushState({ in: 1 }, ''); });
 
-// نسخة تجريبية: بيانات وهمية بدون دخول
 $('welcome').classList.add('hidden'); $('portal').classList.remove('hidden');
 renderPortal({v:1,ready:true,name:'سارة أحمد علي العتيبي',display:'سارة أحمد',first:'سارة',joinCycle:3,joinEmoji:'🎈',last:{cycle:7,att:100,star:true,hifz:'البقرة ٢٥ - ٣٠',kubra:'سورة النساء',taahud:'جزء عم',note:'ماشاء الله، استمري على هذا المستوى.'},history:[{cycle:6,hifz:'البقرة ١ - ٢٥',att:96,star:false},{cycle:5,hifz:'الفاتحة وأول البقرة',att:100,star:true},{cycle:4,hifz:'جزء عم',att:88,star:false}],docs:[]}, false);
 $('codeInput').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
