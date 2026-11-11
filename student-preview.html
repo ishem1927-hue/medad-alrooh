@@ -49,6 +49,16 @@
   .tl { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.2rem; }
   .tv { font-size: 1.15rem; font-weight: 600; color: var(--wine-deep); }
   .tile.att .tv { color: var(--green); }
+  .tile.last { background: #EAF4FB; border-color: #D6E8F4; }
+  .tile.last .tv { color: #3F6E94; }
+  .c-plan { background: #FCEEF3; border-color: #F4D8E3; }
+  .c-note { background: #FFF8E1; border-color: #F5EAC0; }
+  #docToggle { background: #E6F6F5; border-color: #CBE9E6; color: #3A7F7B; }
+  #docCard { background: #E6F6F5; border-color: #CBE9E6; }
+  #docCard .sec-title:not(:first-child) { margin-top: 0.7rem; }
+  #svToggle { background: #FFF0E6; border-color: #F8DCC6; color: #A5663A; }
+  #surveyCard { background: #FFF0E6; border-color: #F8DCC6; }
+  #surveyCard .qt { color: #8A5530; }
   .svtoggle { display: block; width: 100%; margin-bottom: 0.7rem; padding: 0.7rem; border-radius: 12px; border: 0.5px solid #EBCFDB; background: var(--surface); color: var(--wine); font-family: 'Cairo'; font-size: 0.88rem; font-weight: 600; cursor: pointer; }
   .closing { text-align: center; background: #F6EEF9; color: #6F4A80; border-color: #EBDDF1; font-weight: 400; line-height: 1.9; font-size: 0.88rem; }
   .sec-title.big { font-size: 0.95rem; margin-bottom: 0.5rem; }
@@ -188,16 +198,16 @@ function renderPortal(p, surveyDone) {
   html += `<div class="hdr"><div class="av">${esc(initial)}</div><div><div class="name">أهلًا ${esc(p.display || p.name)}</div>${p.joinCycle ? `<div class="meta">${esc(p.joinEmoji || '')} دورة الانضمام: دورة ${toAr(p.joinCycle)}</div>` : ''}</div></div>`;
 
   html += `<div class="tiles">
-    <div class="tile"><div class="tl">📘 آخر دورة</div><div class="tv">دورة ${toAr(L.cycle)}</div></div>
+    <div class="tile last"><div class="tl">📘 آخر دورة</div><div class="tv">دورة ${toAr(L.cycle)}</div></div>
     <div class="tile att"><div class="tl">نسبة الحضور</div><div class="tv">${attTxt}${star}</div></div>
   </div>`;
 
   let plan = `<div class="sec-title">📖 مقرر الحفظ</div><div class="sec-text">${L.hifz ? esc(L.hifz) : '<span class="empty">—</span>'}</div>`;
   if (L.kubra) plan += `<div class="row-sep"></div><div class="sec-title">⭐️ المراجعة الكبرى</div><div class="sec-text">${esc(L.kubra)}</div>`;
   if (L.taahud) plan += `<div class="row-sep"></div><div class="sec-title">♾️ التعاهد</div><div class="sec-text">${esc(L.taahud)}</div>`;
-  html += `<div class="card">${plan}</div>`;
+  html += `<div class="card c-plan">${plan}</div>`;
 
-  if (L.note) html += `<div class="card"><div class="sec-title">📝 ملاحظات المعلمة</div><div class="sec-text">${esc(L.note)}</div></div>`;
+  if (L.note) html += `<div class="card c-note"><div class="sec-title">📝 ملاحظات المعلمة</div><div class="sec-text">${esc(L.note)}</div></div>`;
 
   const docs = Array.isArray(p.docs) ? p.docs : [];
   const docCycles = [...new Set(docs.map(d => d.cycle))];
