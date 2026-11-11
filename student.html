@@ -159,7 +159,7 @@ async function login(saved) {
     if (r.status === 'ok') {
       currentCode = raw;
       answers = {};
-      try { sessionStorage.setItem('madad_code', raw); } catch (e) {}
+      try { localStorage.setItem('madad_code', raw); } catch (e) {}
       history.replaceState({ in: 1 }, '');
       history.pushState({ in: 1 }, '');
       renderPortal(r.payload, !!r.survey_done);
@@ -170,7 +170,7 @@ async function login(saved) {
     } else if (r.status === 'locked') {
       msg.textContent = 'محاولات كثيرة، جرّبي بعد عشر دقائق.';
     } else {
-      if (saved) { try { sessionStorage.removeItem('madad_code'); } catch (e) {} }
+      if (saved) { try { localStorage.removeItem('madad_code'); } catch (e) {} }
       msg.textContent = 'الرقم غير صحيح، تأكدي منه وحاولي مرة ثانية.';
     }
   } catch (e) {
@@ -181,7 +181,7 @@ async function login(saved) {
 
 function logout() {
   currentCode = ''; answers = {};
-  try { sessionStorage.removeItem('madad_code'); } catch (e) {}
+  try { localStorage.removeItem('madad_code'); } catch (e) {}
   $('portal').innerHTML = '';
   $('portal').classList.add('hidden');
   $('welcome').classList.remove('hidden');
@@ -296,7 +296,7 @@ $('codeInput').addEventListener('paste', e => {
   $('codeInput').value = extractCode(t);
 });
 window.addEventListener('popstate', () => { if (currentCode) history.pushState({ in: 1 }, ''); });
-try { const sc = sessionStorage.getItem('madad_code'); if (sc) login(sc); } catch (e) {}
+try { const sc = localStorage.getItem('madad_code'); if (sc) login(sc); } catch (e) {}
 $('codeInput').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
 </script>
 </body>
