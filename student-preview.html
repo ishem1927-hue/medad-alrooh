@@ -198,7 +198,7 @@ function renderPortal(p, surveyDone) {
   html += `<div class="hdr"><div class="av">${esc(initial)}</div><div><div class="name">أهلًا ${esc(p.display || p.name)}</div>${p.joinCycle ? `<div class="meta">${esc(p.joinEmoji || '')} دورة الانضمام: دورة ${toAr(p.joinCycle)}</div>` : ''}</div></div>`;
 
   html += `<div class="tiles">
-    <div class="tile last"><div class="tl">📘 آخر دورة</div><div class="tv">دورة ${toAr(L.cycle)}</div></div>
+    <div class="tile last"><div class="tl">آخر دورة</div><div class="tv">${L.emoji ? esc(L.emoji) + ' ' : ''}دورة ${toAr(L.cycle)}</div></div>
     <div class="tile att"><div class="tl">نسبة الحضور</div><div class="tv">${attTxt}${star}</div></div>
   </div>`;
 
@@ -297,8 +297,10 @@ $('codeInput').addEventListener('paste', e => {
 });
 window.addEventListener('popstate', () => { if (currentCode) history.pushState({ in: 1 }, ''); });
 
+if (location.hash !== '#login') {
 $('welcome').classList.add('hidden'); $('portal').classList.remove('hidden');
-renderPortal({v:1,ready:true,name:'سارة أحمد علي العتيبي',display:'سارة أحمد',first:'سارة',joinCycle:3,joinEmoji:'🎈',last:{cycle:7,att:100,star:true,hifz:'البقرة ٢٥ - ٣٠',kubra:'سورة النساء',taahud:'جزء عم',note:'ماشاء الله، استمري على هذا المستوى.'},history:[{cycle:6,hifz:'البقرة ١ - ٢٥',att:96,star:false},{cycle:5,hifz:'الفاتحة وأول البقرة',att:100,star:true},{cycle:4,hifz:'مراجعة جزء عم',att:88,star:false}],docs:[{cycle:7,title:'شهادة تميز',url:'#'},{cycle:7,title:'شهادة ختام',url:'#'},{cycle:6,title:'شهادة ختام',url:'#'}]}, false);
+renderPortal({v:1,ready:true,name:'سارة أحمد علي العتيبي',display:'سارة أحمد',first:'سارة',joinCycle:3,joinEmoji:'🎈',last:{cycle:7,emoji:'🍎',att:100,star:true,hifz:'البقرة ٢٥ - ٣٠',kubra:'سورة النساء',taahud:'جزء عم',note:'ماشاء الله، استمري على هذا المستوى.'},history:[{cycle:6,hifz:'البقرة ١ - ٢٥',att:96,star:false},{cycle:5,hifz:'الفاتحة وأول البقرة',att:100,star:true},{cycle:4,hifz:'مراجعة جزء عم',att:88,star:false}],docs:[{cycle:7,title:'شهادة تميز',url:'#'},{cycle:7,title:'شهادة ختام',url:'#'},{cycle:6,title:'شهادة ختام',url:'#'}]}, false);
+}
 $('codeInput').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
 </script>
 </body>
