@@ -20,10 +20,9 @@
 
   /* الترحيب */
   .welcome { text-align: center; padding-top: 2.5rem; }
-  .brand { width: 84px; height: 84px; border-radius: 50%; background: var(--wine); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 2.4rem; margin: 0 auto 1rem; box-shadow: 0 6px 18px rgba(131,61,90,0.25); }
-  .welcome h1 { font-size: 1.25rem; font-weight: 900; color: var(--wine-deep); margin-bottom: 0.3rem; }
-  .welcome .sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 1.6rem; }
-  .login-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.1rem; }
+  .brand { display: block; width: 84px; height: 84px; border-radius: 50%; object-fit: cover; margin: 0 auto 1rem; box-shadow: 0 6px 18px rgba(131,61,90,0.25); }
+  .welcome h1 { font-size: 1.25rem; font-weight: 900; color: var(--wine-deep); margin-bottom: 1.6rem; }
+    .login-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.1rem; }
   .login-box label { display: block; font-size: 0.82rem; font-weight: 700; color: var(--wine); margin-bottom: 0.5rem; text-align: right; }
   .code-input { width: 100%; padding: 0.8rem; border: 1.5px solid var(--border); border-radius: 12px; background: #fff; font-family: 'Cairo'; font-size: 1.05rem; text-align: center; direction: ltr; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); }
   .code-input:focus { outline: none; border-color: var(--wine); }
@@ -76,16 +75,15 @@
 
   <!-- صفحة الترحيب -->
   <div id="welcome" class="welcome">
-    <div class="brand">📖</div>
+    <img class="brand" src="data:image/jpeg;base64,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" alt="مداد الروح">
     <h1>أهلًا بك في بوابة طالبات مداد الروح</h1>
-    <div class="sub">ادخلي برقمك التعريفي</div>
     <div class="login-box">
       <label for="codeInput">الرقم التعريفي</label>
-      <input id="codeInput" class="code-input" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="MS0000-000-XXXX">
+      <input id="codeInput" class="code-input" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" >
       <button id="loginBtn" class="btn" type="button">دخول</button>
       <div id="loginMsg" class="msg"></div>
     </div>
-    <div class="contact">ما وصلك الرقم؟ <a id="waLink1" target="_blank" rel="noopener">تواصلي معنا على واتساب</a></div>
+    <div class="contact">ما وصلك الرقم؟ <a id="waLink1" target="_blank" rel="noopener">تواصلي مع إدارة مداد الروح</a></div>
   </div>
 
   <!-- صفحة الطالبة -->
@@ -111,7 +109,6 @@ let answers = {};
 
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 function toAr(n) { return String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]); }
-function firstTwo(name) { return String(name || '').trim().split(/\s+/).slice(0, 2).join(' '); }
 function $(id) { return document.getElementById(id); }
 
 document.getElementById('waLink1').href = WA_URL;
@@ -126,8 +123,13 @@ async function rpc(fn, args) {
   return res.json();
 }
 
-async function login() {
-  const raw = $('codeInput').value.trim();
+function extractCode(text) {
+  const m = String(text || '').toUpperCase().match(/MS\d{4}-?\d{3}-?[A-Z0-9]{4}/);
+  return m ? m[0] : String(text || '').trim();
+}
+
+async function login(saved) {
+  const raw = saved || extractCode($('codeInput').value);
   const msg = $('loginMsg');
   msg.textContent = '';
   if (!raw) { msg.textContent = 'اكتبي الرقم التعريفي'; return; }
@@ -138,6 +140,9 @@ async function login() {
     if (r.status === 'ok') {
       currentCode = raw;
       answers = {};
+      try { sessionStorage.setItem('madad_code', raw); } catch (e) {}
+      history.replaceState({ in: 1 }, '');
+      history.pushState({ in: 1 }, '');
       renderPortal(r.payload, !!r.survey_done);
       $('welcome').classList.add('hidden');
       $('portal').classList.remove('hidden');
@@ -146,6 +151,7 @@ async function login() {
     } else if (r.status === 'locked') {
       msg.textContent = 'محاولات كثيرة، جرّبي بعد عشر دقائق.';
     } else {
+      if (saved) { try { sessionStorage.removeItem('madad_code'); } catch (e) {} }
       msg.textContent = 'الرقم غير صحيح، تأكدي منه وحاولي مرة ثانية.';
     }
   } catch (e) {
@@ -156,27 +162,21 @@ async function login() {
 
 function logout() {
   currentCode = ''; answers = {};
+  try { sessionStorage.removeItem('madad_code'); } catch (e) {}
   $('portal').innerHTML = '';
   $('portal').classList.add('hidden');
   $('welcome').classList.remove('hidden');
 }
 
 function renderPortal(p, surveyDone) {
-  const top = `<div class="topbar"><div class="t">📖 مداد الروح</div><button class="logout" onclick="logout()">خروج</button></div>`;
-  if (!p.ready) {
-    $('portal').innerHTML = top + `
-      <div class="card"><div class="name">${esc(p.name)}</div>
-      <div class="meta">صفحتك بتتوفر بعد انتهاء دورتك الأولى بإذن الله 🤍</div></div>` + footer();
-    return;
-  }
+  const top = `<div class="topbar"><div class="t">🎙️ مداد التلقين</div><button class="logout" onclick="logout()">خروج</button></div>`;
   const L = p.last;
-  const first = firstTwo(p.name);
   const attTxt = L.att != null ? toAr(L.att) + '٪' : '—';
-  const star = L.star ? `<span class="star">${esc(L.starEmoji || '⭐')}</span>` : '';
+  const star = L.star ? `<span class="star">🌟</span>` : '';
   let html = top;
 
   html += `<div class="card">
-    <div class="name">${esc(p.name)}</div>
+    <div class="name">أهلًا ${esc(p.display || p.name)}</div>
     <div class="meta">${p.joinCycle ? `${esc(p.joinEmoji || '')} دورة الانضمام: دورة ${toAr(p.joinCycle)}<br>` : ''}📘 آخر دورة: دورة ${toAr(L.cycle)}</div>
   </div>`;
 
@@ -198,11 +198,11 @@ function renderPortal(p, surveyDone) {
   if (hist.length) {
     html += `<div class="card"><div class="sec-title">🗂️ الدورات السابقة</div><table>
       <tr><th>الدورة</th><th>مقرر الحفظ</th><th>الحضور</th><th>المستندات</th></tr>` +
-      hist.map(h => `<tr><td>${toAr(h.cycle)}</td><td>${h.hifz ? esc(h.hifz) : '—'}</td><td>${h.att != null ? toAr(h.att) + '٪' : '—'}${h.star ? ' ' + esc(h.starEmoji || '⭐') : ''}</td><td>—</td></tr>`).join('') +
+      hist.map(h => `<tr><td>${toAr(h.cycle)}</td><td>${h.hifz ? esc(h.hifz) : '—'}</td><td>${h.att != null ? toAr(h.att) + '٪' : '—'}${h.star ? ' 🌟' : ''}</td><td>—</td></tr>`).join('') +
       `</table></div>`;
   }
 
-  html += `<div class="card closing">سعدنا بوجودك معنا يا ${esc(first)} في هذه الدورة،<br>ونلقاك في الدورة القادمة بإذن الله 🤍</div>`;
+  html += `<div class="card closing">سعدنا بوجودك معنا يا ${esc(p.first || p.display || p.name)} في هذه الدورة،<br>ونلقاك في الدورة القادمة بإذن الله 🤍</div>`;
 
   html += surveyDone
     ? `<div class="card"><div class="thanks">وصل رأيك، جزاك الله خيرًا 🤍</div></div>`
@@ -210,7 +210,7 @@ function renderPortal(p, surveyDone) {
         <div class="sec-title" style="font-size:0.95rem;">💬 شاركينا رأيك</div>
         <div class="hint" style="margin-bottom:0.8rem;">الجزء الأول يوصل باسمك.</div>
         ${SURVEY.map(q => `<div class="q"><div class="qt">${q.title}</div><div class="opts">${q.opts.map(o => `<button type="button" class="opt" data-q="${q.id}" data-v="${o[0]}">${o[1]}</button>`).join('')}</div></div>`).join('')}
-        <div class="q"><div class="qt">كلمتك عن الدورة (اختياري)</div><textarea id="svComment" maxlength="1000"></textarea></div>
+        <div class="q"><div class="qt">رأيك عن الدورة (اختياري)</div><textarea id="svComment" maxlength="1000"></textarea></div>
         <div class="row-sep"></div>
         <div class="q"><div class="qt">اقتراح أو ملاحظة (اختياري)</div>
           <textarea id="svSugg" maxlength="2000"></textarea>
@@ -225,15 +225,16 @@ function renderPortal(p, surveyDone) {
   $('portal').innerHTML = html;
 
   document.querySelectorAll('.opt').forEach(b => b.addEventListener('click', () => {
-    answers[b.dataset.q] = b.dataset.v;
-    document.querySelectorAll('.opt[data-q="' + b.dataset.q + '"]').forEach(x => x.classList.toggle('on', x === b));
+    const off = answers[b.dataset.q] === b.dataset.v;
+    if (off) delete answers[b.dataset.q]; else answers[b.dataset.q] = b.dataset.v;
+    document.querySelectorAll('.opt[data-q="' + b.dataset.q + '"]').forEach(x => x.classList.toggle('on', !off && x === b));
   }));
   const sb = $('svBtn');
   if (sb) sb.addEventListener('click', submitSurvey);
 }
 
 function footer() {
-  return `<div class="foot">للتواصل: <a href="${WA_URL}" target="_blank" rel="noopener">واتساب مداد الروح</a></div>`;
+  return `<div class="foot">للتواصل: <a href="${WA_URL}" target="_blank" rel="noopener">إدارة مداد الروح</a></div>`;
 }
 
 async function submitSurvey() {
@@ -260,7 +261,16 @@ async function submitSurvey() {
   btn.disabled = false; btn.textContent = 'إرسال';
 }
 
-$('loginBtn').addEventListener('click', login);
+$('loginBtn').addEventListener('click', () => login());
+$('codeInput').value = '';
+$('codeInput').addEventListener('focus', e => e.target.select());
+$('codeInput').addEventListener('paste', e => {
+  e.preventDefault();
+  const t = (e.clipboardData || window.clipboardData).getData('text');
+  $('codeInput').value = extractCode(t);
+});
+window.addEventListener('popstate', () => { if (currentCode) history.pushState({ in: 1 }, ''); });
+try { const sc = sessionStorage.getItem('madad_code'); if (sc) login(sc); } catch (e) {}
 $('codeInput').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
 </script>
 </body>
