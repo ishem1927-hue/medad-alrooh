@@ -101,6 +101,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .tab-panel.active { display: block; }
 
   /* Bottom tab bar */
+  /* وضع المعلمة: المتابعة والأرشيف بس، بدون الأزرار الإدارية */
+  body.teacher-mode #talqeen .tabbar .tab:not([data-tab="panel-curriculum"]):not([data-tab="panel-archive"]),
+  body.teacher-mode #talqeen .course-topbar > .back-btn:not(#talqeenLogoutBtn),
+  body.teacher-mode #talqeen #studentsToolsBtn,
+  body.teacher-mode #talqeen #studentsRefreshTopBtn,
+  body.teacher-mode #curriculumMainWrap .attend-actions-row { display: none !important; }
+  body.teacher-mode #talqeenLogoutBtn { display: inline-block !important; }
   .tabbar {
     position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface);
     border-top: 1px solid var(--border); display: flex;
@@ -791,7 +798,7 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
       <div class="course-arrow">‹</div>
     </div>
 
-    <div class="course-card" id="tajweedCard" style="display:none;" onclick="handleLockedScreenTap('tajweed','1110')">
+    <div class="course-card" id="tajweedCard" style="display:none;" onclick="showScreen('tajweed')">
       <div class="course-icon">📝</div>
       <div class="course-info">
         <div class="course-name">مداد التجويد</div>
@@ -800,7 +807,7 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
       <div class="course-arrow">‹</div>
     </div>
 
-    <div class="course-card" id="tamkeenCard" style="display:none;" onclick="handleLockedScreenTap('tamkeen','2220')">
+    <div class="course-card" id="tamkeenCard" style="display:none;" onclick="showScreen('tamkeen')">
       <div class="course-icon">⛰️</div>
       <div class="course-info">
         <div class="course-name">مداد التمكين</div>
@@ -809,7 +816,7 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
       <div class="course-arrow">‹</div>
     </div>
 
-    <div class="course-card" id="tilawahCard" style="display:none;" onclick="handleLockedScreenTap('tilawah','3330')">
+    <div class="course-card" id="tilawahCard" style="display:none;" onclick="showScreen('tilawah')">
       <div class="course-icon">📖</div>
       <div class="course-info">
         <div class="course-name">مداد التلاوة</div>
@@ -818,7 +825,7 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
       <div class="course-arrow">‹</div>
     </div>
 
-    <div class="course-card" id="tafsirCard" style="display:none;" onclick="handleLockedScreenTap('tafsir','4440')">
+    <div class="course-card" id="tafsirCard" style="display:none;" onclick="showScreen('tafsir')">
       <div class="course-icon">📜</div>
       <div class="course-info">
         <div class="course-name">مداد التفسير</div>
@@ -838,10 +845,11 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
 <div class="screen" id="talqeen">
   <div class="course-topbar" style="border-bottom:none;background:transparent;padding:0.6rem 0.7rem;display:flex;align-items:center;gap:0.3rem;flex-wrap:nowrap;overflow-x:auto;">
     <button class="back-btn" onclick="showScreen('home')" style="font-size:0.8rem;padding:0.35rem 0.55rem;flex-shrink:0;">‹</button>
+    <button class="back-btn" id="talqeenLogoutBtn" onclick="confirmLogout()" style="display:none;font-size:0.8rem;padding:0.35rem 0.55rem;flex-shrink:0;">🚪</button>
     <span id="talqeenTitleLabel" style="display:inline;font-weight:800;color:var(--wine);font-size:0.88rem;white-space:nowrap;flex-shrink:0;">🎙️ مداد التلقين</span>
     <span id="pinnedWeekBadge" onclick="unpinBoth()" style="cursor:pointer;display:none;font-size:0.62rem;font-weight:700;padding:0.2rem 0.45rem;border-radius:14px;color:#fff;white-space:nowrap;flex-shrink:0;"></span>
     <span id="homeBarGroup" style="display:none;gap:0.3rem;margin-inline-start:auto;">
-      <button class="icon-btn-sm accent" id="adminTopBtn" onclick="handleLockedScreenTap('adminScreen','0011')" style="flex-shrink:0;padding:0.3rem 0.55rem;font-size:0.72rem;" title="الإدارة">🗃️</button>
+      <button class="icon-btn-sm accent" id="adminTopBtn" onclick="showScreen('adminScreen')" style="flex-shrink:0;padding:0.3rem 0.55rem;font-size:0.72rem;" title="الإدارة">🗃️</button>
     </span>
     <span id="curriculumBarGroup" style="display:none;gap:0.3rem;margin-inline-start:auto;">
       <button class="icon-btn-sm accent" id="curriculumBackTopBtn" onclick="showCurriculumChoiceScreen()" style="display:none;padding:0.3rem 0.55rem;font-size:0.72rem;" title="رجوع للاختيار">↪️</button>
@@ -1305,12 +1313,12 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
 
   <div class="tabbar">
     <div class="tab active" data-tab="panel-home" onclick="handleHomeTabTap(this)"><span class="tab-icon">🏠</span>الرئيسية</div>
-    <div class="tab" data-tab="panel-students" onclick="handleLockedAction('students','0013',()=>setTalqeenTab(this,'panel-students'))"><span class="tab-icon">👩‍🎓</span>الطالبات</div>
+    <div class="tab" data-tab="panel-students" onclick="setTalqeenTab(this,'panel-students')"><span class="tab-icon">👩‍🎓</span>الطالبات</div>
     <div class="tab" data-tab="panel-curriculum" onclick="openCurriculumTab(this)"><span class="tab-icon">📋</span>المتابعة</div>
     <div class="tab" id="calcTabBtn" data-tab="panel-calculator" onclick="setTalqeenTab(this,'panel-calculator')" style="display:none;"><span class="tab-icon">💰</span>الحاسبة</div>
-    <div class="tab" id="reportTabBtn" data-tab="panel-report" onclick="handleLockedAction('report','0014',()=>{setTalqeenTab(this,'panel-report'); renderReportTab();})"><span class="tab-icon">📈</span>التقرير</div>
-    <div class="tab" data-tab="panel-schedule" onclick="handleLockedAction('schedule','0015',()=>setTalqeenTab(this,'panel-schedule'))"><span class="tab-icon">📅</span>المواعيد</div>
-    <div class="tab" data-tab="panel-archive" onclick="handleLockedAction('archive','0012',()=>{setTalqeenTab(this,'panel-archive');renderArchiveTab()})"><span class="tab-icon">🗄️</span>الأرشيف</div>
+    <div class="tab" id="reportTabBtn" data-tab="panel-report" onclick="setTalqeenTab(this,'panel-report'); renderReportTab();"><span class="tab-icon">📈</span>التقرير</div>
+    <div class="tab" data-tab="panel-schedule" onclick="setTalqeenTab(this,'panel-schedule')"><span class="tab-icon">📅</span>المواعيد</div>
+    <div class="tab" data-tab="panel-archive" onclick="setTalqeenTab(this,'panel-archive'); renderArchiveTab();"><span class="tab-icon">🗄️</span>الأرشيف</div>
   </div>
 </div>
 
@@ -1830,32 +1838,6 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
   </div>
 </div>
 
-<div class="modal-overlay" id="lockCodeModal" onclick="if(event.target===this)closeLockCodeModal()">
-  <div class="modal-card">
-    <div class="modal-title">🔒 أدخلي الرمز</div>
-    <input type="tel" inputmode="numeric" id="lockCodeInput" class="form-input" placeholder="الرمز" style="width:100%;text-align:center;font-size:1.1rem;letter-spacing:0.3rem;margin-top:0.6rem;" onkeydown="if(event.key==='Enter')submitLockCode()">
-    <div class="modal-actions">
-      <button class="modal-btn cancel" onclick="closeLockCodeModal()">إلغاء</button>
-      <button class="modal-btn confirm" onclick="submitLockCode()">دخول</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="curriculumLockModal" onclick="if(event.target===this)closeCurriculumLockModal()">
-  <div class="modal-card">
-    <div class="modal-title">🔒 أدخلي الرمز</div>
-    <input type="tel" inputmode="numeric" id="curriculumLockInput" class="form-input" placeholder="الرمز" style="width:100%;text-align:center;font-size:1.1rem;letter-spacing:0.3rem;margin-top:0.6rem;" onkeydown="if(event.key==='Enter')submitCurriculumLockCode()">
-    <label style="display:flex;align-items:center;justify-content:center;gap:0.5rem;font-size:0.78rem;color:var(--muted);margin-top:0.7rem;">
-      <input type="checkbox" id="curriculumLockRememberToggle">
-      تذكّري دخولي لمدة 48 ساعة
-    </label>
-    <div class="modal-actions">
-      <button class="modal-btn cancel" onclick="closeCurriculumLockModal()">إلغاء</button>
-      <button class="modal-btn confirm" onclick="submitCurriculumLockCode()">دخول</button>
-    </div>
-  </div>
-</div>
-
 <script>
 // ===================== تنقل الشاشات =====================
 // ===================== مفاتيح البيانات =====================
@@ -2030,6 +2012,17 @@ async function submitLogin(ev) {
   return false;
 }
 
+// دور الحساب: المعلمة (role=teacher) لها رقم حلقة محدد، وأي حساب غيرها (المديرة) يشوف كل شي
+const TEACHER_HALQA = (function () {
+  try {
+    const s = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY));
+    const m = s && s.user && s.user.app_metadata;
+    if (m && m.role === 'teacher' && m.halqa) return String(m.halqa);
+  } catch (e) {}
+  return null;
+})();
+if (TEACHER_HALQA) document.body.classList.add('teacher-mode');
+
 function confirmLogout() {
   showConfirmModal('تسجيل الخروج', '', doLogout);
 }
@@ -2108,143 +2101,12 @@ function applyCoursesRevealVisibility() {
 }
 applyCoursesRevealVisibility();
 
-// ===================== رموز الدخول للأقسام المقفولة — صلاحية 48 ساعة =====================
-const SCREEN_LOCK_HOURS = 48;
-let _pendingLockKey = null;
-let _pendingLockCode = null;
-let _pendingLockAction = null;
-function handleLockedAction(key, correctCode, action) {
-  try {
-    const savedKey = `madad_lock_${key}`;
-    let lastOk = null;
-    try { lastOk = localStorage.getItem(savedKey); } catch(e) {}
-    if (lastOk && (Date.now() - parseInt(lastOk, 10)) < SCREEN_LOCK_HOURS * 3600 * 1000) {
-      action();
-      return;
-    }
-    _pendingLockKey = key;
-    _pendingLockCode = correctCode;
-    _pendingLockAction = action;
-    const input = document.getElementById('lockCodeInput');
-    if (input) input.value = '';
-    const modal = document.getElementById('lockCodeModal');
-    modal.classList.add('open');
-    modal.style.display = 'flex';
-    setTimeout(() => { if (input) input.focus(); }, 100);
-  } catch(err) {
-    alert('خطأ: ' + err.message);
-  }
-}
-function handleLockedScreenTap(screen, correctCode) {
-  handleLockedAction(screen, correctCode, () => showScreen(screen));
-}
-function closeLockCodeModal() {
-  const modal = document.getElementById('lockCodeModal');
-  modal.classList.remove('open');
-  modal.style.display = 'none';
-  _pendingLockKey = null;
-  _pendingLockCode = null;
-  _pendingLockAction = null;
-}
-function submitLockCode() {
-  const input = document.getElementById('lockCodeInput');
-  const entered = input ? input.value.trim() : '';
-  if (entered === _pendingLockCode) {
-    try { localStorage.setItem(`madad_lock_${_pendingLockKey}`, String(Date.now())); } catch(e) {}
-    const action = _pendingLockAction;
-    closeLockCodeModal();
-    if (action) action();
-  } else {
-    showToast('❌ رمز غير صحيح');
-  }
-}
-
-// ===================== قفل تبويب المتابعة (إدارة/مشرفة/معلمة) =====================
+// ===================== تبويب المتابعة =====================
 let curriculumViewMode = null; // 'weekly' | 'live'
-let curriculumActiveRole = null; // 'admin' | 'supervisor' | 'teacher' — للجلسة الحالية بس (يحدد ظهور زر التنبيهات الموسّعة)
-let _curriculumTabEl = null;
-let _curriculumTabTapState = { count: 0, timer: null };
 function openCurriculumTab(el) {
-  _curriculumTabEl = el;
-  const remembered = getCurriculumRememberedRole();
-  if (remembered) {
-    _curriculumTabTapState.count++;
-    clearTimeout(_curriculumTabTapState.timer);
-    _curriculumTabTapState.timer = setTimeout(() => { _curriculumTabTapState.count = 0; }, 2000);
-    if (_curriculumTabTapState.count >= 5) {
-      _curriculumTabTapState.count = 0;
-      try { localStorage.removeItem('madad_curriculum_access'); } catch(e) {}
-      showToast('🧹 تم مسح الرمز المحفوظ');
-    } else {
-      resumeCurriculumRole(remembered);
-      return;
-    }
-  }
-  const input = document.getElementById('curriculumLockInput');
-  if (input) input.value = '';
-  const rememberToggle = document.getElementById('curriculumLockRememberToggle');
-  if (rememberToggle) rememberToggle.checked = false;
-  const modal = document.getElementById('curriculumLockModal');
-  modal.classList.add('open');
-  modal.style.display = 'flex';
-  setTimeout(() => { if (input) input.focus(); }, 100);
-}
-function closeCurriculumLockModal() {
-  const modal = document.getElementById('curriculumLockModal');
-  modal.classList.remove('open');
-  modal.style.display = 'none';
-}
-function getCurriculumRememberedRole() {
-  try {
-    const raw = localStorage.getItem('madad_curriculum_access');
-    if (!raw) return null;
-    const data = JSON.parse(raw);
-    if (data && data.role && (Date.now() - data.time) < SCREEN_LOCK_HOURS * 3600 * 1000) return data.role;
-  } catch(e) {}
-  return null;
-}
-function saveCurriculumRememberedRole(role) {
-  try { localStorage.setItem('madad_curriculum_access', JSON.stringify({ role, time: Date.now() })); } catch(e) {}
-}
-function resumeCurriculumRole(role) {
-  curriculumActiveRole = role;
-  if (role === 'admin') {
-    setTalqeenTab(_curriculumTabEl, 'panel-curriculum');
-    showCurriculumChoiceScreen();
-  } else if (role === 'supervisor') {
-    setTalqeenTab(_curriculumTabEl, 'panel-curriculum');
-    enterCurriculumMode('weekly');
-  } else if (role === 'teacher') {
-    setTalqeenTab(_curriculumTabEl, 'panel-curriculum');
-    enterCurriculumMode('live');
-  }
-}
-function submitCurriculumLockCode() {
-  const input = document.getElementById('curriculumLockInput');
-  const entered = input ? input.value.trim() : '';
-  const remember = document.getElementById('curriculumLockRememberToggle');
-  const rememberChecked = !!(remember && remember.checked);
-  if (entered === '0000') {
-    curriculumActiveRole = 'admin';
-    closeCurriculumLockModal();
-    if (rememberChecked) saveCurriculumRememberedRole('admin');
-    setTalqeenTab(_curriculumTabEl, 'panel-curriculum');
-    showCurriculumChoiceScreen();
-  } else if (entered === '0101') {
-    curriculumActiveRole = 'supervisor';
-    closeCurriculumLockModal();
-    saveCurriculumRememberedRole('supervisor');
-    setTalqeenTab(_curriculumTabEl, 'panel-curriculum');
-    enterCurriculumMode('weekly');
-  } else if (entered === '0202') {
-    curriculumActiveRole = 'teacher';
-    closeCurriculumLockModal();
-    saveCurriculumRememberedRole('teacher');
-    setTalqeenTab(_curriculumTabEl, 'panel-curriculum');
-    enterCurriculumMode('live');
-  } else {
-    showToast('❌ رمز غير صحيح');
-  }
+  setTalqeenTab(el, 'panel-curriculum');
+  if (TEACHER_HALQA) enterCurriculumMode('live');
+  else showCurriculumChoiceScreen();
 }
 function showCurriculumChoiceScreen() {
   curriculumViewMode = null;
@@ -2281,7 +2143,7 @@ function setTalqeenTab(el, panelId) {
   const badge = document.getElementById('pinnedWeekBadge');
   if (badge) badge.style.display = (panelId === 'panel-curriculum' && pinnedWeek !== null) ? 'inline-block' : 'none';
   const settingsTopBtn = document.getElementById('attendSettingsTopBtn');
-  if (settingsTopBtn) settingsTopBtn.style.display = (panelId === 'panel-curriculum' && curriculumActiveRole === 'admin') ? '' : 'none';
+  if (settingsTopBtn) settingsTopBtn.style.display = (panelId === 'panel-curriculum' && !TEACHER_HALQA) ? '' : 'none';
   const homeBarGroup = document.getElementById('homeBarGroup');
   if (homeBarGroup) homeBarGroup.style.display = (panelId === 'panel-home') ? 'flex' : 'none';
   const curriculumBarGroup = document.getElementById('curriculumBarGroup');
@@ -4162,10 +4024,10 @@ function updateAlertsBadge() {
     if (newCycleBtn) newCycleBtn.style.display = 'none';
     return;
   }
-  btn.style.display = '';
-  if (expandedBtn) expandedBtn.style.display = (curriculumActiveRole === 'admin') ? '' : 'none';
-  if (backBtn) backBtn.style.display = (curriculumActiveRole === 'admin' && curriculumViewMode) ? '' : 'none';
-  if (newCycleBtn) newCycleBtn.style.display = (curriculumActiveRole === 'admin') ? '' : 'none';
+  btn.style.display = TEACHER_HALQA ? 'none' : '';
+  if (expandedBtn) expandedBtn.style.display = TEACHER_HALQA ? 'none' : '';
+  if (backBtn) backBtn.style.display = (!TEACHER_HALQA && curriculumViewMode) ? '' : 'none';
+  if (newCycleBtn) newCycleBtn.style.display = TEACHER_HALQA ? 'none' : '';
   const count = getAlertsCount(currentWeek, curriculumViewMode === 'live' ? liveAttendKey() : currentDay);
   const dot = document.getElementById('attendAlertsCount');
   if (dot) {
@@ -5082,6 +4944,7 @@ function renderArchiveTab() {
   const lastCycle = currentCycleNumber;
   const list = [...students]
     .filter(s => studentEnrolledInCycle(s, lastCycle) || studentEnrolledInCycle(s, lastCycle - 1))
+    .filter(s => !TEACHER_HALQA || getStudentHalqaId(s.id) === TEACHER_HALQA)
     .sort((a, b) => a.name.trim().localeCompare(b.name.trim(), 'ar'));
 
   if (!list.length) {
@@ -5113,10 +4976,10 @@ function renderArchiveTab() {
         <div class="archive-timeline-dot"></div>
         <div class="archive-timeline-card${entry.excluded ? ' excluded' : ''}">
           <div class="archive-timeline-cycle">دورة ${toAr(c)}${c === lastCycle ? ' (الحالية)' : ''}</div>
-          <div class="archive-field-row">
+          ${TEACHER_HALQA ? `<div class="archive-auto-line">📖 ${entry.hifz && entry.hifz.trim() ? escapeHTML(entry.hifz) : '—'}</div>` : `<div class="archive-field-row">
             <span class="archive-excl-btn${entry.excluded ? ' on' : ''}" onclick="toggleArchiveExcluded(${s.id},${c})" title="استثناء المقرر">🔀</span>
             <input class="archive-mini-input" placeholder="📖 مقرر الحفظ" value="${escapeHTML(entry.hifz)}" onchange="setArchiveHifz(${s.id},${c},this.value)">
-          </div>
+          </div>`}
           <div class="archive-auto-line">⭐ ${auto.kubra ? escapeHTML(auto.kubra) : '—'}</div>
           <div class="archive-auto-line">♾️ ${auto.taahud ? escapeHTML(auto.taahud) : '—'}</div>
         </div>
@@ -5773,7 +5636,7 @@ function renderLiveNav() {
   const tabsEl = document.getElementById('dayTabs');
   tabsEl.innerHTML = '';
   const secs = [];
-  for (let i = 1; i <= HALQA_COUNT; i++) secs.push(String(i));
+  for (let i = 1; i <= HALQA_COUNT; i++) { if (!TEACHER_HALQA || String(i) === TEACHER_HALQA) secs.push(String(i)); }
   if (!secs.length) { document.getElementById('maqStudentList').innerHTML = '<div class="empty-state"><div>حددي الحلقات المباشرة بالإعدادات ⚙️</div></div>'; return; }
   if (!currentLiveHalqa || secs.indexOf(currentLiveHalqa) < 0) currentLiveHalqa = secs[0];
 
@@ -9514,7 +9377,11 @@ if (typeof supabaseClient !== 'undefined') {
       } catch(e) {}
     }).subscribe();
 }
-initAppData();
+initAppData().then(() => { if (TEACHER_HALQA) enterCurriculumMode('live'); });
+if (TEACHER_HALQA) {
+  showScreen('talqeen');
+  setTalqeenTab(document.querySelector('#talqeen .tab[data-tab="panel-curriculum"]'), 'panel-curriculum');
+}
 
 
 // ===================== قسم الحاسبة (نفس منطق hasibat-madad.html) =====================
@@ -10678,7 +10545,7 @@ function openWaImportModal() {
   document.getElementById('waImportEnd').value = '';
   document.getElementById('waImportRangeBtn').textContent = waRangeBtnDefaultText();
   const tabsEl = document.getElementById('waImportTabs');
-  const showTabs = curriculumActiveRole === 'admin' && curriculumViewMode === 'weekly';
+  const showTabs = !TEACHER_HALQA && curriculumViewMode === 'weekly';
   if (tabsEl) tabsEl.style.display = showTabs ? 'flex' : 'none';
   waLoadCaches();
   setWaImportTab('hifz');
