@@ -1855,10 +1855,10 @@ const ALL_DATA_KEYS = [
   'madad_pinned_week', 'madad_pinned_week_live', 'madad_pinned_closing_live', 'madad_pinned_day', 'madad_cycle_number',
   'madad_cycle_star_list', 'madad_cycle_star_weeks', 'madad_weekly_excellent',
   'madad_group_names', 'madad_halqa_names', 'madad_group_count', 'madad_halqa_count', 'madad_halqa_periods',
-  'madad_halqa_dist', 'madad_event_participants', 'madad_kubra_splits', 'madad_archive',
+  'madad_halqa_dist', 'madad_event_participants', 'madad_kubra_splits', 'madad_archive', 'madad_teacher_notes',
   'madad_wa_plan_approval_log', 'madad_wa_daily_approval_log', 'madad_no_challenge_days',
 ];
-const MERGE_KEYS = ['madad_data', 'maqarrar_data', 'maqarrar_history', 'madad_halqa_dist', 'madad_event_participants', 'madad_kubra_splits', 'madad_archive'];
+const MERGE_KEYS = ['madad_data', 'maqarrar_data', 'maqarrar_history', 'madad_halqa_dist', 'madad_event_participants', 'madad_kubra_splits', 'madad_archive', 'madad_teacher_notes'];
 
 
 // ===================== المزامنة اللحظية مع المشرفة (Supabase) =====================
@@ -2661,6 +2661,7 @@ async function loadStudents() {
   loadNewCycleStartCount();
   loadSectionNames();
   loadArchiveData();
+  loadTeacherNotes();
   renderStudents();
 }
 
@@ -2889,6 +2890,8 @@ function confirmDelete() {
   students = students.filter(s => s.id !== id);
   saveStudents();
   if (halqaDist[id] !== undefined) { delete halqaDist[id]; saveHalqaDist(); }
+  const noteKeys = Object.keys(teacherNotes).filter(k => k.startsWith(id + '_'));
+  if (noteKeys.length) { noteKeys.forEach(k => delete teacherNotes[k]); saveTeacherNotes(); }
   renderStudents();
   if (typeof loadMaqStudents === 'function') loadMaqStudents();
   if (typeof renderCurriculumTab === 'function') { try { renderCurriculumTab(); } catch(e) {} }
@@ -4932,6 +4935,46 @@ supabaseClient
   })
   .subscribe();
 
+// ===================== ملاحظات المعلمة (الحلقة الختامية) — لكل طالبة ولكل دورة، وما تنمسح مع "دورة جديدة" =====================
+const STORE_TEACHER_NOTES = 'madad_teacher_notes';
+let teacherNotes = {}; // { 'رقم الطالبة_رقم الدورة': نص الملاحظة }
+function teacherNoteKey(id, cycle) { return id + '_' + cycle; }
+function getTeacherNote(id, cycle) { return teacherNotes[teacherNoteKey(id, cycle)] || ''; }
+function saveTeacherNotes() {
+  try { localStorage.setItem(STORE_TEACHER_NOTES, JSON.stringify(teacherNotes)); } catch(e) {}
+  syncPush(STORE_TEACHER_NOTES);
+}
+function loadTeacherNotes() {
+  try {
+    const n = localStorage.getItem(STORE_TEACHER_NOTES);
+    teacherNotes = n ? JSON.parse(n) : {};
+  } catch(e) { teacherNotes = {}; }
+}
+function onTeacherNoteBlur(id, val) {
+  const v = val.trim();
+  if (v === getTeacherNote(id, currentCycleNumber)) return;
+  teacherNotes[teacherNoteKey(id, currentCycleNumber)] = v; // الفاضي يبقى نص فاضي عشان الدمج بين الأجهزة يشيله صح
+  saveTeacherNotes();
+}
+supabaseClient
+  .channel('madad_teacher_notes_channel')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'madad_sync', filter: 'key=eq.' + STORE_TEACHER_NOTES }, (payload) => {
+    if (isOwnEcho(STORE_TEACHER_NOTES, payload.new && payload.new.updated_at)) return;
+    try {
+      const newVal = payload.new && payload.new.value;
+      if (!newVal) return;
+      const existing = JSON.parse(localStorage.getItem(STORE_TEACHER_NOTES) || '{}');
+      const merged = Object.assign({}, existing, newVal);
+      localStorage.setItem(STORE_TEACHER_NOTES, JSON.stringify(merged));
+      teacherNotes = merged;
+      // ما نعيد رسم الشاشة لو فيه أحد يكتب بمربع نص، عشان ما ينقطع عليه الكيبورد
+      const ae = document.activeElement;
+      const typing = ae && (ae.tagName === 'TEXTAREA' || ae.tagName === 'INPUT');
+      if (!typing && typeof renderCurriculumTab === 'function') { try { renderCurriculumTab(); } catch(e2) {} }
+    } catch(e) {}
+  })
+  .subscribe();
+
 let archiveSelectedStudentId = null;
 function selectArchiveStudent(id) {
   archiveSelectedStudentId = parseInt(id, 10);
@@ -5836,7 +5879,15 @@ function renderSatView() {
         +'" onclick="setAttendSat(\''+s.name+'\',\'excused\')">'+EMOJIS.excused+' بعذر</button>'
         +'<button class="sat-btn '+(val==='absent'?'sel-absent':'')
         +'" onclick="setAttendSat(\''+s.name+'\',\'absent\')">'+EMOJIS.absent+' غياب</button>'
-        +'</div></div></div>';
+        +'</div></div>'
+        +(liveClosingActive
+          ? '<div class="maq-field-group" style="margin-top:0.5rem;">'
+            +'<div class="maq-field-label" style="color:var(--wine);">📝 ملاحظات المعلمة</div>'
+            +'<textarea class="maq-field-input" rows="2" style="resize:none;line-height:1.4;" placeholder="ملاحظتك عن الطالبة في هذي الدورة"'
+            +' onblur="onTeacherNoteBlur('+s.id+', this.value)">'+escapeHTML(getTeacherNote(s.id, currentCycleNumber))+'</textarea>'
+            +'</div>'
+          : '')
+        +'</div>';
     el.appendChild(card);
   });
 }
