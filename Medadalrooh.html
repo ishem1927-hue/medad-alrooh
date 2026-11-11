@@ -2968,7 +2968,7 @@ function renderStudents() {
           <span>${getJoinCycleEmoji(s) ? getJoinCycleEmoji(s) + ' ' : ''}${s.name}${s.age ? ` <span style="font-weight:400;color:var(--muted);font-size:0.85em;">(${computeAutoAge(s).value} سنة)</span>${computeAutoAge(s).warning ? ` <span title="ما قدرنا نحدّث عمرها تلقائيًا — تاريخ بداية دورة انضمامها ناقص بتبويب المواعيد" style="cursor:help;">⚠️</span>` : ''}` : ''}${getPayTypeEmoji(s) ? ` ${getPayTypeEmoji(s)}` : ''}</span>${isFlexPath(s) ? '<span style="font-size:0.68rem;font-weight:400;padding:0.1rem 0.5rem;border-radius:10px;border:1px solid var(--wine);color:var(--wine);white-space:nowrap;">مسار مرن</span>' : ''}
         </div>
       </div>
-      ${portalCodes.map[s.id] ? `<div class="portal-code-line" onclick="copyPortalMessage(${s.id})" title="اضغطي لنسخ رسالة الواتساب">🔑 <span dir="ltr">${portalCodeShown(portalCodes.map[s.id].code)}</span> 📋</div>` : ''}
+      ${(portalCodes.map[s.id] && portalEligibleSet.has(s.id)) ? `<div class="portal-code-line" onclick="copyPortalMessage(${s.id})" title="اضغطي لنسخ رسالة الواتساب">🔑 <span dir="ltr">${portalCodeShown(portalCodes.map[s.id].code)}</span> 📋</div>` : ''}
       <div class="student-meta" style="cursor:pointer;" onclick="toggleHifzPanel(${s.id})">
         ${(prog.startSurah || prog.currentSurah) ? `<div class="meta-chip surah" style="display:block;line-height:1.9;">
           📓 ${prog.startSurah || '—'} &nbsp; 📖 ${prog.currentSurah || '—'}<br>
@@ -5086,36 +5086,56 @@ function portalLegendSymbols(row) {
   });
   return out;
 }
-// للدورات المنتهية قبل تفعيل الحفظ الثابت: تُحسب من رموز التقارير الأسبوعية (الغياب المعوّض يُحسب نص خصم لأن الرمز ما يفرّق بين بعذر وبدون)
+// اسم سطر التقرير يطابق اسم الطالبة الحالي كلمة بكلمة وبنفس الترتيب (يتساهل في الجعفري/الجعفرية وعبد الله/عبدالله)
+function portalNameWords(n) {
+  return normalizeForMatch2(String(n || '').replace(/عبد\s+(?=ال)/g, 'عبد'))
+    .split(' ').filter(w => w && w !== 'بنت' && w !== 'بن' && w !== 'ابن')
+    .map(w => w.length > 3 ? w.replace(/ه$/, '') : w);
+}
+function portalLineMatches(lineName, studentName) {
+  const a = portalNameWords(lineName), b = portalNameWords(studentName);
+  if (!a.length || !b.length) return false;
+  let pos = 0;
+  for (const w of a) {
+    const i = b.indexOf(w, pos);
+    if (i === -1) return false;
+    pos = i + 1;
+  }
+  return true;
+}
+// للدورات المنتهية قبل تفعيل الحفظ الثابت: تُحسب من رموز التقارير الأسبوعية، وتُربط كل سطر بالطالبة باسمها الحالي
+// (الغياب المعوّض يُحسب نص خصم لأن الرمز ما يفرّق بين بعذر وبدون). المحتمل لأكثر من طالبة يُترك بدون نسبة.
 function portalAttendanceFromReports(row) {
-  const roster = row.rosterNames || [];
+  const cand = students.filter(s => portalRosterNameFor(row, s));
   const weeks = row.weeklyReports || [];
-  if (!roster.length || !weeks.some(w => w && w.trim())) return {};
+  if (!cand.length || !weeks.some(w => w && w.trim())) return {};
   const sy = portalLegendSymbols(row);
   const starEmoji = portalNormSym(getCycleEmoji(row.num) || EMOJIS.star || '');
   const acc = {};
   weeks.forEach((text, wi) => {
     if (!text || !text.trim()) return;
     const expected = (wi === 3) ? 7 : 6;
+    const seen = new Set();
     text.split('\n').forEach(line => {
       const { name, symbolsPart } = parseAttendanceLine(line);
       if (!name) return;
       const sym = portalNormSym(symbolsPart);
       if (countGraphemes(starEmoji ? sym.split(starEmoji).join('') : sym) < 3) return; // سطر متميزات أو سطر بلا رموز حضور
-      let cands = roster.filter(rn => matchesNameLoose(name, rn));
-      if (cands.length > 1) {
-        const ex = cands.filter(rn => squashForMatch2(rn) === squashForMatch2(name));
-        cands = ex.length === 1 ? ex : [];
+      let m = cand.filter(st => portalLineMatches(name, st.name));
+      if (m.length > 1) {
+        const ex = m.filter(st => portalNameWords(st.name).length === portalNameWords(name).length);
+        m = ex.length === 1 ? ex : [];
       }
-      if (cands.length !== 1) return;
+      if (m.length !== 1 || seen.has(m[0].id)) return;
+      seen.add(m[0].id);
       const cnt = x => sym.split(x).length - 1;
-      const a = acc[cands[0]] || (acc[cands[0]] = { units: 0, ded: 0 });
+      const a = acc[m[0].id] || (acc[m[0].id] = { units: 0, ded: 0 });
       a.units += expected;
       a.ded += 0.5 * cnt(sy.excused) + cnt(sy.unexcused) + 0.5 * cnt(sy.comp);
     });
   });
   const out = {};
-  Object.keys(acc).forEach(n => { out[n] = Math.max(0, Math.round(100 * (acc[n].units - acc[n].ded) / acc[n].units)); });
+  Object.keys(acc).forEach(id => { out[id] = Math.max(0, Math.round(100 * (acc[id].units - acc[id].ded) / acc[id].units)); });
   return out;
 }
 // لقطة ثابتة وقت إنهاء الدورة من بيانات الحضور الفعلية (بعذر/بدون عذر محفوظين بشكل منفصل)
@@ -5147,35 +5167,43 @@ function portalRosterNameFor(row, s) {
     return matchesNameLoose(rn, s.name);
   }) || null;
 }
+// الاسم الأول (ونحافظ على "عبد" مع اسمها الثاني مثل عبد الرحمن)
+function portalFirstName(name) {
+  const w = String(name || '').trim().split(/\s+/);
+  return (w[0] === 'عبد' && w[1]) ? w[0] + ' ' + w[1] : (w[0] || '');
+}
+// صفحة الطالبة للنشيطات فقط (غير منسحبة) اللي خلصت دورة وحدة على الأقل؛ الباقي تظهر صفحتها تلقائيًا لما تتفعّل
+let portalEligibleSet = new Set();
 function portalBuildAllPages() {
   const doneRows = scheduleRows.filter(r => r.done && !isNaN(portalCycleNum(r))).sort((a, b) => portalCycleNum(a) - portalCycleNum(b));
   const repAtt = {};
   doneRows.forEach(r => { if (!r.attendPct) repAtt[r.id] = portalAttendanceFromReports(r); });
   const pages = [];
+  const eligible = new Set();
   students.forEach(s => {
     const e = portalCodes.map[s.id];
-    if (!e || !s.name) return;
+    if (!e || !s.name || s.active === false || s.withdrawn) return;
     const cycles = [];
     doneRows.forEach(r => {
       const rn = portalRosterNameFor(r, s);
       if (!rn) return;
       const n = portalCycleNum(r);
-      let att = (r.attendPct && r.attendPct[s.id] != null) ? r.attendPct[s.id] : (repAtt[r.id] && repAtt[r.id][rn] != null ? repAtt[r.id][rn] : null);
+      const att = (r.attendPct && r.attendPct[s.id] != null) ? r.attendPct[s.id] : (repAtt[r.id] && repAtt[r.id][s.id] != null ? repAtt[r.id][s.id] : null);
       const star = att === 100 && (r.starNames || []).some(x => squashForMatch2(x) === squashForMatch2(rn));
-      cycles.push({ cycle: n, hifz: (getArchive(s.id, n).hifz || '').trim(), att, star, starEmoji: getCycleEmoji(r.num) || EMOJIS.star || '⭐' });
+      cycles.push({ cycle: n, hifz: (getArchive(s.id, n).hifz || '').trim(), att, star });
     });
-    const payload = { v: 1, ready: cycles.length > 0, name: s.name };
-    if (cycles.length) {
-      const last = cycles[cycles.length - 1];
-      const kt = computeArchiveKubraTaahud(s.id, last.cycle, s.joinCycle);
-      payload.joinCycle = s.joinCycle || null;
-      payload.joinEmoji = getJoinCycleEmoji(s) || '';
-      payload.last = Object.assign({}, last, { kubra: kt.kubra || '', taahud: kt.taahud || '', note: getTeacherNote(s.id, last.cycle) });
-      payload.history = cycles.slice(0, -1).reverse();
-      payload.docs = [];
-    }
-    pages.push({ code: e.code, payload });
+    if (!cycles.length) return;
+    const last = cycles[cycles.length - 1];
+    const kt = computeArchiveKubraTaahud(s.id, last.cycle, s.joinCycle);
+    eligible.add(s.id);
+    pages.push({ code: e.code, payload: {
+      v: 1, ready: true, name: s.name, display: firstTwoWords(s.name), first: portalFirstName(s.name),
+      joinCycle: s.joinCycle || null, joinEmoji: getJoinCycleEmoji(s) || '',
+      last: Object.assign({}, last, { kubra: kt.kubra || '', taahud: kt.taahud || '', note: getTeacherNote(s.id, last.cycle) }),
+      history: cycles.slice(0, -1).reverse(), docs: [],
+    } });
   });
+  portalEligibleSet = eligible;
   return pages;
 }
 async function portalPublishNow() {
@@ -5224,12 +5252,16 @@ async function openSurveyResults(rowId) {
       html += `<div style="font-weight:800;color:var(--wine);margin-top:0.6rem;">${q.title}</div>`;
       Object.keys(q.opts).forEach(k => {
         const c = resp.filter(x => x[q.col] === k).length;
-        html += `<div>• ${q.opts[k]}: ${toAr(c)} (${toAr(Math.round(c / total * 100))}٪)</div>`;
+        const pct = Math.round(c / total * 100);
+        html += `<div style="position:relative;height:32px;border-radius:8px;background:var(--surface2);margin:0.3rem 0;overflow:hidden;">
+          <div style="position:absolute;top:0;bottom:0;right:0;width:${pct}%;background:rgba(131,61,90,0.28);"></div>
+          <div style="position:relative;display:flex;justify-content:space-between;align-items:center;height:100%;padding:0 0.6rem;font-size:0.8rem;"><span>${q.opts[k]}</span><span>${toAr(c)} · ${toAr(pct)}٪</span></div>
+        </div>`;
       });
     });
     const comments = resp.filter(x => x.comment).sort((a, b) => a.student_name.localeCompare(b.student_name, 'ar'));
     if (comments.length) {
-      html += `<div style="font-weight:800;color:var(--wine);margin-top:0.9rem;">كلمات الطالبات (بأسمائهن)</div>`;
+      html += `<div style="font-weight:800;color:var(--wine);margin-top:0.9rem;">آراء الطالبات</div>`;
       comments.forEach(x => { html += `<div style="margin:0.3rem 0;">• <b>${escapeHTML(firstTwoWords(x.student_name))}:</b> ${escapeHTML(x.comment)}</div>`; });
     }
     const sugg = (r2.data || []).slice();
