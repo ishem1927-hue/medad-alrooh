@@ -723,6 +723,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .sched-vac-remove { background: none; border: none; color: var(--red); font-family: 'Cairo'; font-size: 0.74rem; cursor: pointer; }
 
   .sched-finished-dates { font-size: 0.78rem; color: var(--ink); margin-bottom: 0.4rem; }
+  .portal-code-line { display: inline-block; font-size: 0.72rem; color: var(--muted); margin: 0.1rem 0 0.35rem; cursor: pointer; }
+  .portal-code-line span { letter-spacing: 0.04em; }
   .sched-finished-count { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: var(--ink); margin: 0.6rem 0; }
   .sched-count-input { width: 70px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 0.3rem 0.5rem; font-family: 'Cairo'; font-size: 0.82rem; color: var(--ink); outline: none; text-align: center; }
   .sched-undo-btn {
@@ -1855,7 +1857,7 @@ const ALL_DATA_KEYS = [
   'madad_pinned_week', 'madad_pinned_week_live', 'madad_pinned_closing_live', 'madad_pinned_day', 'madad_cycle_number',
   'madad_cycle_star_list', 'madad_cycle_star_weeks', 'madad_weekly_excellent',
   'madad_group_names', 'madad_halqa_names', 'madad_group_count', 'madad_halqa_count', 'madad_halqa_periods',
-  'madad_halqa_dist', 'madad_event_participants', 'madad_kubra_splits', 'madad_archive', 'madad_teacher_notes',
+  'madad_halqa_dist', 'madad_event_participants', 'madad_kubra_splits', 'madad_archive', 'madad_teacher_notes', 'madad_portal_codes',
   'madad_wa_plan_approval_log', 'madad_wa_daily_approval_log', 'madad_no_challenge_days',
 ];
 const MERGE_KEYS = ['madad_data', 'maqarrar_data', 'maqarrar_history', 'madad_halqa_dist', 'madad_event_participants', 'madad_kubra_splits', 'madad_archive', 'madad_teacher_notes'];
@@ -2662,6 +2664,7 @@ async function loadStudents() {
   loadSectionNames();
   loadArchiveData();
   loadTeacherNotes();
+  loadPortalCodes();
   renderStudents();
 }
 
@@ -2696,6 +2699,7 @@ supabaseClient
 function saveStudents() {
   try { localStorage.setItem('madad_students', JSON.stringify(students)); } catch(e) {}
   syncPush('madad_students');
+  schedulePortalPublish();
   if (typeof syncHasibWithStudents === 'function' && typeof hasibStudents !== 'undefined') {
     syncHasibWithStudents();
     saveHasib();
@@ -2964,6 +2968,7 @@ function renderStudents() {
           <span>${getJoinCycleEmoji(s) ? getJoinCycleEmoji(s) + ' ' : ''}${s.name}${s.age ? ` <span style="font-weight:400;color:var(--muted);font-size:0.85em;">(${computeAutoAge(s).value} سنة)</span>${computeAutoAge(s).warning ? ` <span title="ما قدرنا نحدّث عمرها تلقائيًا — تاريخ بداية دورة انضمامها ناقص بتبويب المواعيد" style="cursor:help;">⚠️</span>` : ''}` : ''}${getPayTypeEmoji(s) ? ` ${getPayTypeEmoji(s)}` : ''}</span>${isFlexPath(s) ? '<span style="font-size:0.68rem;font-weight:400;padding:0.1rem 0.5rem;border-radius:10px;border:1px solid var(--wine);color:var(--wine);white-space:nowrap;">مسار مرن</span>' : ''}
         </div>
       </div>
+      ${portalCodes.map[s.id] ? `<div class="portal-code-line" onclick="copyPortalMessage(${s.id})" title="اضغطي لنسخ رسالة الواتساب">🔑 <span dir="ltr">${portalCodeShown(portalCodes.map[s.id].code)}</span> 📋</div>` : ''}
       <div class="student-meta" style="cursor:pointer;" onclick="toggleHifzPanel(${s.id})">
         ${(prog.startSurah || prog.currentSurah) ? `<div class="meta-chip surah" style="display:block;line-height:1.9;">
           📓 ${prog.startSurah || '—'} &nbsp; 📖 ${prog.currentSurah || '—'}<br>
@@ -4912,6 +4917,7 @@ function computeArchiveKubraTaahud(studentId, cycle, joinCycle) {
 function saveArchiveData() {
   try { localStorage.setItem(STORE_ARCHIVE, JSON.stringify(archiveData)); } catch(e) {}
   syncPush(STORE_ARCHIVE);
+  schedulePortalPublish();
 }
 function loadArchiveData() {
   try {
@@ -4943,6 +4949,7 @@ function getTeacherNote(id, cycle) { return teacherNotes[teacherNoteKey(id, cycl
 function saveTeacherNotes() {
   try { localStorage.setItem(STORE_TEACHER_NOTES, JSON.stringify(teacherNotes)); } catch(e) {}
   syncPush(STORE_TEACHER_NOTES);
+  schedulePortalPublish();
 }
 function loadTeacherNotes() {
   try {
@@ -4967,6 +4974,7 @@ supabaseClient
       const merged = Object.assign({}, existing, newVal);
       localStorage.setItem(STORE_TEACHER_NOTES, JSON.stringify(merged));
       teacherNotes = merged;
+      schedulePortalPublish();
       // ما نعيد رسم الشاشة لو فيه أحد يكتب بمربع نص، عشان ما ينقطع عليه الكيبورد
       const ae = document.activeElement;
       const typing = ae && (ae.tagName === 'TEXTAREA' || ae.tagName === 'INPUT');
@@ -4974,6 +4982,268 @@ supabaseClient
     } catch(e) {}
   })
   .subscribe();
+
+// ===================== صفحة الطالبة: الرموز التعريفية + نشر البيانات + نتائج الاستبيان =====================
+const STORE_PORTAL_CODES = 'madad_portal_codes';
+const PORTAL_URL = 'https://ishem1927-hue.github.io/medad-alrooh/student.html';
+const PORTAL_CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // بدون حروف/أرقام تتشابه (0 O 1 I L)
+let portalCodes = { next: 1, map: {} }; // map: { رقم الطالبة: { seq: الرقم التسلسلي الثابت, code: الرمز } }
+let portalPublishTimer = null;
+let portalLastPushed = '';
+let portalEnsureBusy = false;
+
+function loadPortalCodes() {
+  try {
+    const p = JSON.parse(localStorage.getItem(STORE_PORTAL_CODES) || 'null');
+    portalCodes = (p && p.map) ? p : { next: 1, map: {} };
+  } catch(e) { portalCodes = { next: 1, map: {} }; }
+}
+function savePortalCodes() {
+  try { localStorage.setItem(STORE_PORTAL_CODES, JSON.stringify(portalCodes)); } catch(e) {}
+  syncPush(STORE_PORTAL_CODES);
+}
+function portalRandomChars(n) {
+  const limit = 256 - (256 % PORTAL_CODE_CHARS.length); // رفض القيم الزايدة عشان التوزيع يكون عادل
+  let out = '';
+  while (out.length < n) {
+    const buf = new Uint8Array(n * 2);
+    crypto.getRandomValues(buf);
+    for (let i = 0; i < buf.length && out.length < n; i++) {
+      if (buf[i] < limit) out += PORTAL_CODE_CHARS[buf[i] % PORTAL_CODE_CHARS.length];
+    }
+  }
+  return out;
+}
+// شهر وسنة الانضمام (مثل 0127) من تاريخ بداية دورة انضمام الطالبة في المواعيد
+function portalJoinStamp(s) {
+  const row = s.joinCycle ? scheduleRows.find(r => portalCycleNum(r) === s.joinCycle) : null;
+  const d = (row && row.startDate) ? row.startDate.split('-') : null;
+  const now = new Date();
+  const mm = d ? d[1] : String(now.getMonth() + 1).padStart(2, '0');
+  const yy = d ? d[0].slice(2) : String(now.getFullYear()).slice(2);
+  return mm + yy;
+}
+// يولّد رمز لكل طالبة ما عندها رمز (الرمز ثابت بعدها). قبل التوليد يتأكد من السحابة عشان ما يكتب فوق رموز موزّعة.
+async function ensurePortalCodes() {
+  if (TEACHER_HALQA || portalEnsureBusy || !students.length) return false;
+  if (!students.some(s => !portalCodes.map[s.id])) return false;
+  portalEnsureBusy = true;
+  try {
+    const { data, error } = await supabaseClient.from('madad_sync').select('value').eq('key', STORE_PORTAL_CODES).maybeSingle();
+    if (error) return false;
+    if (data && data.value && data.value.map) {
+      Object.keys(data.value.map).forEach(id => { if (!portalCodes.map[id]) portalCodes.map[id] = data.value.map[id]; });
+      portalCodes.next = Math.max(portalCodes.next, data.value.next || 1);
+    }
+    const used = new Set(Object.values(portalCodes.map).map(v => v.code));
+    let changed = false;
+    students.forEach(s => {
+      if (portalCodes.map[s.id]) return;
+      const seq = portalCodes.next++;
+      let code;
+      do { code = 'MS' + portalJoinStamp(s) + String(seq).padStart(3, '0') + portalRandomChars(4); } while (used.has(code));
+      used.add(code);
+      portalCodes.map[s.id] = { seq, code };
+      changed = true;
+    });
+    if (changed) savePortalCodes();
+    return changed;
+  } catch(e) { return false; }
+  finally { portalEnsureBusy = false; }
+}
+function portalCodeShown(code) {
+  return code ? code.slice(0, 6) + '-' + code.slice(6, -4) + '-' + code.slice(-4) : '';
+}
+function copyPortalMessage(id) {
+  const e = portalCodes.map[id];
+  const s = students.find(x => x.id === id);
+  if (!e || !s) return;
+  const msg = `السلام عليكم ورحمة الله وبركاته 🤍\n${firstTwoWords(s.name)}، صفحتك في مداد الروح جاهزة، وفيها ملخص دورتك وإنجازاتك.\n\n🔗 الرابط: ${PORTAL_URL}\n🔑 رقمك التعريفي: ${portalCodeShown(e.code)}\n\nاحتفظي بالرقم ولا تشاركيه مع أحد 🌿`;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(msg).then(() => showToast('✅ تم نسخ رسالة ' + firstTwoWords(s.name))).catch(() => { prompt('انسخي الرسالة:', msg); });
+  } else {
+    prompt('انسخي الرسالة:', msg);
+  }
+}
+
+// ---------- نسبة الحضور (من ٢٥: ٢٠ يوم متابعة + ٥ حلقات مباشرة، والمسار المرن من ٥) ----------
+// الغياب بعذر ينقص نص، وبدون عذر ينقص كامل، والتعويض ما يرجّع النسبة
+function portalCycleNum(r) { return parseInt(toEnDigits(String(r.num)), 10); }
+function portalNormSym(x) { return String(x || '').replace(/️/g, ''); }
+// رموز الغياب بعذر / بدون عذر / المعوّض من دلالة الرموز المحفوظة بالدورة نفسها
+function portalLegendSymbols(row) {
+  const out = { excused: '⚪', unexcused: '⚫', comp: '🟡' };
+  (row.symbolsLegendText || '').split('\n').forEach(line => {
+    const cl = line.replace(/[​-‏⁠﻿؜]/g, '').trim();
+    const m = cl.match(/^([^ء-ي]*)([ء-ي][\s\S]*)$/);
+    if (!m) return;
+    const sym = portalNormSym(m[1].replace(/[:：*]/g, '').trim());
+    const label = m[2];
+    if (!sym) return;
+    if (/بدون\s*عذر/.test(label)) out.unexcused = sym;
+    else if (/بعذر/.test(label)) out.excused = sym;
+    else if (/تعويض|معو.?ض/.test(label)) out.comp = sym;
+  });
+  return out;
+}
+// للدورات المنتهية قبل تفعيل الحفظ الثابت: تُحسب من رموز التقارير الأسبوعية (الغياب المعوّض يُحسب نص خصم لأن الرمز ما يفرّق بين بعذر وبدون)
+function portalAttendanceFromReports(row) {
+  const roster = row.rosterNames || [];
+  const weeks = row.weeklyReports || [];
+  if (!roster.length || !weeks.some(w => w && w.trim())) return {};
+  const sy = portalLegendSymbols(row);
+  const starEmoji = portalNormSym(getCycleEmoji(row.num) || EMOJIS.star || '');
+  const acc = {};
+  weeks.forEach((text, wi) => {
+    if (!text || !text.trim()) return;
+    const expected = (wi === 3) ? 7 : 6;
+    text.split('\n').forEach(line => {
+      const { name, symbolsPart } = parseAttendanceLine(line);
+      if (!name) return;
+      const sym = portalNormSym(symbolsPart);
+      if (countGraphemes(starEmoji ? sym.split(starEmoji).join('') : sym) < 3) return; // سطر متميزات أو سطر بلا رموز حضور
+      let cands = roster.filter(rn => matchesNameLoose(name, rn));
+      if (cands.length > 1) {
+        const ex = cands.filter(rn => squashForMatch2(rn) === squashForMatch2(name));
+        cands = ex.length === 1 ? ex : [];
+      }
+      if (cands.length !== 1) return;
+      const cnt = x => sym.split(x).length - 1;
+      const a = acc[cands[0]] || (acc[cands[0]] = { units: 0, ded: 0 });
+      a.units += expected;
+      a.ded += 0.5 * cnt(sy.excused) + cnt(sy.unexcused) + 0.5 * cnt(sy.comp);
+    });
+  });
+  const out = {};
+  Object.keys(acc).forEach(n => { out[n] = Math.max(0, Math.round(100 * (acc[n].units - acc[n].ded) / acc[n].units)); });
+  return out;
+}
+// لقطة ثابتة وقت إنهاء الدورة من بيانات الحضور الفعلية (بعذر/بدون عذر محفوظين بشكل منفصل)
+function portalSnapshotAttendance(names) {
+  const out = {};
+  students.filter(s => names.includes(s.name)).forEach(s => {
+    const h = getStudentHalqaId(s.id), p = getStudentPeriod(s.id);
+    const flex = isFlexPath(s);
+    let units = 0, ded = 0;
+    const add = v => { units++; if (v === 'excused') ded += 0.5; else if (v === 'absent') ded += 1; };
+    for (let w = 0; w < 4; w++) {
+      add(h && p ? getAttendVal(w, liveKeyFor(h, p, false), s.name) : null);
+      if (!flex) { for (let d = 1; d <= 5; d++) add(getAttendVal(w, d, s.name)); }
+    }
+    add(h && p ? getAttendVal(3, liveKeyFor(h, p, true), s.name) : null);
+    out[s.id] = Math.max(0, Math.round(100 * (units - ded) / units));
+  });
+  return out;
+}
+
+// ---------- بناء ونشر بيانات صفحات الطالبات ----------
+// اسم الطالبة داخل قائمة مسجلات الدورة (مطابقة تامة أولًا، وبعدها مرنة إلا لو الاسم يخص طالبة ثانية بالضبط)
+function portalRosterNameFor(row, s) {
+  const sq = squashForMatch2(s.name);
+  return (row.rosterNames || []).find(rn => {
+    const q = squashForMatch2(rn);
+    if (q === sq) return true;
+    if (students.some(o => o.id !== s.id && squashForMatch2(o.name) === q)) return false;
+    return matchesNameLoose(rn, s.name);
+  }) || null;
+}
+function portalBuildAllPages() {
+  const doneRows = scheduleRows.filter(r => r.done && !isNaN(portalCycleNum(r))).sort((a, b) => portalCycleNum(a) - portalCycleNum(b));
+  const repAtt = {};
+  doneRows.forEach(r => { if (!r.attendPct) repAtt[r.id] = portalAttendanceFromReports(r); });
+  const pages = [];
+  students.forEach(s => {
+    const e = portalCodes.map[s.id];
+    if (!e || !s.name) return;
+    const cycles = [];
+    doneRows.forEach(r => {
+      const rn = portalRosterNameFor(r, s);
+      if (!rn) return;
+      const n = portalCycleNum(r);
+      let att = (r.attendPct && r.attendPct[s.id] != null) ? r.attendPct[s.id] : (repAtt[r.id] && repAtt[r.id][rn] != null ? repAtt[r.id][rn] : null);
+      const star = att === 100 && (r.starNames || []).some(x => squashForMatch2(x) === squashForMatch2(rn));
+      cycles.push({ cycle: n, hifz: (getArchive(s.id, n).hifz || '').trim(), att, star, starEmoji: getCycleEmoji(r.num) || EMOJIS.star || '⭐' });
+    });
+    const payload = { v: 1, ready: cycles.length > 0, name: s.name };
+    if (cycles.length) {
+      const last = cycles[cycles.length - 1];
+      const kt = computeArchiveKubraTaahud(s.id, last.cycle, s.joinCycle);
+      payload.joinCycle = s.joinCycle || null;
+      payload.joinEmoji = getJoinCycleEmoji(s) || '';
+      payload.last = Object.assign({}, last, { kubra: kt.kubra || '', taahud: kt.taahud || '', note: getTeacherNote(s.id, last.cycle) });
+      payload.history = cycles.slice(0, -1).reverse();
+      payload.docs = [];
+    }
+    pages.push({ code: e.code, payload });
+  });
+  return pages;
+}
+async function portalPublishNow() {
+  if (TEACHER_HALQA) return;
+  try {
+    await ensurePortalCodes();
+    const pages = portalBuildAllPages();
+    if (!pages.length) return;
+    const sig = JSON.stringify(pages);
+    if (sig === portalLastPushed) return;
+    const { error } = await supabaseClient.rpc('publish_student_pages', { p_pages: pages });
+    if (!error) portalLastPushed = sig;
+  } catch(e) {}
+}
+function schedulePortalPublish() {
+  if (TEACHER_HALQA) return;
+  clearTimeout(portalPublishTimer);
+  portalPublishTimer = setTimeout(() => { portalPublishNow().then(() => { if (typeof renderStudents === 'function') renderStudents(); }); }, 4000);
+}
+
+// ---------- نتائج استبيان دورة (من بطاقة الدورة المنتهية) ----------
+const SURVEY_QUESTIONS = [
+  { col: 'q_overall', title: 'الرضا العام عن الدورة', opts: { very: 'راضية جدًا', ok: 'راضية', improve: 'تحتاج تحسين' } },
+  { col: 'q_followup', title: 'المتابعة والتنظيم', opts: { excellent: 'ممتاز', good: 'جيد', improve: 'يحتاج تحسين' } },
+  { col: 'q_load', title: 'حجم المقرر والوقت', opts: { suitable: 'مناسب', much: 'كثير', little: 'قليل' } },
+];
+async function openSurveyResults(rowId) {
+  const row = scheduleRows.find(r => r.id === rowId);
+  if (!row) return;
+  const cyc = portalCycleNum(row);
+  const title = '💬 استبيان دورة ' + toAr(cyc);
+  showInfoModal(title, '<div style="text-align:center;color:var(--muted);padding:1rem;">⏳ جاري التحميل...</div>');
+  try {
+    const [r1, r2] = await Promise.all([
+      supabaseClient.from('survey_responses').select('student_name,q_overall,q_followup,q_load,comment').eq('cycle', cyc),
+      supabaseClient.from('survey_suggestions').select('student_name,suggestion').eq('cycle', cyc),
+    ]);
+    if (r1.error || r2.error) throw new Error('load');
+    const resp = r1.data || [];
+    if (!resp.length) { showInfoModal(title, '<div style="text-align:center;color:var(--muted);padding:1rem;">ما فيه ردود بعد 🌿</div>'); return; }
+    const total = resp.length;
+    const rosterN = (row.rosterNames || []).length;
+    let html = `<div style="text-align:right;font-size:0.82rem;">
+      <div style="margin-bottom:0.7rem;color:var(--muted);">عدد الردود: ${toAr(total)}${rosterN ? ' من ' + toAr(rosterN) : ''}</div>`;
+    SURVEY_QUESTIONS.forEach(q => {
+      html += `<div style="font-weight:800;color:var(--wine);margin-top:0.6rem;">${q.title}</div>`;
+      Object.keys(q.opts).forEach(k => {
+        const c = resp.filter(x => x[q.col] === k).length;
+        html += `<div>• ${q.opts[k]}: ${toAr(c)} (${toAr(Math.round(c / total * 100))}٪)</div>`;
+      });
+    });
+    const comments = resp.filter(x => x.comment).sort((a, b) => a.student_name.localeCompare(b.student_name, 'ar'));
+    if (comments.length) {
+      html += `<div style="font-weight:800;color:var(--wine);margin-top:0.9rem;">كلمات الطالبات (بأسمائهن)</div>`;
+      comments.forEach(x => { html += `<div style="margin:0.3rem 0;">• <b>${escapeHTML(firstTwoWords(x.student_name))}:</b> ${escapeHTML(x.comment)}</div>`; });
+    }
+    const sugg = (r2.data || []).slice();
+    for (let i = sugg.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = sugg[i]; sugg[i] = sugg[j]; sugg[j] = t; } // ترتيب عشوائي عشان ما ينربط بوقت الإرسال
+    if (sugg.length) {
+      html += `<div style="font-weight:800;color:var(--wine);margin-top:0.9rem;">الاقتراحات والملاحظات</div>`;
+      sugg.forEach(x => { html += `<div style="margin:0.3rem 0;">• ${escapeHTML(x.suggestion)}${x.student_name ? ` <span style="color:var(--muted);">(${escapeHTML(firstTwoWords(x.student_name))})</span>` : ''}</div>`; });
+    }
+    html += '</div>';
+    showInfoModal(title, html);
+  } catch(e) {
+    showInfoModal(title, '<div style="text-align:center;color:var(--muted);padding:1rem;">تعذّر تحميل النتائج، جرّبي مرة ثانية</div>');
+  }
+}
 
 let archiveSelectedStudentId = null;
 function selectArchiveStudent(id) {
@@ -8249,6 +8519,7 @@ async function loadSchedule() {
 function saveSchedule() {
   try { localStorage.setItem('madad_talqeen_schedule', JSON.stringify(scheduleRows)); } catch(e) {}
   syncPush('madad_talqeen_schedule');
+  schedulePortalPublish();
 }
 
 // تحديث لحظي للجدول/المواعيد
@@ -8420,6 +8691,7 @@ function confirmDone() {
       if (!h) return;
       r.regTypes[s.name] = (h.pay === 'kafala') ? 'kafala' : 'paid';
     });
+    r.attendPct = portalSnapshotAttendance(activeNames); // نسبة حضور كل طالبة، ثابتة وقت إنهاء الدورة
     saveSchedule();
     if (!isNaN(cycleNumForArchive)) autoFillArchiveHifzForCycle(cycleNumForArchive);
     resetCycleStarData(); // تصفير القائمة استعدادًا للدورة الجديدة
@@ -8877,6 +9149,7 @@ function renderFinishedRow(row, idx, finishedList) {
       </div>
       <button class="icon-btn-sm accent" style="width:100%;margin-top:0.5rem;" onclick="toggleRosterPanel(${row.id})">👥 تحديد أسماء طالبات هذي الدورة (${(row.rosterNames||[]).length})</button>
       <div id="rosterPanel_${row.id}" style="display:none;margin-top:0.5rem;max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:0.5rem;"></div>
+      <button class="icon-btn-sm accent" style="width:100%;margin-top:0.5rem;font-weight:400;font-size:0.72rem;" onclick="openSurveyResults(${row.id})">💬 الاستبيان</button>
       <button class="sched-undo-btn" onclick="undoDone(${row.id})">↩️ تراجع (رجّعها للقادمة)</button>
     </div>
   `;
@@ -9428,7 +9701,7 @@ if (typeof supabaseClient !== 'undefined') {
       } catch(e) {}
     }).subscribe();
 }
-initAppData().then(() => { if (TEACHER_HALQA) enterCurriculumMode('live'); });
+initAppData().then(() => { if (TEACHER_HALQA) enterCurriculumMode('live'); else portalPublishNow().then(() => renderStudents()); });
 if (TEACHER_HALQA) {
   showScreen('talqeen');
   setTalqeenTab(document.querySelector('#talqeen .tab[data-tab="panel-curriculum"]'), 'panel-curriculum');
