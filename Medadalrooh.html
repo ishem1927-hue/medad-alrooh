@@ -5863,9 +5863,9 @@ function renderMaqStudents() {
       <div class="empty-state">
         <div class="empty-icon">👩‍🎓</div>
         <div>لا توجد طالبات نشيطات</div>
-        <div style="font-size:0.78rem;margin-top:0.4rem">
+        ${TEACHER_HALQA ? '' : `<div style="font-size:0.78rem;margin-top:0.4rem">
           أضيفيهن من <span onclick="goToStudentsTab()" style="color:var(--wine);text-decoration:underline;cursor:pointer;">تبويب إدارة الطالبات</span>
-        </div>
+        </div>`}
       </div>`;
     return;
   }
