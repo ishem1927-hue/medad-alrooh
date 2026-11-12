@@ -75,6 +75,21 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .course-num-badge { color: var(--wine); font-weight: 700; font-size: 0.95rem; }
   .course-tagline { font-size: 0.78rem; color: var(--muted); line-height: 1.5; display: block; }
   .course-arrow { color: var(--wine); font-size: 1.3rem; opacity: 0.6; }
+  .cc-talqeen { background: #FCEEF3; border-color: #F4D8E3; }
+  .cc-talqeen .course-icon { background: #F6D9E5; }
+  .cc-talqeen .course-arrow, .cc-talqeen .course-num-badge { color: #8E4A68; }
+  .cc-tajweed { background: #FFF8E1; border-color: #F5EAC0; }
+  .cc-tajweed .course-icon { background: #FBEBB5; }
+  .cc-tajweed .course-arrow, .cc-tajweed .course-num-badge { color: #9A7B1F; }
+  .cc-tamkeen { background: #EDF2EC; border-color: #D9E5D7; }
+  .cc-tamkeen .course-icon { background: #D5E3D2; }
+  .cc-tamkeen .course-arrow, .cc-tamkeen .course-num-badge { color: #5E7F5C; }
+  .cc-tilawah { background: #EAF4FB; border-color: #D6E8F4; }
+  .cc-tilawah .course-icon { background: #D2E6F5; }
+  .cc-tilawah .course-arrow, .cc-tilawah .course-num-badge { color: #3F6E94; }
+  .cc-tafsir { background: #FAF3E8; border-color: #EEE0C8; }
+  .cc-tafsir .course-icon { background: #F0E1C6; }
+  .cc-tafsir .course-arrow, .cc-tafsir .course-num-badge { color: #8A6D3B; }
 
   /* ===== شاشات الدورات ===== */
   .course-topbar {
@@ -791,7 +806,7 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
   </header>
 
   <div class="container">
-    <div class="course-card" onclick="showScreen('talqeen')">
+    <div class="course-card cc-talqeen" onclick="showScreen('talqeen')">
       <div class="course-icon">🎙️</div>
       <div class="course-info">
         <div class="course-name">مداد التلقين <span class="course-num-badge" id="homeTalqeenNum"></span></div>
@@ -800,7 +815,7 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
       <div class="course-arrow">‹</div>
     </div>
 
-    <div class="course-card" id="tajweedCard" style="display:none;" onclick="showScreen('tajweed')">
+    <div class="course-card cc-tajweed" id="tajweedCard" style="display:none;" onclick="showScreen('tajweed')">
       <div class="course-icon">📝</div>
       <div class="course-info">
         <div class="course-name">مداد التجويد</div>
@@ -809,7 +824,7 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
       <div class="course-arrow">‹</div>
     </div>
 
-    <div class="course-card" id="tamkeenCard" style="display:none;" onclick="showScreen('tamkeen')">
+    <div class="course-card cc-tamkeen" id="tamkeenCard" style="display:none;" onclick="showScreen('tamkeen')">
       <div class="course-icon">⛰️</div>
       <div class="course-info">
         <div class="course-name">مداد التمكين</div>
@@ -818,7 +833,7 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
       <div class="course-arrow">‹</div>
     </div>
 
-    <div class="course-card" id="tilawahCard" style="display:none;" onclick="showScreen('tilawah')">
+    <div class="course-card cc-tilawah" id="tilawahCard" style="display:none;" onclick="showScreen('tilawah')">
       <div class="course-icon">📖</div>
       <div class="course-info">
         <div class="course-name">مداد التلاوة</div>
@@ -827,7 +842,7 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
       <div class="course-arrow">‹</div>
     </div>
 
-    <div class="course-card" id="tafsirCard" style="display:none;" onclick="showScreen('tafsir')">
+    <div class="course-card cc-tafsir" id="tafsirCard" style="display:none;" onclick="showScreen('tafsir')">
       <div class="course-icon">📜</div>
       <div class="course-info">
         <div class="course-name">مداد التفسير</div>
