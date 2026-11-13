@@ -225,12 +225,17 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .sc-num {
     font-family: 'Cairo'; font-weight: 800; font-size: 0.8rem; color: var(--wine);
     background: var(--surface); border: 1px solid var(--border); border-radius: 50%;
-    width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; position: relative;
+  }
+  .sc-badge {
+    position: absolute; top: -8px; right: -8px; width: 17px; height: 17px; border-radius: 50%;
+    background: var(--surface); border: 1px solid var(--border); font-size: 0.68rem; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
   }
   .sc-acts { display: flex; gap: 0.3rem; flex-shrink: 0; }
   .sc-act {
-    width: 30px; height: 30px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: center; font-size: 0.8rem; padding: 0; line-height: 1; cursor: pointer;
+    width: 24px; height: 24px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; font-size: 0.68rem; padding: 0; line-height: 1; cursor: pointer;
   }
   .sc-box { background: var(--surface); border-radius: 10px; margin-top: 0.6rem; overflow: hidden; cursor: pointer; }
   .sc-row { display: flex; font-size: 0.78rem; color: var(--green); }
@@ -2984,9 +2989,9 @@ function renderStudents() {
     card.style.position = 'relative';
     card.innerHTML = `
       <div class="sc-head">
-        <span class="sc-num">${toAr(idx + 1)}</span>
+        <span class="sc-num">${toAr(idx + 1)}${getJoinCycleEmoji(s) ? `<span class="sc-badge">${getJoinCycleEmoji(s)}</span>` : ''}</span>
         <div class="sc-name" onclick="toggleHifzPanel(${s.id})">
-          <span>${getJoinCycleEmoji(s) ? getJoinCycleEmoji(s) + ' ' : ''}${s.name}</span>${isFlexPath(s) ? '<span style="font-size:0.68rem;font-weight:400;padding:0.1rem 0.5rem;border-radius:10px;border:1px solid var(--wine);color:var(--wine);white-space:nowrap;">مسار مرن</span>' : ''}
+          <span>${s.name}</span>${isFlexPath(s) ? '<span style="font-size:0.68rem;font-weight:400;padding:0.1rem 0.5rem;border-radius:10px;border:1px solid var(--wine);color:var(--wine);white-space:nowrap;">مسار مرن</span>' : ''}
         </div>
         <div class="sc-acts">
           ${getPayTypeEmoji(s) ? `<span class="sc-act">${getPayTypeEmoji(s)}</span>` : ''}
