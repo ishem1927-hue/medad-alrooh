@@ -217,6 +217,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     padding: 1rem 1.2rem; margin-bottom: 0.7rem; transition: all 0.2s; position: relative;
   }
   .student-card.inactive { opacity: 0.45; border-style: dashed; }
+  #studentList .student-card { background: var(--surface2); }
+  #studentList .student-card .meta-chip { background: var(--surface); }
   .student-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.4rem; }
   .student-name-display { font-size: 0.95rem; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 0.5rem; }
   .student-num {
@@ -736,8 +738,6 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .sched-vac-remove { background: none; border: none; color: var(--red); font-family: 'Cairo'; font-size: 0.74rem; cursor: pointer; }
 
   .sched-finished-dates { font-size: 0.78rem; color: var(--ink); margin-bottom: 0.4rem; }
-  .portal-code-line { display: inline-block; font-size: 0.72rem; color: var(--muted); margin: 0.1rem 0 0.35rem; cursor: pointer; }
-  .portal-code-line span { letter-spacing: 0.04em; }
   .sched-finished-count { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: var(--ink); margin: 0.6rem 0; }
   .sched-count-input { width: 70px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 0.3rem 0.5rem; font-family: 'Cairo'; font-size: 0.82rem; color: var(--ink); outline: none; text-align: center; }
   .sched-undo-btn {
@@ -2974,14 +2974,14 @@ function renderStudents() {
       <div style="position:absolute;top:0.4rem;left:0.4rem;display:flex;gap:0.35rem;">
         <button class="s-btn" onclick="toggleActive(${s.id})" style="padding:0;font-size:0.55rem;line-height:1;background:none;border:none;">${s.active !== false ? '⏸️' : '▶️'}</button>
         <button class="s-btn deactivate" onclick="openDeleteChoice(${s.id})" style="padding:0;font-size:0.5rem;line-height:1;background:none;border:none;">🗑</button>
+        ${getPayTypeEmoji(s) ? `<span style="font-size:0.55rem;line-height:1;">${getPayTypeEmoji(s)}</span>` : ''}
       </div>
       <div class="student-top">
         <div class="student-name-display" style="cursor:pointer;" onclick="toggleHifzPanel(${s.id})">
           <span class="student-num">${toAr(idx + 1)}</span>
-          <span>${getJoinCycleEmoji(s) ? getJoinCycleEmoji(s) + ' ' : ''}${s.name}${s.age ? ` <span style="font-weight:400;color:var(--muted);font-size:0.85em;">(${computeAutoAge(s).value} سنة)</span>${computeAutoAge(s).warning ? ` <span title="ما قدرنا نحدّث عمرها تلقائيًا — تاريخ بداية دورة انضمامها ناقص بتبويب المواعيد" style="cursor:help;">⚠️</span>` : ''}` : ''}${getPayTypeEmoji(s) ? ` ${getPayTypeEmoji(s)}` : ''}</span>${isFlexPath(s) ? '<span style="font-size:0.68rem;font-weight:400;padding:0.1rem 0.5rem;border-radius:10px;border:1px solid var(--wine);color:var(--wine);white-space:nowrap;">مسار مرن</span>' : ''}
+          <span>${getJoinCycleEmoji(s) ? getJoinCycleEmoji(s) + ' ' : ''}${s.name}${s.age ? ` <span style="font-weight:400;color:var(--muted);font-size:0.85em;">(${computeAutoAge(s).value} سنة)</span>${computeAutoAge(s).warning ? ` <span title="ما قدرنا نحدّث عمرها تلقائيًا — تاريخ بداية دورة انضمامها ناقص بتبويب المواعيد" style="cursor:help;">⚠️</span>` : ''}` : ''}${(portalCodes.map[s.id] && portalEligibleSet.has(s.id)) ? ` <span onclick="event.stopPropagation();copyPortalMessage(${s.id})" title="نسخ رسالة الواتساب" style="cursor:pointer;">🔑</span>` : ''}</span>${isFlexPath(s) ? '<span style="font-size:0.68rem;font-weight:400;padding:0.1rem 0.5rem;border-radius:10px;border:1px solid var(--wine);color:var(--wine);white-space:nowrap;">مسار مرن</span>' : ''}
         </div>
       </div>
-      ${(portalCodes.map[s.id] && portalEligibleSet.has(s.id)) ? `<div class="portal-code-line" onclick="copyPortalMessage(${s.id})" title="اضغطي لنسخ رسالة الواتساب">🔑 <span dir="ltr">${portalCodeShown(portalCodes.map[s.id].code)}</span> 📋</div>` : ''}
       <div class="student-meta" style="cursor:pointer;" onclick="toggleHifzPanel(${s.id})">
         ${(prog.startSurah || prog.currentSurah) ? `<div class="meta-chip surah" style="display:block;line-height:1.9;">
           📓 ${prog.startSurah || '—'} &nbsp; 📖 ${prog.currentSurah || '—'}<br>
