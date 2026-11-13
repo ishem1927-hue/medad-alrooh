@@ -367,7 +367,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .day-tab.active.has-data::after { color: white; }
   #dailyReportDayTabs { flex-wrap: nowrap; overflow-x: visible; }
   #dailyReportDayTabs .day-tab { flex: 1; padding: 0.4rem 0.2rem; font-size: 0.72rem; text-align: center; }
-  #dailyReportDayTabs .day-tab:not(.active) { background: var(--surface2); }
+  #dailyReportPanel { background: var(--surface2); }
+  #dailyReportDayTabs .day-tab:not(.active) { background: var(--surface); }
+  #dailyReportBlocks .report-section { background: var(--surface); }
+  #dailyReportBlocks .copy-btn { background: var(--surface2); }
 
   .attend-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.3rem; margin-bottom: 1.1rem; }
   .attend-card-title { font-size: 0.8rem; color: var(--wine); font-weight: 700; margin-bottom: 1rem; }
@@ -628,7 +631,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   /* ===== تبويب الرئيسية: إحصائيات + مهام + فريق ===== */
   .home-tab-wrap { padding: 1.1rem 1.2rem 1.5rem; }
   .home-stat-row { display: flex; gap: 0.5rem; margin-bottom: 0.6rem; }
-  .home-stat-chip { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 0.55rem; text-align: center; }
+  .home-stat-chip { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 0.55rem; text-align: center; }
   .home-stat-num { font-weight: 800; font-size: 1.1rem; color: var(--wine); line-height: 1; margin-bottom: 0.15rem; }
   .home-stat-lbl { font-size: 0.68rem; color: var(--muted); }
 
