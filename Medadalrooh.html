@@ -430,13 +430,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   /* ===== قسم المقرر (منقول) ===== */
   .maq-wrap { padding: 1.1rem 1.2rem 1.5rem; }
   .maq-week-bar {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 16px;
     padding: 1rem 1.2rem; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;
   }
   .maq-week-label { font-size: 0.92rem; color: var(--wine); font-weight: 700; white-space: nowrap; }
   .maq-week-btns { display: flex; gap: 0.4rem; flex-wrap: wrap; flex: 1; }
   .maq-week-btn {
-    width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid var(--border); background: transparent;
+    width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--surface);
     font-family: 'Cairo'; font-weight: 700; font-size: 0.9rem; color: var(--muted); cursor: pointer;
     display: flex; align-items: center; justify-content: center;
   }
@@ -450,7 +450,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .maq-group-tab.active { background: var(--surface2); color: var(--ink); border-color: var(--wine); }
 
   .maq-student-card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 0.85rem 1rem;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 16px; padding: 0.85rem 1rem;
     margin-bottom: 0.7rem; position: relative; overflow: hidden;
   }
   .maq-student-card::before {
@@ -493,6 +493,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     font-size: 0.74rem; color: var(--wine); min-height: 26px; display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;
   }
   .maq-review-empty { color: var(--muted); font-size: 0.74rem; }
+  .attend-actions-row .icon-btn-sm { background: var(--surface2); }
+  .maq-student-card .maq-field-input, .maq-student-card .maq-review-auto, .maq-student-card .day-eval-box { background: var(--surface); }
+  .maq-student-card :is(.sat-btn, .thu-btn, .sw-btn):not([class*="sel-"]) { background: var(--surface); }
 
   .kubra-section { display: none; margin-top: 0.4rem; }
   .kubra-section.show { display: block; }
