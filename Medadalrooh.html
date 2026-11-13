@@ -225,7 +225,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .student-card.inactive { opacity: 0.45; border-style: dashed; }
   #studentList .student-card { background: var(--surface2); }
   .sc-head { display: flex; align-items: center; gap: 0.6rem; }
-  .sc-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; font-size: 0.95rem; font-weight: 700; color: var(--ink); cursor: pointer; }
+  .sc-name { flex: 1; min-width: 0; font-size: 0.8rem; font-weight: 700; color: var(--ink); cursor: pointer; }
   .sc-num {
     font-family: 'Cairo'; font-weight: 800; font-size: 0.8rem; color: var(--wine);
     background: var(--surface); border: 1px solid var(--border); border-radius: 50%;
@@ -233,7 +233,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   }
   .sc-badge {
     position: absolute; top: -8px; right: -8px; width: 17px; height: 17px; border-radius: 50%;
-    background: var(--surface); border: 1px solid var(--border); font-size: 0.68rem; line-height: 1;
+    font-size: 0.78rem; line-height: 1;
     display: flex; align-items: center; justify-content: center;
   }
   .sc-acts { display: flex; gap: 0.3rem; flex-shrink: 0; }
@@ -247,6 +247,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .sc-cell { flex: 1; min-width: 0; padding: 0.5rem 0.7rem; }
   .sc-cell + .sc-cell { border-right: 1px solid var(--border); }
   .sc-row.sc-info { color: var(--muted); }
+  .sc-row.sc-flex { color: var(--wine); font-weight: 700; justify-content: center; text-align: center; }
   .sc-key.off { opacity: 0.45; cursor: default; }
   .sc-key.on { cursor: pointer; }
   .s-btn {
@@ -2996,7 +2997,7 @@ function renderStudents() {
       <div class="sc-head">
         <span class="sc-num">${toAr(idx + 1)}${getJoinCycleEmoji(s) ? `<span class="sc-badge">${getJoinCycleEmoji(s)}</span>` : ''}</span>
         <div class="sc-name" onclick="toggleHifzPanel(${s.id})">
-          <span>${s.name}</span>${isFlexPath(s) ? '<span style="font-size:0.68rem;font-weight:400;padding:0.1rem 0.5rem;border-radius:10px;border:1px solid var(--wine);color:var(--wine);white-space:nowrap;">مسار مرن</span>' : ''}
+          <span${s.name.length > 30 ? ' style="font-size:0.68rem;"' : s.name.length > 26 ? ' style="font-size:0.74rem;"' : ''}>${s.name}</span>
         </div>
         <div class="sc-acts">
           ${getPayTypeEmoji(s) ? `<span class="sc-act">${getPayTypeEmoji(s)}</span>` : ''}
@@ -3020,6 +3021,7 @@ function renderStudents() {
           const keyCell = (s.active !== false && !s.withdrawn) ? `<div class="sc-cell sc-key ${keyOn ? 'on' : 'off'}" ${keyOn ? `onclick="event.stopPropagation();copyPortalMessage(${s.id})" title="نسخ رسالة الواتساب"` : ''}>🔑 الرقم التعريفي</div>` : '';
           return (ageCell || keyCell) ? `<div class="sc-row sc-info">${ageCell}${keyCell}</div>` : '';
         })()}
+        ${isFlexPath(s) ? '<div class="sc-row sc-flex"><div class="sc-cell">مسار مرن</div></div>' : ''}
       </div>
       <div class="edit-row ${hifzOpen ? 'open' : ''}" style="${hifzOpen ? '' : 'display:none;'}">
         <div style="display:flex;flex-wrap:wrap;gap:0.3rem;margin-bottom:0.6rem;">
