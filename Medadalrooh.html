@@ -438,14 +438,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     padding: 1rem 1.2rem; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;
   }
   .maq-week-label { font-size: 0.92rem; color: var(--wine); font-weight: 700; white-space: nowrap; }
-  .maq-week-btns { display: flex; gap: 0.4rem; flex-wrap: wrap; flex: 1; }
+  .maq-week-btns { display: flex; gap: 0.35rem; flex: 1; }
   .maq-week-btn {
-    width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--surface);
-    font-family: 'Cairo'; font-weight: 700; font-size: 0.9rem; color: var(--muted); cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
+    flex: 1; min-width: 0; height: 48px; border-radius: 12px; border: 1.5px solid var(--border); background: var(--surface);
+    font-family: 'Cairo'; font-weight: 700; font-size: 0.72rem; line-height: 1.35; text-align: center; color: var(--muted); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; padding: 0;
   }
-  .maq-week-btn.active { background: linear-gradient(135deg, var(--wine), var(--wine-light)); border-color: transparent; color: white; }
-  .maq-week-btn.closing { width: auto; height: 34px; border-radius: 10px; padding: 0 0.7rem; font-size: 0.78rem; white-space: nowrap; flex-shrink: 0; }
+  .maq-week-btn.active { background: var(--wine); border-color: var(--wine); color: white; }
   .maq-group-tabs { display: flex; gap: 0.5rem; margin-right: auto; flex-wrap: wrap; }
   .maq-group-tab {
     padding: 0.4rem 0.9rem; border-radius: 20px; border: 1px solid var(--border); background: transparent;
@@ -5831,7 +5830,7 @@ function renderWeekBar() {
   WEEK_NAMES.forEach((name, i) => {
     const btn = document.createElement('button');
     btn.className = 'maq-week-btn' + (i === currentWeek && !liveClosingActive ? ' active' : '');
-    btn.textContent = toAr(i + 1);
+    btn.innerHTML = (curriculumViewMode === 'live' ? 'الحلقة<br>' + ['الأولى','الثانية','الثالثة','الرابعة'][i] : 'الأسبوع<br>' + name);
     btn.style.touchAction = 'manipulation'; // يمنع إيماءة التكبير الطبيعية عند الضغط السريع المتكرر
     btn.onclick = () => {
       currentWeek = i;
@@ -5859,8 +5858,8 @@ function renderWeekBar() {
   // تبويب "الحلقة الختامية" — يظهر طول الوقت بس بوضع الحلقة المباشرة، جنب الأسابيع مباشرة
   if (curriculumViewMode === 'live') {
     const closeBtn = document.createElement('button');
-    closeBtn.className = 'maq-week-btn closing' + (liveClosingActive ? ' active' : '');
-    closeBtn.textContent = 'الحلقة الختامية';
+    closeBtn.className = 'maq-week-btn' + (liveClosingActive ? ' active' : '');
+    closeBtn.innerHTML = 'الحلقة<br>الختامية';
     closeBtn.style.touchAction = 'manipulation';
     closeBtn.onclick = () => {
       currentWeek = WEEK_NAMES.length - 1; // بيانات الحلقة الختامية مبنية على آخر أسبوع بالدورة
