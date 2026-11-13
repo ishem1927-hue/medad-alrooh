@@ -119,8 +119,12 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   body.teacher-mode #talqeen .course-topbar > .back-btn:not(#talqeenLogoutBtn),
   body.teacher-mode #talqeen #studentsToolsBtn,
   body.teacher-mode #talqeen #studentsRefreshTopBtn,
-  body.teacher-mode #curriculumMainWrap .attend-actions-row { display: none !important; }
+  body.teacher-mode #curriculumMainWrap .attend-actions-row,
+  body.teacher-mode #curSeg { display: none !important; }
   body.teacher-mode #talqeenLogoutBtn { display: inline-block !important; }
+  .cur-seg { display: flex; background: var(--surface2); border: 1px solid var(--border); border-radius: 14px; padding: 4px; margin-bottom: 0.9rem; }
+  .cur-seg button { flex: 1; padding: 0.55rem 0.3rem; border: none; background: transparent; border-radius: 10px; font-family: 'Cairo'; font-size: 0.82rem; font-weight: 700; color: var(--muted); cursor: pointer; }
+  .cur-seg button.on { background: var(--wine); color: #fff; }
   .tabbar {
     position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface);
     border-top: 1px solid var(--border); display: flex;
@@ -340,7 +344,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   }
   .icon-btn-sm.warn { color: var(--red); border-color: rgba(184,66,95,0.3); }
   .icon-btn-sm.accent { color: var(--wine); border-color: var(--border); }
-  .course-topbar .icon-btn-sm, #curriculumChoiceScreen .icon-btn-sm { background: var(--surface2); }
+  .course-topbar .icon-btn-sm { background: var(--surface2); }
 
   .settings-panel-attend {
     display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
@@ -890,7 +894,6 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
       <button class="icon-btn-sm accent" id="adminTopBtn" onclick="showScreen('adminScreen')" style="flex-shrink:0;padding:0.3rem 0.55rem;font-size:0.72rem;" title="الإدارة">🗃️</button>
     </span>
     <span id="curriculumBarGroup" style="display:none;gap:0.3rem;margin-inline-start:auto;">
-      <button class="icon-btn-sm accent" id="curriculumBackTopBtn" onclick="showCurriculumChoiceScreen()" style="display:none;padding:0.3rem 0.55rem;font-size:0.72rem;" title="رجوع للاختيار">↪️</button>
       <button class="icon-btn-sm accent" id="attendAlertsTopBtn" onclick="openAlertsPanel()" style="display:none;position:relative;padding:0.3rem 0.55rem;font-size:0.72rem;">🔔<span id="attendAlertsCount" style="display:none;position:absolute;top:-4px;left:-4px;background:#c0392b;color:#fff;font-size:0.62rem;font-weight:700;min-width:16px;height:16px;border-radius:8px;align-items:center;justify-content:center;padding:0 3px;"></span></button>
       <button class="icon-btn-sm accent" id="attendAlertsExpandedBtn" onclick="openExpandedAlertsPanel()" style="display:none;padding:0.3rem 0.55rem;font-size:0.72rem;" title="التنبيهات الموسّعة">🛎️</button>
       <button class="icon-btn-sm accent" id="attendSettingsTopBtn" onclick="openContextualSettings()" style="display:none;padding:0.3rem 0.55rem;font-size:0.72rem;">⚙️</button>
@@ -939,13 +942,12 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
 <!-- تبويب: قائمة المتابعة (دمج المقرر + التقرير الأسبوعي) -->
     <div class="tab-panel" id="panel-curriculum">
 
-      <div id="curriculumChoiceScreen" style="display:none;padding:2rem 1.2rem;text-align:center;">
-        <div style="font-size:0.95rem;color:var(--muted);margin-bottom:1.4rem;">اختاري القسم اللي تبين تفتحينه</div>
-        <button class="icon-btn-sm accent" style="width:100%;padding:0.9rem;font-size:0.95rem;margin-bottom:0.8rem;" onclick="enterCurriculumMode('weekly')">📆 المتابعة الأسبوعية</button>
-        <button class="icon-btn-sm accent" style="width:100%;padding:0.9rem;font-size:0.95rem;" onclick="enterCurriculumMode('live')">📱 الحلقة المباشرة</button>
-      </div>
-
       <div class="maq-wrap" id="curriculumMainWrap" style="display:none;">
+
+        <div class="cur-seg" id="curSeg">
+          <button id="curSegWeekly" onclick="enterCurriculumMode('weekly')">📆 المتابعة الأسبوعية</button>
+          <button id="curSegLive" onclick="enterCurriculumMode('live')">📱 الحلقة المباشرة</button>
+        </div>
 
         <div class="attend-actions-row" style="justify-content:center;">
           <div style="display:flex;gap:0.5rem;">
@@ -2141,26 +2143,24 @@ applyCoursesRevealVisibility();
 
 // ===================== تبويب المتابعة =====================
 let curriculumViewMode = null; // 'weekly' | 'live'
+const CURRICULUM_MODE_KEY = 'madad_curriculum_mode';
 function openCurriculumTab(el) {
   setTalqeenTab(el, 'panel-curriculum');
-  if (TEACHER_HALQA) enterCurriculumMode('live');
-  else showCurriculumChoiceScreen();
-}
-function showCurriculumChoiceScreen() {
-  curriculumViewMode = null;
-  document.getElementById('curriculumChoiceScreen').style.display = '';
-  document.getElementById('curriculumMainWrap').style.display = 'none';
-  if (typeof updateAlertsBadge === 'function') { try { updateAlertsBadge(); } catch(e) {} }
+  let last = 'weekly';
+  try { if (localStorage.getItem(CURRICULUM_MODE_KEY) === 'live') last = 'live'; } catch(e) {}
+  enterCurriculumMode(TEACHER_HALQA ? 'live' : (curriculumViewMode || last));
 }
 function enterCurriculumMode(mode) {
   // نحفظ أسبوع/تثبيت الوضع اللي كنا فيه (لو كنا بوضع فعلي أصلاً) قبل ما نبدّل
   if (curriculumViewMode === 'weekly') { weeklyCurrentWeek = currentWeek; weeklyPinnedWeek = pinnedWeek; }
   else if (curriculumViewMode === 'live') { liveCurrentWeek = currentWeek; livePinnedWeek = pinnedWeek; }
   curriculumViewMode = mode;
+  try { localStorage.setItem(CURRICULUM_MODE_KEY, mode); } catch(e) {}
+  document.getElementById('curSegWeekly').classList.toggle('on', mode === 'weekly');
+  document.getElementById('curSegLive').classList.toggle('on', mode === 'live');
   // نحمّل أسبوع/تثبيت الوضع الجديد (مستقل تمامًا عن الوضع الثاني)
   if (mode === 'weekly') { currentWeek = weeklyCurrentWeek; pinnedWeek = weeklyPinnedWeek; }
   else if (mode === 'live') { currentWeek = liveCurrentWeek; pinnedWeek = livePinnedWeek; if (livePinnedClosing) liveClosingActive = true; }
-  document.getElementById('curriculumChoiceScreen').style.display = 'none';
   document.getElementById('curriculumMainWrap').style.display = '';
   // نضبط اليوم الحالي على أول يوم متاح بالمتابعة الأسبوعية لو اليوم الحالي مو من ضمنها (الحلقة المباشرة صار لها تنقلها الخاص: حلقة ← فترة)
   if (mode === 'weekly' && !['sw', 'thu'].includes(ATTEND_DAYS[currentDay].type)) {
@@ -4069,20 +4069,17 @@ function getAlertsCount(week, day) {
 function updateAlertsBadge() {
   const btn = document.getElementById('attendAlertsTopBtn');
   const expandedBtn = document.getElementById('attendAlertsExpandedBtn');
-  const backBtn = document.getElementById('curriculumBackTopBtn');
   const newCycleBtn = document.getElementById('startNewCycleTopBtn');
   if (!btn) return;
   const onCurriculumTab = document.getElementById('panel-curriculum') && document.getElementById('panel-curriculum').classList.contains('active');
   if (!onCurriculumTab) {
     btn.style.display = 'none';
     if (expandedBtn) expandedBtn.style.display = 'none';
-    if (backBtn) backBtn.style.display = 'none';
     if (newCycleBtn) newCycleBtn.style.display = 'none';
     return;
   }
   btn.style.display = TEACHER_HALQA ? 'none' : '';
   if (expandedBtn) expandedBtn.style.display = TEACHER_HALQA ? 'none' : '';
-  if (backBtn) backBtn.style.display = (!TEACHER_HALQA && curriculumViewMode) ? '' : 'none';
   if (newCycleBtn) newCycleBtn.style.display = TEACHER_HALQA ? 'none' : '';
   const count = getAlertsCount(currentWeek, curriculumViewMode === 'live' ? liveAttendKey() : currentDay);
   const dot = document.getElementById('attendAlertsCount');
