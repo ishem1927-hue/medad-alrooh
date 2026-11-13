@@ -3805,6 +3805,7 @@ function getHalqaLabel(k) {
   return HALQA_NAMES[k] || ('الحلقة المباشرة ' + k);
 }
 var currentGroupTab = null;
+var liveOnlyMine = (function () { try { return localStorage.getItem('madad_live_mine') === '1'; } catch (e) { return false; } })();   // المديرة: حلقتي (الحلقة ١) فقط أو كل الحلقات
 var currentLiveHalqa = null;   // تبويب الحلقة (المعلمة) المفتوح بشاشة الحلقة المباشرة
 var currentLivePeriod = null;  // تبويب الفترة المفتوح داخل الحلقة
 var liveClosingActive = false; // هل تبويب "الحلقة الختامية" هو المفتوح حاليًا بشاشة الحلقة المباشرة
@@ -5993,9 +5994,24 @@ function renderLiveNav() {
   const tabsEl = document.getElementById('dayTabs');
   tabsEl.innerHTML = '';
   const secs = [];
-  for (let i = 1; i <= HALQA_COUNT; i++) { if (!TEACHER_HALQA || String(i) === TEACHER_HALQA) secs.push(String(i)); }
+  for (let i = 1; i <= HALQA_COUNT; i++) { if (TEACHER_HALQA ? String(i) === TEACHER_HALQA : (!liveOnlyMine || i === 1)) secs.push(String(i)); }
   if (!secs.length) { document.getElementById('maqStudentList').innerHTML = '<div class="empty-state"><div>حددي الحلقات المباشرة بالإعدادات ⚙️</div></div>'; return; }
   if (!currentLiveHalqa || secs.indexOf(currentLiveHalqa) < 0) currentLiveHalqa = secs[0];
+
+  if (!TEACHER_HALQA) {
+    const mine = document.createElement('button');
+    mine.className = 'day-tab';
+    mine.style.cssText = 'flex:none;padding:0.42rem 0.6rem;touch-action:manipulation;';
+    mine.textContent = liveOnlyMine ? '👤' : '👥';
+    mine.title = liveOnlyMine ? 'حلقتي فقط (اضغطي لعرض كل الحلقات)' : 'كل الحلقات (اضغطي لعرض حلقتي فقط)';
+    mine.onclick = () => {
+      liveOnlyMine = !liveOnlyMine;
+      try { localStorage.setItem('madad_live_mine', liveOnlyMine ? '1' : '0'); } catch (e) {}
+      currentLiveHalqa = liveOnlyMine ? '1' : currentLiveHalqa; currentLivePeriod = null;
+      renderCurriculumTab();
+    };
+    tabsEl.appendChild(mine);
+  }
 
   secs.forEach(k => {
     const btn = document.createElement('button');
