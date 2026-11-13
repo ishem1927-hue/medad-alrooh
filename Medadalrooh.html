@@ -20,8 +20,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 </script>
 <style>
   :root {
-    --cream: #FFFFFF;
-    --surface: #F8F7F9;
+    --cream: #FBF3F6;
+    --surface: #FFFFFF;
     --surface2: #FBF0F4;
     --wine: #8E4A68;
     --wine-light: #A5607E;
@@ -32,8 +32,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     --muted: #94758A;
     --green: #3f8a63;
     --red: #b8425f;
-    --border: #E6E4E8;
-    --border-pink: #F0D9E2;
+    --border: #F0D9E2;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   .wa-field-box {
@@ -76,7 +75,6 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .course-num-badge { color: var(--wine); font-weight: 700; font-size: 0.95rem; }
   .course-tagline { font-size: 0.78rem; color: var(--muted); line-height: 1.5; display: block; }
   .course-arrow { color: var(--wine); font-size: 1.3rem; opacity: 0.6; }
-  .course-card:not([class*="cc-"]) .course-icon { background: #EEEDF0; }
   .cc-tajweed { background: #FFF8E1; border-color: #F5EAC0; }
   .cc-tajweed .course-icon { background: #FBEBB5; }
   .cc-tajweed .course-arrow, .cc-tajweed .course-num-badge { color: #9A7B1F; }
@@ -365,7 +363,6 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .day-tab.has-data::after { content: '•'; position: absolute; top: 2px; left: 6px; color: var(--green); font-size: 0.7rem; }
   .day-tab.active.has-data::after { color: white; }
   #dailyReportDayTabs { flex-wrap: nowrap; overflow-x: visible; }
-  #dailyReportDayTabs .day-tab:not(.active) { background: var(--surface2); border-color: var(--border-pink); }
   #dailyReportDayTabs .day-tab { flex: 1; padding: 0.4rem 0.2rem; font-size: 0.72rem; text-align: center; }
 
   .attend-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.3rem; margin-bottom: 1.1rem; }
@@ -495,7 +492,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .result-close { background: none; border: none; color: var(--muted); font-size: 1.3rem; cursor: pointer; padding: 0.2rem 0.4rem; }
   .result-body { flex: 1; overflow-y: auto; padding: 1rem 1.3rem; }
 
-  .report-section { background: var(--surface2); border: 1px solid var(--border-pink); border-radius: 14px; padding: 1.1rem; margin-bottom: 1rem; }
+  .report-section { background: var(--surface2); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem; margin-bottom: 1rem; }
   .report-section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.8rem; gap: 0.6rem; }
   .report-section-title { font-weight: 800; color: var(--wine); font-size: 0.92rem; }
   .report-section-text { font-size: 0.86rem; line-height: 1.9; color: var(--ink); white-space: pre-wrap; word-break: break-word; }
@@ -627,7 +624,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   /* ===== تبويب الرئيسية: إحصائيات + مهام + فريق ===== */
   .home-tab-wrap { padding: 1.1rem 1.2rem 1.5rem; }
   .home-stat-row { display: flex; gap: 0.5rem; margin-bottom: 0.6rem; }
-  .home-stat-chip { flex: 1; background: var(--surface2); border: 1px solid var(--border-pink); border-radius: 12px; padding: 0.55rem; text-align: center; }
+  .home-stat-chip { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 0.55rem; text-align: center; }
   .home-stat-num { font-weight: 800; font-size: 1.1rem; color: var(--wine); line-height: 1; margin-bottom: 0.15rem; }
   .home-stat-lbl { font-size: 0.68rem; color: var(--muted); }
 
@@ -782,9 +779,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     <img id="loginLogo" class="logo-img" alt="مداد الروح" style="visibility:hidden;">
     <div style="font-size:0.85rem;color:var(--muted);margin-bottom:1.4rem;">تسجيل دخول</div>
     <input id="loginEmail" type="email" name="email" autocomplete="username" inputmode="email" dir="ltr" placeholder="الإيميل"
-      style="width:100%;box-sizing:border-box;padding:0.8rem 0.9rem;border-radius:12px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font-family:'Cairo';font-size:0.95rem;margin-bottom:0.6rem;text-align:left;">
+      style="width:100%;box-sizing:border-box;padding:0.8rem 0.9rem;border-radius:12px;border:1px solid var(--border);background:#fff;color:var(--ink);font-family:'Cairo';font-size:0.95rem;margin-bottom:0.6rem;text-align:left;">
     <input id="loginPassword" type="password" name="password" autocomplete="current-password" dir="ltr" placeholder="كلمة السر"
-      style="width:100%;box-sizing:border-box;padding:0.8rem 0.9rem;border-radius:12px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font-family:'Cairo';font-size:0.95rem;margin-bottom:0.4rem;text-align:left;">
+      style="width:100%;box-sizing:border-box;padding:0.8rem 0.9rem;border-radius:12px;border:1px solid var(--border);background:#fff;color:var(--ink);font-family:'Cairo';font-size:0.95rem;margin-bottom:0.4rem;text-align:left;">
     <div id="loginError" style="min-height:1.3rem;font-size:0.8rem;color:var(--red);margin-bottom:0.5rem;"></div>
     <button id="loginBtn" type="submit"
       style="width:100%;padding:0.8rem;border-radius:12px;border:none;background:var(--green);color:white;font-family:'Cairo';font-size:0.95rem;font-weight:800;cursor:pointer;-webkit-tap-highlight-color:transparent;">دخول</button>
@@ -1659,7 +1656,7 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
         </div>
         <div style="margin-bottom:0.9rem;">
           <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📋 الصقي النص النهائي هنا</label>
-          <textarea id="waImportPasteText" rows="10" style="width:100%;font-family:'Cairo';font-size:0.8rem;border:1px solid var(--border);border-radius:10px;padding:0.6rem;box-sizing:border-box;resize:vertical;background:var(--surface);color:var(--ink);"></textarea>
+          <textarea id="waImportPasteText" rows="10" style="width:100%;font-family:'Cairo';font-size:0.8rem;border:1px solid var(--border);border-radius:10px;padding:0.6rem;box-sizing:border-box;resize:vertical;background:#fff;color:var(--ink);"></textarea>
         </div>
         <button class="add-btn" onclick="runWaImportPasteApply()">✅ تطبيق</button>
         <div id="waImportPasteResults" style="margin-top:0.7rem;"></div>
@@ -1727,7 +1724,7 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
       <div id="waPlanTabPasteBox" style="display:none;">
         <div style="margin-bottom:0.9rem;">
           <label style="font-size:0.78rem;font-weight:700;color:var(--wine);display:block;margin-bottom:0.3rem;">📋 الصقي النص النهائي هنا</label>
-          <textarea id="waPlanPasteText" rows="10" style="width:100%;font-family:'Cairo';font-size:0.8rem;border:1px solid var(--border);border-radius:10px;padding:0.6rem;box-sizing:border-box;resize:vertical;background:var(--surface);color:var(--ink);" placeholder="خطة الأسبوع...&#10;الطالبة: ...&#10;المقرر: ...&#10;الأحد: ...&#10;الإثنين: ...&#10;الثلاثاء: ...&#10;الأربعاء: ...&#10;الخميس: ..."></textarea>
+          <textarea id="waPlanPasteText" rows="10" style="width:100%;font-family:'Cairo';font-size:0.8rem;border:1px solid var(--border);border-radius:10px;padding:0.6rem;box-sizing:border-box;resize:vertical;background:#fff;color:var(--ink);" placeholder="خطة الأسبوع...&#10;الطالبة: ...&#10;المقرر: ...&#10;الأحد: ...&#10;الإثنين: ...&#10;الثلاثاء: ...&#10;الأربعاء: ...&#10;الخميس: ..."></textarea>
         </div>
         <button class="add-btn" onclick="runWaPlanPasteApply()">✅ تطبيق</button>
         <div id="waPlanPasteResults" style="margin-top:0.7rem;"></div>
@@ -6866,8 +6863,8 @@ function runWaPlanPasteApply() {
       const newTxt = `${c.newHifz}\n` + dayLabels4.map((l,idx)=>`${l}: ${c.newDays[idx]||''}`).join('\n');
       html += `<div id="waPlanPasteConflict_${i}" style="border:1px solid var(--border);border-radius:8px;padding:0.5rem;margin-bottom:0.5rem;font-size:0.75rem;">
         <div style="font-weight:700;margin-bottom:0.3rem;">${escapeHTML(c.stu.name)}</div>
-        <div style="background:var(--surface);border-radius:6px;padding:0.4rem;margin-bottom:0.3rem;white-space:pre-wrap;"><b>القديمة:</b><br>${escapeHTML(oldTxt)}</div>
-        <div style="background:var(--surface);border-radius:6px;padding:0.4rem;margin-bottom:0.4rem;white-space:pre-wrap;"><b>الجديدة:</b><br>${escapeHTML(newTxt)}</div>
+        <div style="background:#fff;border-radius:6px;padding:0.4rem;margin-bottom:0.3rem;white-space:pre-wrap;"><b>القديمة:</b><br>${escapeHTML(oldTxt)}</div>
+        <div style="background:#fff;border-radius:6px;padding:0.4rem;margin-bottom:0.4rem;white-space:pre-wrap;"><b>الجديدة:</b><br>${escapeHTML(newTxt)}</div>
         <div style="display:flex;gap:0.4rem;">
           <button class="sw-btn" onclick="resolveWaPlanPasteConflict(${i}, 'new')">✅ استخدمي الجديدة</button>
           <button class="sw-btn" onclick="resolveWaPlanPasteConflict(${i}, 'old')">↩️ خليها القديمة</button>
@@ -6886,8 +6883,8 @@ function runWaPlanPasteApply() {
       kubraMismatch.forEach((m, i) => {
         html += `<div id="waPlanKubraMismatch_${i}" style="border:1px solid var(--border);border-radius:8px;padding:0.5rem;margin-bottom:0.4rem;font-size:0.75rem;">
           <div style="font-weight:700;margin-bottom:0.3rem;">${escapeHTML(m.name)}</div>
-          <div style="background:var(--surface);border-radius:6px;padding:0.4rem;margin-bottom:0.3rem;"><b>بالرسالة:</b> ${escapeHTML(m.msg)}</div>
-          <div style="background:var(--surface);border-radius:6px;padding:0.4rem;"><b>بالأرشيف:</b> ${m.archive ? escapeHTML(m.archive) : 'ما عندها كبرى مسجّلة'}</div>
+          <div style="background:#fff;border-radius:6px;padding:0.4rem;margin-bottom:0.3rem;"><b>بالرسالة:</b> ${escapeHTML(m.msg)}</div>
+          <div style="background:#fff;border-radius:6px;padding:0.4rem;"><b>بالأرشيف:</b> ${m.archive ? escapeHTML(m.archive) : 'ما عندها كبرى مسجّلة'}</div>
           <div id="waPlanKubraMismatchAct_${i}" style="margin-top:0.4rem;"><button class="sw-btn" onclick="approveWaPlanKubraMismatch(${i})">اعتمدي تقسيم الرسالة</button></div>
         </div>`;
       });
@@ -6900,8 +6897,8 @@ function runWaPlanPasteApply() {
         const newTxt = dayLabels4.map((l, idx) => `${l}: ${c.newDays[idx] || ''}`).join('\n');
         html += `<div id="waPlanKubraConflict_${i}" style="border:1px solid var(--border);border-radius:8px;padding:0.5rem;margin-bottom:0.5rem;font-size:0.75rem;">
           <div style="font-weight:700;margin-bottom:0.3rem;">${escapeHTML(c.stu.name)}</div>
-          <div style="background:var(--surface);border-radius:6px;padding:0.4rem;margin-bottom:0.3rem;white-space:pre-wrap;"><b>القديم:</b><br>${escapeHTML(oldTxt)}</div>
-          <div style="background:var(--surface);border-radius:6px;padding:0.4rem;margin-bottom:0.4rem;white-space:pre-wrap;"><b>الجديد:</b><br>${escapeHTML(newTxt)}</div>
+          <div style="background:#fff;border-radius:6px;padding:0.4rem;margin-bottom:0.3rem;white-space:pre-wrap;"><b>القديم:</b><br>${escapeHTML(oldTxt)}</div>
+          <div style="background:#fff;border-radius:6px;padding:0.4rem;margin-bottom:0.4rem;white-space:pre-wrap;"><b>الجديد:</b><br>${escapeHTML(newTxt)}</div>
           <div style="display:flex;gap:0.4rem;">
             <button class="sw-btn" onclick="resolveWaPlanKubraConflict(${i}, 'new')">✅ استخدمي الجديد</button>
             <button class="sw-btn" onclick="resolveWaPlanKubraConflict(${i}, 'old')">↩️ خليه القديم</button>
@@ -6930,8 +6927,8 @@ function approveWaPlanKubraMismatch(i) {
       window._waPlanKubraConflicts.push({ stu: m.stu, oldDays, newDays: m.newDays });
       act.innerHTML = `<div id="waPlanKubraConflict_${idx}" style="font-size:0.75rem;">
         <div style="font-weight:700;color:#b3691f;margin-bottom:0.3rem;">⚠️ عندها تقسيم كبرى مسجّل مسبقًا — اختاري أيهم يبقى:</div>
-        <div style="background:var(--surface);border-radius:6px;padding:0.4rem;margin-bottom:0.3rem;white-space:pre-wrap;"><b>القديم:</b><br>${escapeHTML(oldTxt)}</div>
-        <div style="background:var(--surface);border-radius:6px;padding:0.4rem;margin-bottom:0.4rem;white-space:pre-wrap;"><b>الجديد:</b><br>${escapeHTML(newTxt)}</div>
+        <div style="background:#fff;border-radius:6px;padding:0.4rem;margin-bottom:0.3rem;white-space:pre-wrap;"><b>القديم:</b><br>${escapeHTML(oldTxt)}</div>
+        <div style="background:#fff;border-radius:6px;padding:0.4rem;margin-bottom:0.4rem;white-space:pre-wrap;"><b>الجديد:</b><br>${escapeHTML(newTxt)}</div>
         <div style="display:flex;gap:0.4rem;">
           <button class="sw-btn" onclick="resolveWaPlanKubraConflict(${idx}, 'new')">✅ استخدمي الجديد</button>
           <button class="sw-btn" onclick="resolveWaPlanKubraConflict(${idx}, 'old')">↩️ خليه القديم</button>
@@ -7450,21 +7447,21 @@ function renderWaPlanReviewQueue() {
     if (item.committed) return;
     const planEditor = item.plan
       ? `<div>
-          <div style="white-space:pre-wrap;background:var(--surface);border-radius:8px;padding:0.5rem;font-size:0.72rem;color:var(--ink);max-height:120px;overflow-y:auto;margin-bottom:0.4rem;">${escapeHTML(item.plan.body || '')}</div>
+          <div style="white-space:pre-wrap;background:#fff;border-radius:8px;padding:0.5rem;font-size:0.72rem;color:var(--ink);max-height:120px;overflow-y:auto;margin-bottom:0.4rem;">${escapeHTML(item.plan.body || '')}</div>
           <label style="font-size:0.72rem;color:var(--muted);">📖 المقرر:</label>
-          <input id="waPlanEditHifz_${i}" value="${escapeHTML(item.plan.hifz || '')}" style="width:100%;font-family:'Cairo';font-size:0.75rem;border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.5rem;background:var(--surface);box-sizing:border-box;margin-bottom:0.3rem;">
+          <input id="waPlanEditHifz_${i}" value="${escapeHTML(item.plan.hifz || '')}" style="width:100%;font-family:'Cairo';font-size:0.75rem;border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.5rem;background:#fff;box-sizing:border-box;margin-bottom:0.3rem;">
           ${dayLabels4.map((d, idx) => `<label style="font-size:0.7rem;color:var(--muted);">${d}:</label>
-            <input id="waPlanEditDay_${i}_${idx}" value="${escapeHTML(item.plan.days[idx] || '')}" style="width:100%;font-family:'Cairo';font-size:0.72rem;border:1px solid var(--border);border-radius:8px;padding:0.3rem 0.5rem;background:var(--surface);box-sizing:border-box;margin-bottom:0.25rem;">`).join('')}
+            <input id="waPlanEditDay_${i}_${idx}" value="${escapeHTML(item.plan.days[idx] || '')}" style="width:100%;font-family:'Cairo';font-size:0.72rem;border:1px solid var(--border);border-radius:8px;padding:0.3rem 0.5rem;background:#fff;box-sizing:border-box;margin-bottom:0.25rem;">`).join('')}
         </div>`
       : `<div style="color:#c0392b;font-size:0.75rem;">⚠️ ما فيه خطة مستلمة</div>`;
     const kubraEditor = item.kubraPlan
       ? `<div>
-          <div style="white-space:pre-wrap;background:var(--surface);border-radius:8px;padding:0.5rem;font-size:0.72rem;color:var(--ink);max-height:120px;overflow-y:auto;margin-bottom:0.4rem;">${escapeHTML(item.kubraPlan.body || '')}</div>
+          <div style="white-space:pre-wrap;background:#fff;border-radius:8px;padding:0.5rem;font-size:0.72rem;color:var(--ink);max-height:120px;overflow-y:auto;margin-bottom:0.4rem;">${escapeHTML(item.kubraPlan.body || '')}</div>
           ${item.kubraWarning ? `<div style="color:#b3691f;font-size:0.7rem;margin-bottom:0.3rem;">⚠️ ${escapeHTML(item.kubraWarning)}</div>` : ''}
           <label style="font-size:0.7rem;color:var(--muted);">المقرر:</label>
-          <input id="waPlanEditKubraMain_${i}" value="${escapeHTML(item.kubraPlan.mainText || '')}" style="width:100%;font-family:'Cairo';font-size:0.75rem;border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.5rem;background:var(--surface);box-sizing:border-box;margin-bottom:0.3rem;">
+          <input id="waPlanEditKubraMain_${i}" value="${escapeHTML(item.kubraPlan.mainText || '')}" style="width:100%;font-family:'Cairo';font-size:0.75rem;border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.5rem;background:#fff;box-sizing:border-box;margin-bottom:0.3rem;">
           ${dayLabels4.map((d, idx) => `<label style="font-size:0.7rem;color:var(--muted);">${d}:</label>
-            <input id="waPlanEditKubraDay_${i}_${idx}" value="${escapeHTML(item.kubraPlan.days[idx] || '')}" style="width:100%;font-family:'Cairo';font-size:0.72rem;border:1px solid var(--border);border-radius:8px;padding:0.3rem 0.5rem;background:var(--surface);box-sizing:border-box;margin-bottom:0.25rem;">`).join('')}
+            <input id="waPlanEditKubraDay_${i}_${idx}" value="${escapeHTML(item.kubraPlan.days[idx] || '')}" style="width:100%;font-family:'Cairo';font-size:0.72rem;border:1px solid var(--border);border-radius:8px;padding:0.3rem 0.5rem;background:#fff;box-sizing:border-box;margin-bottom:0.25rem;">`).join('')}
         </div>`
       : `<div style="color:var(--muted);font-size:0.75rem;">— ما فيه تقسيم مراجعة كبرى مستلم —</div>`;
     const itemGroup = item.stu.group && item.stu.group.trim() ? item.stu.group.trim() : '';
@@ -10847,7 +10844,7 @@ function waRenderPersistedSections(intro = '📌 حالات محفوظة من ج
           ${g.cards.map((c, ci) => `
             <div style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:8px;padding:0.5rem;background:var(--surface2);">
               <div style="font-size:0.68rem;color:var(--muted);margin-bottom:0.3rem;">المرسل: <b style="color:var(--ink);">${c.sender || 'غير معروف'}</b></div>
-              <div style="white-space:pre-wrap;background:var(--surface);border-radius:6px;padding:0.4rem;font-size:0.7rem;color:var(--ink);max-height:150px;overflow-y:auto;margin-bottom:0.4rem;">${c.body}</div>
+              <div style="white-space:pre-wrap;background:#fff;border-radius:6px;padding:0.4rem;font-size:0.7rem;color:var(--ink);max-height:150px;overflow-y:auto;margin-bottom:0.4rem;">${c.body}</div>
               <button class="icon-btn-sm accent" style="width:100%;padding:0.3rem;font-size:0.72rem;" onclick="resolveWaDuplicate(${i}, ${ci})">✅ استخدمي هذي</button>
             </div>
           `).join('')}
@@ -11416,7 +11413,7 @@ function renderWaTaahudResults(taahudStudents, alreadyCommitted) {
         <div style="display:flex;gap:0.5rem;overflow-x:auto;">
           ${g.cards.map((c, ci) => `
             <div style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:8px;padding:0.5rem;background:var(--surface2);">
-              <div style="white-space:pre-wrap;background:var(--surface);border-radius:6px;padding:0.4rem;font-size:0.7rem;color:var(--ink);max-height:150px;overflow-y:auto;margin-bottom:0.4rem;">${c.body}</div>
+              <div style="white-space:pre-wrap;background:#fff;border-radius:6px;padding:0.4rem;font-size:0.7rem;color:var(--ink);max-height:150px;overflow-y:auto;margin-bottom:0.4rem;">${c.body}</div>
               <button class="icon-btn-sm accent" style="width:100%;padding:0.3rem;font-size:0.72rem;" onclick="resolveWaTaahudDuplicate(${i}, ${ci})">✅ استخدمي هذي</button>
             </div>
           `).join('')}
@@ -11455,7 +11452,7 @@ function renderWaTaahudReviewQueue() {
       <div style="font-weight:700;color:var(--wine);margin-bottom:0.3rem;">${item.stu.name}</div>
       <div style="font-size:0.72rem;color:var(--muted);margin-bottom:0.2rem;">♾️ المراجعات المكتوبة: ${numsText || '—'}</div>
       <div style="font-size:0.72rem;color:var(--muted);margin-bottom:0.2rem;">💬 رسالتها:</div>
-      <div style="white-space:pre-wrap;background:var(--surface);border-radius:8px;padding:0.5rem;font-size:0.75rem;color:var(--ink);max-height:180px;overflow-y:auto;margin-bottom:0.4rem;">${item.body}</div>
+      <div style="white-space:pre-wrap;background:#fff;border-radius:8px;padding:0.5rem;font-size:0.75rem;color:var(--ink);max-height:180px;overflow-y:auto;margin-bottom:0.4rem;">${item.body}</div>
       <div style="display:flex;gap:0.4rem;margin-top:0.5rem;">
         <button class="icon-btn-sm accent" style="flex:1;padding:0.4rem;font-weight:700;" onclick="commitWaTaahudReviewCard(${i})">✅ اعتماد تعاهد منجز</button>
         <button class="icon-btn-sm" style="padding:0.4rem 0.7rem;background:var(--surface2);color:var(--muted);" onclick="dismissWaTaahudReviewCard(${i})" title="تجاهل بدون اعتماد">✕</button>
@@ -11903,7 +11900,7 @@ async function runWaImportAnalysis() {
           ${g.cards.map((c, ci) => `
             <div style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:8px;padding:0.5rem;background:var(--surface2);">
               <div style="font-size:0.68rem;color:var(--muted);margin-bottom:0.3rem;">المرسل: <b style="color:var(--ink);">${c.sender || 'غير معروف'}</b></div>
-              <div style="white-space:pre-wrap;background:var(--surface);border-radius:6px;padding:0.4rem;font-size:0.7rem;color:var(--ink);max-height:150px;overflow-y:auto;margin-bottom:0.4rem;">${c.body}</div>
+              <div style="white-space:pre-wrap;background:#fff;border-radius:6px;padding:0.4rem;font-size:0.7rem;color:var(--ink);max-height:150px;overflow-y:auto;margin-bottom:0.4rem;">${c.body}</div>
               <button class="icon-btn-sm accent" style="width:100%;padding:0.3rem;font-size:0.72rem;" onclick="resolveWaDuplicate(${i}, ${ci})">✅ استخدمي هذي</button>
             </div>
           `).join('')}
@@ -12154,8 +12151,8 @@ function runWaTaahudPasteApply() {
     conflicts.forEach((c, i) => {
       html += `<div id="waTaahudPasteConflict_${i}" style="border:1px solid var(--border);border-radius:8px;padding:0.5rem;margin-bottom:0.5rem;font-size:0.75rem;">
         <div style="font-weight:700;margin-bottom:0.3rem;">${escapeHTML(c.stu.name)}</div>
-        <div style="background:var(--surface);border-radius:6px;padding:0.4rem;margin-bottom:0.3rem;"><b>القديم:</b> ${EMOJIS.taahud_miss} ${escapeHTML(EMOJIS.taahud_miss_lbl || 'عدم إنجاز مراجعة التعاهد')}</div>
-        <div style="background:var(--surface);border-radius:6px;padding:0.4rem;margin-bottom:0.4rem;"><b>الجديد:</b> ${EMOJIS.taahud_done} ${escapeHTML(EMOJIS.taahud_done_lbl || 'إنجاز مراجعة التعاهد')}</div>
+        <div style="background:#fff;border-radius:6px;padding:0.4rem;margin-bottom:0.3rem;"><b>القديم:</b> ${EMOJIS.taahud_miss} ${escapeHTML(EMOJIS.taahud_miss_lbl || 'عدم إنجاز مراجعة التعاهد')}</div>
+        <div style="background:#fff;border-radius:6px;padding:0.4rem;margin-bottom:0.4rem;"><b>الجديد:</b> ${EMOJIS.taahud_done} ${escapeHTML(EMOJIS.taahud_done_lbl || 'إنجاز مراجعة التعاهد')}</div>
         <div style="display:flex;gap:0.4rem;">
           <button class="sw-btn" onclick="resolveWaTaahudPasteConflict(${i}, 'new')">✅ استخدمي الجديد</button>
           <button class="sw-btn" onclick="resolveWaTaahudPasteConflict(${i}, 'old')">↩️ خليه القديم</button>
@@ -12218,7 +12215,7 @@ function renderWaReviewQueue() {
       <div style="font-size:0.72rem;color:var(--muted);margin-bottom:0.2rem;">📋 مقرر اليوم:</div>
       <div style="background:#fff7e6;border-radius:8px;padding:0.5rem;font-size:0.75rem;color:var(--ink);margin-bottom:0.4rem;">${planText || '— ما فيه مقرر مسجّل لهذا اليوم —'}</div>
       <div style="font-size:0.72rem;color:var(--muted);margin-bottom:0.2rem;">💬 رسالتها:</div>
-      <div style="white-space:pre-wrap;background:var(--surface);border-radius:8px;padding:0.5rem;font-size:0.75rem;color:var(--ink);max-height:180px;overflow-y:auto;margin-bottom:0.4rem;">${item.body}</div>
+      <div style="white-space:pre-wrap;background:#fff;border-radius:8px;padding:0.5rem;font-size:0.75rem;color:var(--ink);max-height:180px;overflow-y:auto;margin-bottom:0.4rem;">${item.body}</div>
       <label style="font-size:0.75rem;color:var(--muted);">حالة التقييم: </label>
       <select id="waReviewStatus_${i}" style="font-family:'Cairo';font-size:0.75rem;">
         <option value="miss" ${item.status==='miss'?'selected':''}>نقص</option>
