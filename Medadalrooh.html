@@ -20,19 +20,19 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 </script>
 <style>
   :root {
-    --cream: #FBF3F6;
+    --cream: #FCFAFB;
     --surface: #FFFFFF;
-    --surface2: #FBF0F4;
-    --wine: #8E4A68;
-    --wine-light: #A5607E;
-    --wine-deep: #6F3A54;
-    --wine-soft: rgba(142,74,104,0.08);
-    --wine-soft2: rgba(142,74,104,0.14);
-    --ink: #4a3a42;
-    --muted: #94758A;
+    --surface2: #F8EFF3;
+    --wine: #86516D;
+    --wine-light: #86516D;
+    --wine-deep: #86516D;
+    --wine-soft: rgba(134,81,109,0.08);
+    --wine-soft2: rgba(134,81,109,0.14);
+    --ink: #493B43;
+    --muted: #A58B9B;
     --green: #3f8a63;
     --red: #b8425f;
-    --border: #F0D9E2;
+    --border: #EAD8E1;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   .wa-field-box {
@@ -62,7 +62,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     background: var(--surface); border: 1px solid var(--border); border-radius: 24px;
     padding: 1.6rem 1.5rem; margin-bottom: 1.1rem;
     display: flex; align-items: center; gap: 1.1rem;
-    box-shadow: 0 4px 18px rgba(131,61,90,0.06);
+    box-shadow: 0 4px 18px rgba(134,81,109,0.06);
     transition: transform 0.15s; cursor: pointer; -webkit-tap-highlight-color: transparent;
   }
   .course-card:active { transform: scale(0.98); }
@@ -124,7 +124,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface);
     border-top: 1px solid var(--border); display: flex;
     padding: 0.5rem 0.4rem calc(0.5rem + env(safe-area-inset-bottom));
-    box-shadow: 0 -4px 16px rgba(131,61,90,0.06); z-index: 60;
+    box-shadow: 0 -4px 16px rgba(134,81,109,0.06); z-index: 60;
   }
   .tab {
     flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
@@ -674,7 +674,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     padding: 1rem 1.1rem; margin-bottom: 0.8rem; position: relative;
   }
   .sched-row.sched-finished { opacity: 0.55; background: var(--surface2); }
-  .sched-row.sched-current { border: 1.5px solid var(--wine); box-shadow: 0 4px 14px rgba(131,61,90,0.1); }
+  .sched-row.sched-current { border: 1.5px solid var(--wine); box-shadow: 0 4px 14px rgba(134,81,109,0.1); }
   .sched-row.sched-upcoming { border-style: dashed; border-color: var(--muted); }
   .sched-row.sched-vacation { background: var(--wine-soft); }
 
@@ -724,7 +724,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     flex: 1; padding: 0.55rem; border-radius: 9px; border: none; background: transparent;
     color: var(--muted); font-family: 'Cairo'; font-size: 0.85rem; font-weight: 700; cursor: pointer;
   }
-  .sched-view-btn.active { background: var(--surface); color: var(--wine); box-shadow: 0 2px 8px rgba(131,61,90,0.1); }
+  .sched-view-btn.active { background: var(--surface); color: var(--wine); box-shadow: 0 2px 8px rgba(134,81,109,0.1); }
 
   .sched-add-vac-btn {
     width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px dashed var(--border);
@@ -895,7 +895,7 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
         <div class="tasks-panel" id="dailyReportPanel" style="margin-top:0.3rem;padding:1rem;">
           <div style="text-align:center;font-size:1rem;font-weight:800;color:var(--wine-deep);margin-bottom:0.6rem;">🧾 التقرير اليومي</div>
           <div class="day-tabs" id="dailyReportDayTabs" style="margin-bottom:0.6rem;"></div>
-          <div class="group-tabs" id="dailyReportGroupTabs" style="display:flex;gap:0;overflow-x:auto;border-bottom:2px solid #e8d5d5;margin-bottom:0.5rem;scrollbar-width:none;"></div>
+          <div class="group-tabs" id="dailyReportGroupTabs" style="display:flex;gap:0;overflow-x:auto;border-bottom:2px solid var(--border);margin-bottom:0.5rem;scrollbar-width:none;"></div>
           <div id="dailyReportBlocks"></div>
         </div>
 
@@ -949,7 +949,7 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
         <div class="day-tabs" id="dayTabs"></div>
         <div id="noChallengeBar" style="text-align:center;"></div>
 
-        <div id="groupTabs" style="display:flex;gap:0;flex-wrap:nowrap;overflow-x:auto;padding:0.4rem 0.4rem 0;border-bottom:2px solid #e8d5d5;margin-bottom:0.2rem;scrollbar-width:none;"></div>
+        <div id="groupTabs" style="display:flex;gap:0;flex-wrap:nowrap;overflow-x:auto;padding:0.4rem 0.4rem 0;border-bottom:2px solid var(--border);margin-bottom:0.2rem;scrollbar-width:none;"></div>
         <div id="maqStudentList"></div>
 
       </div>
@@ -3340,7 +3340,7 @@ function renderHalqaDistTool() {
   }
   let boxes = '';
   for (let i = 1; i <= halqaDistCount; i++) {
-    boxes += `<div style="margin-bottom:0.9rem;padding-bottom:0.5rem;border-bottom:1px dashed #e8d5d5;">
+    boxes += `<div style="margin-bottom:0.9rem;padding-bottom:0.5rem;border-bottom:1px dashed var(--border);">
       <div style="font-size:0.82rem;font-weight:800;color:var(--wine);margin-bottom:0.4rem;">${getHalqaLabel(String(i))}</div>`;
     const pCount = getHalqaPeriodsCount(String(i));
     for (let p = 1; p <= pCount; p++) {
@@ -5267,7 +5267,7 @@ async function openSurveyResults(rowId) {
         const c = resp.filter(x => x[q.col] === k).length;
         const pct = Math.round(c / total * 100);
         html += `<div style="position:relative;height:32px;border-radius:8px;background:var(--surface2);margin:0.3rem 0;overflow:hidden;">
-          <div style="position:absolute;top:0;bottom:0;right:0;width:${pct}%;background:rgba(131,61,90,0.28);"></div>
+          <div style="position:absolute;top:0;bottom:0;right:0;width:${pct}%;background:rgba(134,81,109,0.28);"></div>
           <div style="position:relative;display:flex;justify-content:space-between;align-items:center;height:100%;padding:0 0.6rem;font-size:0.8rem;"><span>${q.opts[k]}</span><span>${toAr(c)} · ${toAr(pct)}٪</span></div>
         </div>`;
       });
@@ -10478,7 +10478,7 @@ function drawSingleChart(canvasId, points, ceiling) {
 
   // شبكة مربعات خلفية
   const gridSize = 25;
-  ctx.strokeStyle = 'rgba(131,61,90,0.25)';
+  ctx.strokeStyle = 'rgba(134,81,109,0.25)';
   ctx.lineWidth = 1;
   for (let x = pad; x <= cssWidth - pad; x += gridSize) {
     ctx.beginPath(); ctx.moveTo(x, pad); ctx.lineTo(x, cssHeight - pad); ctx.stroke();
