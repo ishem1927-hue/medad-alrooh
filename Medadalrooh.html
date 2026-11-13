@@ -496,6 +496,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .attend-actions-row .icon-btn-sm { background: var(--surface2); }
   .maq-student-card .maq-field-input, .maq-student-card .maq-review-auto, .maq-student-card .day-eval-box { background: var(--surface); }
   .maq-student-card :is(.sat-btn, .thu-btn, .sw-btn):not([class*="sel-"]) { background: var(--surface); }
+  .rating-options { flex-wrap: nowrap; gap: 0.4rem; }
+  .rating-options .sat-btn { flex: 1; text-align: center; padding: 0.35rem 0; font-size: 0.8rem; }
 
   .kubra-section { display: none; margin-top: 0.4rem; }
   .kubra-section.show { display: block; }
@@ -6151,7 +6153,7 @@ function renderSatView() {
           function box(label, content) {
             return '<div class="maq-field-group" style="margin-bottom:0.5rem;">'
               +'<div class="maq-field-label" style="color:var(--wine);">'+label+'</div>'
-              +'<div style="background:var(--surface);border-radius:10px;padding:0.5rem 0.7rem;font-size:0.82rem;color:var(--ink);min-height:2rem;">'+content+'</div>'
+              +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0.5rem 0.7rem;font-size:0.82rem;color:var(--ink);min-height:2rem;">'+content+'</div>'
               +'</div>';
           }
 
@@ -6190,7 +6192,7 @@ function renderSatView() {
                   +'<span onclick="togglePrevMaqExclude('+s.id+')" title="استثناء من المراجعة التراكمية (تحتاج إعادة)" style="cursor:pointer;font-size:1.05em;'+(isExcluded?'filter:none;':'filter:grayscale(1);opacity:0.45;')+'">🔄</span>'
                   +(isExcluded ? '<span style="font-size:0.72rem;color:#c0392b;">(إعادة — مستثنى)</span>' : '')
                 +'</div>'
-                +'<div style="background:var(--surface);border-radius:10px;padding:0.5rem 0.7rem;font-size:0.82rem;color:var(--ink);min-height:2rem;">'+prevTilawah+'</div>'
+                +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0.5rem 0.7rem;font-size:0.82rem;color:var(--ink);min-height:2rem;">'+prevTilawah+'</div>'
                 +'</div>';
             }
           }
@@ -6223,7 +6225,7 @@ function renderSatView() {
             var curRating = sd[getRatingFieldName()] || '';
             out += '<div class="maq-field-group" style="margin-bottom:0.5rem;">'
               +'<div class="maq-field-label" style="color:var(--wine);">🌟 التقييم</div>'
-              +'<div class="sat-options">'
+              +'<div class="sat-options rating-options">'
               +'<button class="sat-btn '+(curRating==='3'?'sel-attend':'')+'" onclick="setRating('+s.id+',\'3\')">🌟🌟🌟</button>'
               +'<button class="sat-btn '+(curRating==='2'?'sel-excused':'')+'" onclick="setRating('+s.id+',\'2\')">🌟🌟</button>'
               +'<button class="sat-btn '+(curRating==='1'?'sel-absent':'')+'" onclick="setRating('+s.id+',\'1\')">🌟</button>'
