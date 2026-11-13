@@ -379,6 +379,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     flex-shrink: 0; padding: 0.5rem 1rem; border-radius: 10px; border: 1px solid var(--border);
     background: var(--surface); color: var(--muted); font-size: 0.82rem; font-weight: 600; cursor: pointer; position: relative;
   }
+  #dayTabs .halqa-tab { white-space: nowrap; min-width: 0; padding: 0.42rem 0.1rem; font-size: 0.66rem; }
   .day-tab.active { background: var(--wine); color: white; border-color: var(--wine); }
   .group-tab { padding: 0.5rem 1rem; border: none; background: transparent; font-family: 'Cairo'; font-weight: 600; font-size: 0.82rem; color: var(--muted); border-bottom: 3px solid transparent; white-space: nowrap; cursor: pointer; flex-shrink: 0; }
   .group-tab.active { color: var(--wine); font-weight: 800; border-bottom-color: var(--wine); }
@@ -945,8 +946,8 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
       <div class="maq-wrap" id="curriculumMainWrap" style="display:none;">
 
         <div class="cur-seg" id="curSeg">
-          <button id="curSegWeekly" onclick="enterCurriculumMode('weekly')">📆 المتابعة الأسبوعية</button>
-          <button id="curSegLive" onclick="enterCurriculumMode('live')">📱 الحلقة المباشرة</button>
+          <button id="curSegWeekly" onclick="enterCurriculumMode('weekly')">المتابعة الأسبوعية</button>
+          <button id="curSegLive" onclick="enterCurriculumMode('live')">الحلقة المباشرة</button>
         </div>
 
         <div class="attend-actions-row" style="justify-content:center;">
@@ -6048,8 +6049,9 @@ function renderLiveNav() {
 
   secs.forEach(k => {
     const btn = document.createElement('button');
-    btn.className = 'day-tab' + (k === currentLiveHalqa ? ' active' : '');
+    btn.className = 'day-tab halqa-tab' + (k === currentLiveHalqa ? ' active' : '');
     btn.textContent = getHalqaLabel(k);
+    if (btn.textContent.length > 16) btn.style.fontSize = '0.6rem';
     btn.style.touchAction = 'manipulation';
     btn.onclick = () => { currentLiveHalqa = k; currentLivePeriod = null; renderCurriculumTab(); };
     tabsEl.appendChild(btn);
