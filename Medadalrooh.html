@@ -75,6 +75,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .course-num-badge { color: var(--wine); font-weight: 700; font-size: 0.95rem; }
   .course-tagline { font-size: 0.78rem; color: var(--muted); line-height: 1.5; display: block; }
   .course-arrow { color: var(--wine); font-size: 1.3rem; opacity: 0.6; }
+  .cc-talqeen { background: var(--surface2); }
   .cc-tajweed { background: #FFF8E1; border-color: #F5EAC0; }
   .cc-tajweed .course-icon { background: #FBEBB5; }
   .cc-tajweed .course-arrow, .cc-tajweed .course-num-badge { color: #9A7B1F; }
@@ -804,7 +805,7 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
   </header>
 
   <div class="container">
-    <div class="course-card" onclick="showScreen('talqeen')">
+    <div class="course-card cc-talqeen" onclick="showScreen('talqeen')">
       <div class="course-icon">🎙️</div>
       <div class="course-info">
         <div class="course-name">مداد التلقين <span class="course-num-badge" id="homeTalqeenNum"></span></div>
