@@ -364,6 +364,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .day-tab.active.has-data::after { color: white; }
   #dailyReportDayTabs { flex-wrap: nowrap; overflow-x: visible; }
   #dailyReportDayTabs .day-tab { flex: 1; padding: 0.4rem 0.2rem; font-size: 0.72rem; text-align: center; }
+  #dailyReportDayTabs .day-tab:not(.active) { background: var(--surface2); }
 
   .attend-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.3rem; margin-bottom: 1.1rem; }
   .attend-card-title { font-size: 0.8rem; color: var(--wine); font-weight: 700; margin-bottom: 1rem; }
