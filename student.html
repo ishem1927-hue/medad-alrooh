@@ -76,8 +76,14 @@
   .dbox { position: relative; background: #fff; border-radius: 18px; padding: 1.4rem 1.2rem 1.2rem; width: 100%; max-width: 340px; text-align: center; }
   .dbox .x { position: absolute; top: 0.5rem; left: 0.7rem; border: none; background: none; font-size: 1.1rem; color: var(--muted); cursor: pointer; }
   .dbox p { font-size: 0.9rem; line-height: 2; color: var(--ink); margin: 0.2rem 0 1rem; }
-  .dbox .go { width: 100%; padding: 0.7rem; border: none; border-radius: 12px; background: #3A7F7B; color: #fff; font-family: 'Cairo'; font-size: 0.92rem; font-weight: 700; cursor: pointer; }
+  .dbtns { display: flex; gap: 0.5rem; }
+  .dbox .go { flex: 1; padding: 0.7rem; border: none; border-radius: 12px; background: #3A7F7B; color: #fff; font-family: 'Cairo'; font-size: 0.92rem; font-weight: 700; cursor: pointer; }
+  .dbox .go.alt { background: #fff; color: #3A7F7B; border: 1px solid #3A7F7B; }
   .dbox .go:disabled { opacity: 0.6; }
+  .dview { flex-direction: column; background: rgba(73,59,67,0.85); z-index: 60; }
+  .dview img { max-width: 100%; max-height: 78vh; border-radius: 10px; background: #fff; }
+  .dview .hint { color: #fff; margin-top: 0.8rem; font-size: 0.8rem; }
+  .dview .x { position: absolute; top: 0.8rem; left: 1rem; border: none; background: none; font-size: 1.4rem; color: #fff; cursor: pointer; }
   #svToggle { background: #FFF0E6; border-color: #F8DCC6; color: #A5663A; }
   #surveyCard { background: #FFF0E6; border-color: #F8DCC6; }
   #surveyCard .qt { color: #8A5530; }
@@ -298,25 +304,40 @@ function openCertModal(d, p) {
     .replace(/\*(.+?)\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
   const ov = document.createElement('div');
   ov.className = 'dov';
-  ov.innerHTML = `<div class="dbox"><button type="button" class="x">✕</button><p>${msg}</p><button type="button" class="go">⬇️ تحميل الشهادة</button></div>`;
+  ov.innerHTML = `<div class="dbox"><button type="button" class="x">✕</button><p>${msg}</p><div class="dbtns"><button type="button" class="go alt" id="certView">👁️ عرض</button><button type="button" class="go" id="certGet">⬇️ تحميل</button></div></div>`;
   document.body.appendChild(ov);
-  const close = () => ov.remove();
+  // نجهّز الشهادة أول ما تنفتح النافذة عشان الضغط يكون فوري (قائمة المشاركة تحتاج ضغطة مباشرة)
+  const ready = renderCert(p.name, juz, d.date);
+  ready.catch(() => {});
+  const close = () => { ov.remove(); ready.then(r => URL.revokeObjectURL(r.imgUrl)).catch(() => {}); };
   ov.addEventListener('click', e => { if (e.target === ov) close(); });
   ov.querySelector('.x').addEventListener('click', close);
-  const go = ov.querySelector('.go');
-  go.addEventListener('click', async () => {
-    go.disabled = true; go.textContent = '...';
-    try {
-      const blob = await buildCertPdf(p.name, juz, d.date);
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `شهادة ختم الجزء ${juz} - ${p.display || p.name}.pdf`;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 60000);
-      go.textContent = '⬇️ تحميل الشهادة';
-    } catch (e) { go.textContent = 'تعذّر التحميل، حاولي مرة ثانية'; }
-    go.disabled = false;
-  });
+  const guard = async (btn, label, fn) => {
+    btn.disabled = true; btn.textContent = '...';
+    try { await fn(await ready); btn.textContent = label; }
+    catch (e) { btn.textContent = 'تعذّر، حاولي مرة ثانية'; }
+    btn.disabled = false;
+  };
+  const view = ov.querySelector('#certView'), get = ov.querySelector('#certGet');
+  view.addEventListener('click', () => guard(view, '👁️ عرض', r => {
+    const v = document.createElement('div');
+    v.className = 'dov dview';
+    v.innerHTML = `<button type="button" class="x">✕</button><img src="${r.imgUrl}" alt=""><div class="hint">اضغطي مطولًا على الصورة لحفظها في الصور</div>`;
+    v.addEventListener('click', e => { if (e.target.tagName !== 'IMG') v.remove(); });
+    document.body.appendChild(v);
+  }));
+  get.addEventListener('click', () => guard(get, '⬇️ تحميل', async r => {
+    const fname = `شهادة ختم الجزء ${juz} - ${p.display || p.name}.pdf`;
+    const file = new File([r.pdf], fname, { type: 'application/pdf' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file] }); } catch (e) { if (e.name !== 'AbortError') throw e; }
+      return;
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(r.pdf); a.download = fname;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  }));
 }
 let certAssets = null;
 function loadCertAssets() {
@@ -327,7 +348,7 @@ function loadCertAssets() {
   ]).then(([img, f1, f2]) => { document.fonts.add(f1); document.fonts.add(f2); return img; }).catch(e => { certAssets = null; throw e; });
   return certAssets;
 }
-async function buildCertPdf(name, juz, date) {
+async function renderCert(name, juz, date) {
   const img = await loadCertAssets();
   const c = document.createElement('canvas');
   c.width = img.naturalWidth; c.height = img.naturalHeight;
@@ -347,6 +368,7 @@ async function buildCertPdf(name, juz, date) {
   put(date, 'CertRuq', 46, 362, 1010, 250);
   const jpg = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.92));
   const jb = new Uint8Array(await jpg.arrayBuffer());
+  const imgUrl = URL.createObjectURL(jpg);
   const enc = new TextEncoder();
   const parts = [], offs = [];
   let len = 0;
@@ -365,7 +387,7 @@ async function buildCertPdf(name, juz, date) {
   add('xref\n0 6\n0000000000 65535 f \n');
   for (let i = 1; i <= 5; i++) add(String(offs[i]).padStart(10, '0') + ' 00000 n \n');
   add(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xr}\n%%EOF`);
-  return new Blob(parts, { type: 'application/pdf' });
+  return { pdf: new Blob(parts, { type: 'application/pdf' }), imgUrl };
 }
 
 function footer() {
