@@ -2011,10 +2011,11 @@ async function syncPullAll() {
 }
 
 // ===================== تسجيل الدخول والخروج =====================
+// آخر إيميل دخل لكل باب لحاله (إدارة / معلمات) عشان ما يختلط الحسابين
 const AUTH_LAST_EMAIL_KEY = 'madad_last_login_email';
 
 function getLastLoginEmail() {
-  try { return localStorage.getItem(AUTH_LAST_EMAIL_KEY) || ''; } catch (e) { return ''; }
+  try { return localStorage.getItem(AUTH_LAST_EMAIL_KEY + '_' + loginRole) || ''; } catch (e) { return ''; }
 }
 
 function showLoginScreen() {
@@ -2065,7 +2066,7 @@ async function submitLogin(ev) {
         ? 'تعذّر الاتصال، تأكدي من الإنترنت'
         : (error.message === 'Invalid login credentials' ? 'الإيميل أو كلمة السر غير صحيحة' : 'تعذّر تسجيل الدخول، حاولي مرة ثانية');
     } else {
-      try { localStorage.setItem(AUTH_LAST_EMAIL_KEY, email); } catch (e) {}
+      try { localStorage.setItem(AUTH_LAST_EMAIL_KEY + '_' + loginRole, email); } catch (e) {}
       hideLoginScreen();
       window.scrollTo(0, 0);
       location.reload();
