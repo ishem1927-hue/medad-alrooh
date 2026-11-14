@@ -60,6 +60,15 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .id-bg { position: fixed; inset: 0; background: #F8F9F6; z-index: 0; pointer-events: none; }
   .id-bg::before, .id-bg::after { content: ''; position: absolute; left: 0; right: 0; height: 200px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 200' preserveAspectRatio='none'%3E%3Cpath d='M0 0H330C290 20 250 50 205 85C150 128 90 150 0 160Z' fill='%23DCE9E8' fill-opacity='.9'/%3E%3Cpath d='M0 0H250C215 20 175 45 135 75C95 105 50 122 0 128Z' fill='%23B9CBCD' fill-opacity='.55'/%3E%3Cpath d='M0 176C95 164 160 140 215 98C262 62 306 30 345 0' fill='none' stroke='%23B9CBCD' stroke-width='1.4'/%3E%3C/svg%3E") no-repeat; background-size: 100% 100%; }
   #home > :not(.id-bg), #loginScreen > :not(.id-bg) { position: relative; z-index: 1; }
+  /* ===== صفحة الخيارات ===== */
+  #entry > :not(.id-bg) { position: relative; z-index: 1; }
+  .entry-body { min-height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; max-width: 420px; margin: 0 auto; padding: 0 1.4rem; text-align: center; }
+  .entry-title { color: #52776D; font-size: 1.25rem; margin: 0.2rem 0 1.6rem; }
+  .entry-card { display: flex; align-items: center; gap: 0.9rem; background: #fff; border: 1px solid rgba(185, 203, 205, 0.8); border-radius: 20px; padding: 1.3rem 1.1rem; margin-bottom: 0.9rem; text-align: right; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .entry-ic { width: 54px; height: 54px; border-radius: 16px; background: #DCE9E8; display: flex; align-items: center; justify-content: center; font-size: 1.7rem; flex-shrink: 0; }
+  .entry-card b { color: #52776D; font-size: 1.1rem; }
+  .entry-ar { margin-right: auto; color: #B9CBCD; font-size: 1.6rem; }
+  .entry-back { position: absolute; top: 1rem; right: 1rem; width: 2.4rem; height: 2.4rem; border-radius: 50%; border: 1px solid #B9CBCD; background: #DCE9E8; color: #52776D; font-size: 1.3rem; line-height: 1; cursor: pointer; z-index: 2; -webkit-tap-highlight-color: transparent; }
 
   .container { max-width: 600px; margin: 0 auto; padding: 0.5rem 1.2rem; }
 
@@ -808,8 +817,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 <body>
 
 <!-- ===================== شاشة تسجيل الدخول ===================== -->
-<div id="loginScreen" dir="rtl" style="display:flex;position:fixed;inset:0;z-index:2000;background:#F8F9F6;align-items:center;justify-content:center;padding:1.2rem;font-family:'Cairo';">
+<div id="loginScreen" dir="rtl" style="display:none;position:fixed;inset:0;z-index:2000;background:#F8F9F6;align-items:center;justify-content:center;padding:1.2rem;font-family:'Cairo';">
   <div class="id-bg"></div>
+  <button id="loginBackBtn" type="button" onclick="hideLoginScreen()" aria-label="رجوع" style="position:absolute;top:1rem;right:1rem;width:2.4rem;height:2.4rem;border-radius:50%;border:1px solid #B9CBCD;background:#DCE9E8;color:#52776D;font-size:1.3rem;line-height:1;cursor:pointer;-webkit-tap-highlight-color:transparent;">‹</button>
   <form id="loginForm" onsubmit="return submitLogin(event)" style="width:100%;max-width:380px;text-align:center;">
     <img id="loginLogo" class="logo-img" alt="مداد الروح" style="visibility:hidden;">
     <div style="font-size:0.95rem;font-weight:700;color:#52776D;margin-bottom:1.4rem;">تسجيل دخول</div>
@@ -825,9 +835,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   </form>
 </div>
 <script>
-// إخفاء شاشة الدخول فورًا لو فيه جلسة محفوظة على هذا الجهاز (يمنع وميضها عند كل فتح)
 var AUTH_STORAGE_KEY = 'sb-btosiqsrpvrjajwhyrph-auth-token';
-try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('loginScreen').style.display = 'none'; } catch (e) {}
 </script>
 
 <!-- ===================== الشاشة الرئيسية ===================== -->
@@ -839,7 +847,7 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
   </header>
 
   <div class="container">
-    <div class="course-card cc-talqeen" onclick="showScreen('talqeen')">
+    <div class="course-card cc-talqeen" onclick="openEntry('talqeen','مداد التلقين')">
       <div class="course-icon">🎙️</div>
       <div class="course-info">
         <div class="course-name">مداد التلقين <span class="course-num-badge" id="homeTalqeenNum"></span></div>
@@ -848,7 +856,7 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
       <div class="course-arrow">‹</div>
     </div>
 
-    <div class="course-card cc-tajweed" id="tajweedCard" style="display:none;" onclick="showScreen('tajweed')">
+    <div class="course-card cc-tajweed" id="tajweedCard" style="display:none;" onclick="openEntry('tajweed','مداد التجويد')">
       <div class="course-icon">📝</div>
       <div class="course-info">
         <div class="course-name">مداد التجويد</div>
@@ -857,7 +865,7 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
       <div class="course-arrow">‹</div>
     </div>
 
-    <div class="course-card cc-tamkeen" id="tamkeenCard" style="display:none;" onclick="showScreen('tamkeen')">
+    <div class="course-card cc-tamkeen" id="tamkeenCard" style="display:none;" onclick="openEntry('tamkeen','مداد التمكين')">
       <div class="course-icon">⛰️</div>
       <div class="course-info">
         <div class="course-name">مداد التمكين</div>
@@ -866,7 +874,7 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
       <div class="course-arrow">‹</div>
     </div>
 
-    <div class="course-card cc-tilawah" id="tilawahCard" style="display:none;" onclick="showScreen('tilawah')">
+    <div class="course-card cc-tilawah" id="tilawahCard" style="display:none;" onclick="openEntry('tilawah','مداد التلاوة')">
       <div class="course-icon">📖</div>
       <div class="course-info">
         <div class="course-name">مداد التلاوة</div>
@@ -875,7 +883,7 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
       <div class="course-arrow">‹</div>
     </div>
 
-    <div class="course-card cc-tafsir" id="tafsirCard" style="display:none;" onclick="showScreen('tafsir')">
+    <div class="course-card cc-tafsir" id="tafsirCard" style="display:none;" onclick="openEntry('tafsir','مداد التفسير')">
       <div class="course-icon">📜</div>
       <div class="course-info">
         <div class="course-name">مداد التفسير</div>
@@ -888,6 +896,19 @@ try { if (localStorage.getItem(AUTH_STORAGE_KEY)) document.getElementById('login
   <div style="text-align:center;padding:0.5rem 1.2rem 2rem;">
     <button onclick="confirmLogout()" aria-label="تسجيل الخروج" title="تسجيل الخروج"
       style="background:var(--surface);border:1px solid var(--border);border-radius:50%;width:2.6rem;height:2.6rem;font-size:1.1rem;color:var(--muted);cursor:pointer;-webkit-tap-highlight-color:transparent;">🚪</button>
+  </div>
+</div>
+
+<!-- ===================== صفحة الخيارات (إدارة / معلمات / طالبات) ===================== -->
+<div class="screen" id="entry">
+  <div class="id-bg"></div>
+  <button class="entry-back" onclick="showScreen('home')" aria-label="رجوع">‹</button>
+  <div class="entry-body">
+    <img id="entryLogo" class="logo-img" alt="مداد الروح">
+    <h2 class="entry-title" id="entryTitle"></h2>
+    <div class="entry-card" onclick="enterAs()"><div class="entry-ic">🛡️</div><b>الإدارة</b><span class="entry-ar">‹</span></div>
+    <div class="entry-card" onclick="enterAs()"><div class="entry-ic">👩‍🏫</div><b>دخول المعلمات</b><span class="entry-ar">‹</span></div>
+    <div class="entry-card" onclick="location.href='student.html'"><div class="entry-ic">🎓</div><b>بوابة الطالبات</b><span class="entry-ar">‹</span></div>
   </div>
 </div>
 
@@ -2078,7 +2099,7 @@ function confirmLogout() {
 async function doLogout() {
   try { await supabaseClient.auth.signOut({ scope: 'local' }); } catch (e) {}
   try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch (e) {}
-  showLoginScreen();
+  showScreen('home');
 }
 
 // شعار شاشة الدخول ياخذ صورته من شعار الصفحة الأولى (بدون تكرار الصورة داخل الملف)
@@ -2086,19 +2107,41 @@ async function doLogout() {
   const homeLogo = document.querySelector('#home .logo-img');
   const loginLogo = document.getElementById('loginLogo');
   if (homeLogo && loginLogo) { loginLogo.src = homeLogo.src; loginLogo.style.visibility = 'visible'; }
+  const entryLogo = document.getElementById('entryLogo');
+  if (homeLogo && entryLogo) entryLogo.src = homeLogo.src;
 })();
 
-// لو ما فيه جلسة محفوظة نظهر شاشة الدخول (الإخفاء الفوري للمسجّلات يتم من سكربت صغير بأول الصفحة)
-(async function checkLoginOnStart() {
+// ===================== صفحة الخيارات =====================
+// البرنامج اللي اختارته المستخدمة (تلقين/تجويد/...) يتذكره الملف لين تدخل
+let entryProgram = null;
+const ENTER_PROGRAM_KEY = 'madad_enter_program';
+
+function openEntry(prog, name) {
+  entryProgram = prog;
+  document.getElementById('entryTitle').textContent = name;
+  showScreen('entry');
+}
+
+// الإدارة والمعلمات: لو فيه جلسة محفوظة تدخل مباشرة، وإلا تظهر شاشة الدخول وبعدها يفتح البرنامج
+function enterAs() {
   let hasSession = false;
   try { hasSession = !!localStorage.getItem(AUTH_STORAGE_KEY); } catch (e) {}
-  if (!hasSession) {
-    try { const { data } = await supabaseClient.auth.getSession(); hasSession = !!(data && data.session); } catch (e) {}
-  }
-  if (hasSession) hideLoginScreen(); else showLoginScreen();
+  if (hasSession) { showScreen(entryProgram); return; }
+  try { sessionStorage.setItem(ENTER_PROGRAM_KEY, entryProgram); } catch (e) {}
+  showLoginScreen();
+}
+
+// بعد الدخول (الصفحة تنعاد تحميلها) نفتح البرنامج اللي كانت اختارته
+(function openProgramAfterLogin() {
+  try {
+    const prog = sessionStorage.getItem(ENTER_PROGRAM_KEY);
+    sessionStorage.removeItem(ENTER_PROGRAM_KEY);
+    if (prog && localStorage.getItem(AUTH_STORAGE_KEY) && document.getElementById(prog)) showScreen(prog);
+  } catch (e) {}
 })();
+
 supabaseClient.auth.onAuthStateChange((event) => {
-  if (event === 'SIGNED_OUT') showLoginScreen();
+  if (event === 'SIGNED_OUT') { hideLoginScreen(); showScreen('home'); }
 });
 
 
