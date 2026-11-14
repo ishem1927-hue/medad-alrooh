@@ -5373,7 +5373,7 @@ function portalBuildAllPages() {
       v: 1, ready: true, name: s.name, display: firstTwoWords(s.name), first: portalFirstName(s.name),
       joinCycle: s.joinCycle || null, joinEmoji: getJoinCycleEmoji(s) || '',
       last: Object.assign({}, last, { emoji: getCycleEmoji(last.cycle) || '', kubra: kt.kubra || '', taahud: kt.taahud || '', note: getTeacherNote(s.id, last.cycle) }),
-      history: cycles.slice(0, -1).reverse(), docs: portalCertDocs(s, doneRows, last.cycle),
+      history: cycles.slice(0, -1).reverse(), docs: portalCertDocs(s, doneRows, last.cycle).concat(cycles.filter(c => c.star).map(c => ({ k: 'card', cycle: c.cycle }))),
     } });
   });
   portalEligibleSet = eligible;

@@ -249,10 +249,11 @@ function renderPortal(p, surveyDone) {
 
   docItems = Array.isArray(p.docs) ? p.docs : [];
   const certs = docItems.filter(d => d.k === 'cert').sort((a, b) => b.juz - a.juz);
+  const cards = docItems.filter(d => d.k === 'card' && CARD_TEMPLATES[d.cycle]).sort((a, b) => b.cycle - a.cycle);
   const col = (title, list, fn) => `<div><div class="dh">${title}</div>` + (list.length ? list.map(fn).join('') : '<div class="empty" style="text-align:center">لا يوجد</div>') + `</div>`;
   html += `<button type="button" class="svtoggle" id="docToggle">📄 المستندات</button>
     <div class="card hidden" id="docCard"><div class="dgrid">` +
-    col('🌟 بطاقات التميز', [], () => '') +
+    col('🌟 بطاقات التميز', cards, d => `<button type="button" class="drow" data-i="${docItems.indexOf(d)}">بطاقة تميز دورة ${toAr(d.cycle)}</button>`) +
     col('🎓 شهادات الحفظ', certs, d => `<button type="button" class="drow" data-i="${docItems.indexOf(d)}">شهادة ختم الجزء ${juzNameAr(d.juz)}</button>`) +
     `</div></div>`;
 
@@ -293,7 +294,7 @@ function renderPortal(p, surveyDone) {
   }));
   const dt = $('docToggle');
   if (dt) dt.addEventListener('click', () => { $('docCard').classList.toggle('hidden'); });
-  document.querySelectorAll('.drow').forEach(b => b.addEventListener('click', () => openCertModal(docItems[+b.dataset.i], p)));
+  document.querySelectorAll('.drow').forEach(b => b.addEventListener('click', () => openDocModal(docItems[+b.dataset.i], p)));
   const tg = $('svToggle');
   if (tg) tg.addEventListener('click', () => { tg.classList.add('hidden'); $('surveyCard').classList.remove('hidden'); });
   const sb = $('svBtn');
@@ -308,16 +309,25 @@ function juzNameAr(n) {
     'الحادي والعشرون','الثاني والعشرون','الثالث والعشرون','الرابع والعشرون','الخامس والعشرون','السادس والعشرون','السابع والعشرون','الثامن والعشرون','التاسع والعشرون','الثلاثون'];
   return names[n - 1] || String(n);
 }
-function openCertModal(d, p) {
-  const juz = juzNameAr(d.juz);
-  const msg = esc(`*طـالبتي ${p.first || p.display || p.name} 🤍:*\n\nمبارك لكِ ختم الجزء *${juz}* وبلغكِ اللّٰه ختم القرآن كاملًا 🤲🏻🎉.`)
-    .replace(/\*(.+?)\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+function openDocModal(d, p) {
+  const nm = p.first || p.display || p.name;
+  let text, ready, fname;
+  if (d.k === 'card') {
+    text = `*طـالبتي ${nm} 🤍:*\n\nمبارك لكِ التميز في الدورة *${toAr(d.cycle)}* 🌟 زادكِ اللّٰه من فضله وبارك في جهدكِ.`;
+    ready = renderCard(p.display || p.name, d.cycle);
+    fname = `بطاقة تميز دورة ${toAr(d.cycle)} - ${p.display || p.name}.jpg`;
+  } else {
+    const juz = juzNameAr(d.juz);
+    text = `*طـالبتي ${nm} 🤍:*\n\nمبارك لكِ ختم الجزء *${juz}* وبلغكِ اللّٰه ختم القرآن كاملًا 🤲🏻🎉.`;
+    ready = renderCert(p.name, juz, d.date);
+    fname = `شهادة ختم الجزء ${juz} - ${p.display || p.name}.pdf`;
+  }
+  const msg = esc(text).replace(/\*(.+?)\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
   const ov = document.createElement('div');
   ov.className = 'dov';
-  ov.innerHTML = `<div class="dbox"><button type="button" class="x">✕</button><p>${msg}</p><div class="dbtns"><button type="button" class="go alt" id="certView">👁️ عرض</button><button type="button" class="go" id="certGet">⬇️ تحميل</button></div></div>`;
+  ov.innerHTML = `<div class="dbox"><button type="button" class="x">✕</button><p>${msg}</p><div class="dbtns"><button type="button" class="go alt" id="docView">👁️ عرض</button><button type="button" class="go" id="docGet">⬇️ تحميل</button></div></div>`;
   document.body.appendChild(ov);
-  // نجهّز الشهادة أول ما تنفتح النافذة عشان الضغط يكون فوري (قائمة المشاركة تحتاج ضغطة مباشرة)
-  const ready = renderCert(p.name, juz, d.date);
+  // نجهّز المستند أول ما تنفتح النافذة عشان الضغط يكون فوري (قائمة المشاركة تحتاج ضغطة مباشرة)
   ready.catch(() => {});
   const close = () => { ov.remove(); ready.then(r => URL.revokeObjectURL(r.imgUrl)).catch(() => {}); };
   ov.addEventListener('click', e => { if (e.target === ov) close(); });
@@ -328,7 +338,7 @@ function openCertModal(d, p) {
     catch (e) { btn.textContent = 'تعذّر، حاولي مرة ثانية'; }
     btn.disabled = false;
   };
-  const view = ov.querySelector('#certView'), get = ov.querySelector('#certGet');
+  const view = ov.querySelector('#docView'), get = ov.querySelector('#docGet');
   view.addEventListener('click', () => guard(view, '👁️ عرض', r => {
     const v = document.createElement('div');
     v.className = 'dov dview';
@@ -337,14 +347,13 @@ function openCertModal(d, p) {
     document.body.appendChild(v);
   }));
   get.addEventListener('click', () => guard(get, '⬇️ تحميل', async r => {
-    const fname = `شهادة ختم الجزء ${juz} - ${p.display || p.name}.pdf`;
-    const file = new File([r.pdf], fname, { type: 'application/pdf' });
+    const file = new File([r.file], fname, { type: r.file.type });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try { await navigator.share({ files: [file] }); } catch (e) { if (e.name !== 'AbortError') throw e; }
       return;
     }
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(r.pdf); a.download = fname;
+    a.href = URL.createObjectURL(r.file); a.download = fname;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 60000);
   }));
@@ -397,7 +406,33 @@ async function renderCert(name, juz, date) {
   add('xref\n0 6\n0000000000 65535 f \n');
   for (let i = 1; i <= 5; i++) add(String(offs[i]).padStart(10, '0') + ' 00000 n \n');
   add(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xr}\n%%EOF`);
-  return { pdf: new Blob(parts, { type: 'application/pdf' }), imgUrl };
+  return { file: new Blob(parts, { type: 'application/pdf' }), imgUrl };
+}
+
+// ---------- بطاقة التميز: قالب جاهز لكل دورة والاسم فقط يُرسم عليه (صورة JPEG) ----------
+const CARD_TEMPLATES = { 7: 'cards/cycle-7.jpg' };
+const cardAssets = {};
+function loadCardAssets(cycle) {
+  if (!cardAssets[cycle]) cardAssets[cycle] = Promise.all([
+    new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = CARD_TEMPLATES[cycle]; }),
+    new FontFace('CardMar', 'url(cards/marhey.woff2)', { weight: '700' }).load(),
+  ]).then(([img, f]) => { document.fonts.add(f); return img; }).catch(e => { delete cardAssets[cycle]; throw e; });
+  return cardAssets[cycle];
+}
+async function renderCard(name, cycle) {
+  const img = await loadCardAssets(cycle);
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const k = c.width / 4800;
+  const x = c.getContext('2d');
+  x.drawImage(img, 0, 0);
+  x.fillStyle = '#52776D'; x.direction = 'rtl'; x.textAlign = 'center'; x.textBaseline = 'alphabetic';
+  x.font = `700 200px CardMar`;
+  const px = Math.min(200 * 520 / x.measureText(name).width, 185) * k;
+  x.font = `700 ${px}px CardMar`;
+  x.fillText(name, 1990 * k, 1008 * k);
+  const jpg = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.92));
+  return { file: jpg, imgUrl: URL.createObjectURL(jpg) };
 }
 
 function footer() {
