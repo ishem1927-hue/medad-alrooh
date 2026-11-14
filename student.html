@@ -126,9 +126,9 @@
     <h1>أهلًا بك في بوابة طالبات مداد الروح</h1>
     <div class="login-box">
       <label for="userInput">اسم المستخدم</label>
-      <input id="userInput" class="code-input" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      <input id="userInput" class="code-input" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
       <label for="codeInput">كلمة المرور</label>
-      <input id="codeInput" class="code-input" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      <input id="codeInput" class="code-input" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
       <button id="loginBtn" class="btn" type="button">دخول</button>
       <div id="loginMsg" class="msg"></div>
     </div>
@@ -433,7 +433,16 @@ $('userInput').value = '';
 $('codeInput').value = '';
 window.addEventListener('popstate', () => { if (currentCode) history.pushState({ in: 1 }, ''); });
 try { const sc = localStorage.getItem('madad_code'); if (sc) login(sc); } catch (e) {}
-['userInput', 'codeInput'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter') login(); }));
+// اللصق: نكتب الرمز نفسه فقط (حروف إنجليزية وأرقام وشرطة) ونتجاهل أي كلام يجي معه
+['userInput', 'codeInput'].forEach(id => {
+  $(id).addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+  $(id).addEventListener('paste', e => {
+    e.preventDefault();
+    const t = (e.clipboardData || window.clipboardData).getData('text');
+    const m = t.match(/[A-Za-z0-9][A-Za-z0-9-]*/);
+    e.target.value = m ? m[0].toUpperCase() : '';
+  });
+});
 </script>
 </body>
 </html>
