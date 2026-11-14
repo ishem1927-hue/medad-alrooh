@@ -207,6 +207,16 @@ async function login(saved) {
   btn.disabled = false; btn.textContent = 'دخول';
 }
 
+function confirmLogout() {
+  const ov = document.createElement('div');
+  ov.className = 'dov';
+  ov.innerHTML = `<div class="dbox"><p><b>تسجيل الخروج</b></p><div class="dbtns"><button type="button" class="go" id="outYes">تأكيد</button><button type="button" class="go alt" id="outNo">إلغاء</button></div></div>`;
+  document.body.appendChild(ov);
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  ov.querySelector('#outNo').addEventListener('click', () => ov.remove());
+  ov.querySelector('#outYes').addEventListener('click', () => { ov.remove(); logout(); });
+}
+
 function logout() {
   currentCode = ''; answers = {};
   try { localStorage.removeItem('madad_code'); } catch (e) {}
@@ -216,7 +226,7 @@ function logout() {
 }
 
 function renderPortal(p, surveyDone) {
-  const top = `<div class="topbar"><div class="t">🎙️ مداد التلقين</div><button class="logout" onclick="logout()">خروج</button></div>`;
+  const top = `<div class="topbar"><div class="t">🎙️ مداد التلقين</div><button class="logout" onclick="confirmLogout()">خروج</button></div>`;
   const L = p.last;
   const attTxt = L.att != null ? toAr(L.att) + '٪' : '—';
   const star = L.star ? ` <span class="star">🌟</span>` : '';

@@ -2142,8 +2142,9 @@ function enterAs(role) {
   showLoginScreen();
 }
 
-// زر الرجوع داخل البرنامج: يسجل خروج ويرجع لصفحة الخيارات (بعد التأكيد)
+// زر الرجوع داخل البرنامج: الإدارة ترجع لصفحة الخيارات بدون خروج، والمعلمة تسجل خروج (بعد التأكيد)
 function leaveProgram() {
+  if (emailFitsRole(savedSessionEmail(), 'admin')) { showScreen('entry'); return; }
   showConfirmModal('تسجيل الخروج', '', doLogout);
 }
 
@@ -5111,7 +5112,7 @@ supabaseClient
 
 // ===================== صفحة الطالبة: الرموز التعريفية + نشر البيانات + نتائج الاستبيان =====================
 const STORE_PORTAL_CODES = 'madad_portal_codes';
-const PORTAL_URL = 'https://ishem1927-hue.github.io/medad-alrooh/student.html';
+const PORTAL_URL = 'https://ishem1927-hue.github.io/medad-alrooh/Medadalrooh.html';
 const PORTAL_CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // بدون حروف/أرقام تتشابه (0 O 1 I L)
 let portalCodes = { next: 1, map: {} }; // map: { رقم الطالبة: { seq: الرقم التسلسلي الثابت, ini: حروف الاسم، code: الرمز } }
 // حرف إنجليزي لكل حرف عربي (للتشابه ما يضر، لأن كلمة المرور فريدة لكل طالبة)
