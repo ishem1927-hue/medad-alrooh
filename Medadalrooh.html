@@ -2720,8 +2720,10 @@ function toggleManualJuz(id, juzNum) {
   const s = students.find(x => x.id === id);
   if (!s) return;
   if (!Array.isArray(s.manualJuz)) s.manualJuz = [];
+  if (!s.juzCycle) s.juzCycle = {};
   const idx = s.manualJuz.indexOf(juzNum);
-  if (idx === -1) s.manualJuz.push(juzNum); else s.manualJuz.splice(idx, 1);
+  if (idx === -1) { s.manualJuz.push(juzNum); s.juzCycle[juzNum] = currentCycleNumber; }
+  else { s.manualJuz.splice(idx, 1); delete s.juzCycle[juzNum]; }
   saveStudents();
   const label = document.getElementById(`juzCountLabel_${id}`);
   if (label) label.textContent = `تحديد الأجزاء المحفوظة (${toAr(s.manualJuz.length)})`;
@@ -5329,6 +5331,21 @@ function portalFirstName(name) {
 }
 // صفحة الطالبة للنشيطات فقط (غير منسحبة) اللي خلصت دورة وحدة على الأقل؛ الباقي تظهر صفحتها تلقائيًا لما تتفعّل
 let portalEligibleSet = new Set();
+// شهادات ختم الأجزاء: لكل جزء مختوم في دورة منتهية، وتاريخها نهاية الدورة هجريًا
+// الأجزاء القديمة بدون دورة مسجلة: غير المسلَّمة تأخذ آخر دورة منتهية، والمسلَّمة بدون شهادة
+function portalCertDocs(s, doneRows, lastCycle) {
+  const acked = Array.isArray(s.certAckJuzList) ? s.certAckJuzList : [];
+  const map = s.juzCycle || {};
+  const docs = [];
+  (Array.isArray(s.manualJuz) ? s.manualJuz : []).forEach(n => {
+    const cyc = map[n] != null ? map[n] : (acked.includes(n) ? null : lastCycle);
+    const row = cyc == null ? null : doneRows.find(r => portalCycleNum(r) === cyc);
+    if (!row || !row.endDate) return;
+    const date = toAr(formatHijriGregorian(row.endDate)).replace(/\s*هـ$/, '') + 'هـ';
+    docs.push({ k: 'cert', juz: n, cycle: cyc, date });
+  });
+  return docs.sort((a, b) => a.juz - b.juz);
+}
 function portalBuildAllPages() {
   const doneRows = scheduleRows.filter(r => r.done && !isNaN(portalCycleNum(r))).sort((a, b) => portalCycleNum(a) - portalCycleNum(b));
   const repAtt = {};
@@ -5355,7 +5372,7 @@ function portalBuildAllPages() {
       v: 1, ready: true, name: s.name, display: firstTwoWords(s.name), first: portalFirstName(s.name),
       joinCycle: s.joinCycle || null, joinEmoji: getJoinCycleEmoji(s) || '',
       last: Object.assign({}, last, { emoji: getCycleEmoji(last.cycle) || '', kubra: kt.kubra || '', taahud: kt.taahud || '', note: getTeacherNote(s.id, last.cycle) }),
-      history: cycles.slice(0, -1).reverse(), docs: [],
+      history: cycles.slice(0, -1).reverse(), docs: portalCertDocs(s, doneRows, last.cycle),
     } });
   });
   portalEligibleSet = eligible;

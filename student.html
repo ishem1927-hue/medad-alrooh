@@ -69,7 +69,15 @@
   .c-note { background: #FFF8E1; border-color: #F5EAC0; }
   #docToggle { background: #E6F6F5; border-color: #CBE9E6; color: #3A7F7B; }
   #docCard { background: #E6F6F5; border-color: #CBE9E6; }
-  #docCard .sec-title:not(:first-child) { margin-top: 0.7rem; }
+  .dgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+  .dh { font-size: 0.8rem; font-weight: 700; color: #3A7F7B; margin-bottom: 0.45rem; text-align: center; }
+  .drow { display: block; width: 100%; margin-bottom: 0.4rem; padding: 0.55rem 0.4rem; background: #fff; border: 0.5px solid #CBE9E6; border-radius: 12px; font-family: 'Cairo'; font-size: 0.76rem; line-height: 1.5; color: var(--ink); text-align: center; cursor: pointer; }
+  .dov { position: fixed; inset: 0; background: rgba(73,59,67,0.45); display: flex; align-items: center; justify-content: center; padding: 1.2rem; z-index: 50; }
+  .dbox { position: relative; background: #fff; border-radius: 18px; padding: 1.4rem 1.2rem 1.2rem; width: 100%; max-width: 340px; text-align: center; }
+  .dbox .x { position: absolute; top: 0.5rem; left: 0.7rem; border: none; background: none; font-size: 1.1rem; color: var(--muted); cursor: pointer; }
+  .dbox p { font-size: 0.9rem; line-height: 2; color: var(--ink); margin: 0.2rem 0 1rem; }
+  .dbox .go { width: 100%; padding: 0.7rem; border: none; border-radius: 12px; background: #3A7F7B; color: #fff; font-family: 'Cairo'; font-size: 0.92rem; font-weight: 700; cursor: pointer; }
+  .dbox .go:disabled { opacity: 0.6; }
   #svToggle { background: #FFF0E6; border-color: #F8DCC6; color: #A5663A; }
   #surveyCard { background: #FFF0E6; border-color: #F8DCC6; }
   #surveyCard .qt { color: #8A5530; }
@@ -83,8 +91,6 @@
   .hrow .cn { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border-radius: 50%; background: var(--wine-soft); }
   .hrow.hhead { border-top: none; padding: 0 0 0.3rem; font-size: 0.68rem; }
   .hrow.hhead > div { color: var(--muted); font-weight: 300; }
-  .doc { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.2rem; border-top: 0.5px solid var(--border); text-decoration: none; color: var(--ink); font-size: 0.85rem; }
-  .doc .dl { color: var(--wine); }
   .q { margin-bottom: 0.55rem; }
   .q .qt { font-size: 0.8rem; font-weight: 600; color: var(--ink); margin-bottom: 0.3rem; }
   .opts { display: flex; gap: 0.3rem; }
@@ -225,12 +231,14 @@ function renderPortal(p, surveyDone) {
 
   if (L.note) html += `<div class="card c-note"><div class="sec-title">📝 ملاحظات المعلمة</div><div class="sec-text">${esc(L.note)}</div></div>`;
 
-  const docs = Array.isArray(p.docs) ? p.docs : [];
-  const docCycles = [...new Set(docs.map(d => d.cycle))];
+  docItems = Array.isArray(p.docs) ? p.docs : [];
+  const certs = docItems.filter(d => d.k === 'cert').sort((a, b) => b.juz - a.juz);
+  const col = (title, list, fn) => `<div><div class="dh">${title}</div>` + (list.length ? list.map(fn).join('') : '<div class="empty" style="text-align:center">لا يوجد</div>') + `</div>`;
   html += `<button type="button" class="svtoggle" id="docToggle">📄 المستندات</button>
-    <div class="card hidden" id="docCard">` + (docs.length
-    ? docCycles.map(c => `<div class="sec-title">دورة ${toAr(c)}</div>` + docs.filter(d => d.cycle === c).map(d => `<a class="doc" href="${esc(d.url)}" target="_blank" rel="noopener"><span>${esc(d.title)}</span><span class="dl">⬇️</span></a>`).join('')).join('')
-    : `<div class="empty">لا توجد مستندات حاليًا</div>`) + `</div>`;
+    <div class="card hidden" id="docCard"><div class="dgrid">` +
+    col('🌟 بطاقات التميز', [], () => '') +
+    col('🎓 شهادات الحفظ', certs, d => `<button type="button" class="drow" data-i="${docItems.indexOf(d)}">شهادة ختم الجزء ${juzNameAr(d.juz)}</button>`) +
+    `</div></div>`;
 
   const hist = Array.isArray(p.history) ? p.history : [];
   if (hist.length) {
@@ -269,10 +277,95 @@ function renderPortal(p, surveyDone) {
   }));
   const dt = $('docToggle');
   if (dt) dt.addEventListener('click', () => { $('docCard').classList.toggle('hidden'); });
+  document.querySelectorAll('.drow').forEach(b => b.addEventListener('click', () => openCertModal(docItems[+b.dataset.i], p)));
   const tg = $('svToggle');
   if (tg) tg.addEventListener('click', () => { tg.classList.add('hidden'); $('surveyCard').classList.remove('hidden'); });
   const sb = $('svBtn');
   if (sb) sb.addEventListener('click', submitSurvey);
+}
+
+// ---------- المستندات: شهادة ختم الجزء (تُرسم وتُحفظ PDF داخل جوال الطالبة) ----------
+let docItems = [];
+function juzNameAr(n) {
+  const names = ['الأول','الثاني','الثالث','الرابع','الخامس','السادس','السابع','الثامن','التاسع','العاشر',
+    'الحادي عشر','الثاني عشر','الثالث عشر','الرابع عشر','الخامس عشر','السادس عشر','السابع عشر','الثامن عشر','التاسع عشر','العشرون',
+    'الحادي والعشرون','الثاني والعشرون','الثالث والعشرون','الرابع والعشرون','الخامس والعشرون','السادس والعشرون','السابع والعشرون','الثامن والعشرون','التاسع والعشرون','الثلاثون'];
+  return names[n - 1] || String(n);
+}
+function openCertModal(d, p) {
+  const juz = juzNameAr(d.juz);
+  const msg = esc(`*طـالبتي ${p.first || p.display || p.name} 🤍:*\n\nمبارك لكِ ختم الجزء *${juz}* وبلغكِ اللّٰه ختم القرآن كاملًا 🤲🏻🎉.`)
+    .replace(/\*(.+?)\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+  const ov = document.createElement('div');
+  ov.className = 'dov';
+  ov.innerHTML = `<div class="dbox"><button type="button" class="x">✕</button><p>${msg}</p><button type="button" class="go">⬇️ تحميل الشهادة</button></div>`;
+  document.body.appendChild(ov);
+  const close = () => ov.remove();
+  ov.addEventListener('click', e => { if (e.target === ov) close(); });
+  ov.querySelector('.x').addEventListener('click', close);
+  const go = ov.querySelector('.go');
+  go.addEventListener('click', async () => {
+    go.disabled = true; go.textContent = '...';
+    try {
+      const blob = await buildCertPdf(p.name, juz, d.date);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `شهادة ختم الجزء ${juz} - ${p.display || p.name}.pdf`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+      go.textContent = '⬇️ تحميل الشهادة';
+    } catch (e) { go.textContent = 'تعذّر التحميل، حاولي مرة ثانية'; }
+    go.disabled = false;
+  });
+}
+let certAssets = null;
+function loadCertAssets() {
+  if (!certAssets) certAssets = Promise.all([
+    new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = 'cert/template.png'; }),
+    new FontFace('CertNas', 'url(cert/nastaliq.woff2)', { weight: '700' }).load(),
+    new FontFace('CertRuq', 'url(cert/ruqaa.woff2)', { weight: '700' }).load(),
+  ]).then(([img, f1, f2]) => { document.fonts.add(f1); document.fonts.add(f2); return img; }).catch(e => { certAssets = null; throw e; });
+  return certAssets;
+}
+async function buildCertPdf(name, juz, date) {
+  const img = await loadCertAssets();
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const k = c.width / 1755;
+  const x = c.getContext('2d');
+  x.drawImage(img, 0, 0);
+  x.fillStyle = '#52776D'; x.direction = 'rtl'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  const put = (txt, family, size, cx, cy, maxW) => {
+    let px = size * k;
+    x.font = `700 ${px}px ${family}`;
+    const w = x.measureText(txt).width;
+    if (w > maxW * k) { px = px * maxW * k / w; x.font = `700 ${px}px ${family}`; }
+    x.fillText(txt, cx * k, cy * k);
+  };
+  put(name, 'CertNas', 54, 545, 518, 440);
+  put(juz, 'CertRuq', 60, 915, 676, 330);
+  put(date, 'CertRuq', 46, 362, 1010, 250);
+  const jpg = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.92));
+  const jb = new Uint8Array(await jpg.arrayBuffer());
+  const enc = new TextEncoder();
+  const parts = [], offs = [];
+  let len = 0;
+  const add = b => { if (typeof b === 'string') b = enc.encode(b); parts.push(b); len += b.length; };
+  const obj = (n, body) => { offs[n] = len; add(`${n} 0 obj\n`); add(body); add('\nendobj\n'); };
+  add('%PDF-1.4\n');
+  obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+  obj(2, '<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+  obj(3, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>');
+  offs[4] = len;
+  add(`4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${c.width} /Height ${c.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jb.length} >>\nstream\n`);
+  add(jb); add('\nendstream\nendobj\n');
+  const cs = 'q 842 0 0 595 0 0 cm /Im0 Do Q';
+  obj(5, `<< /Length ${cs.length} >>\nstream\n${cs}\nendstream`);
+  const xr = len;
+  add('xref\n0 6\n0000000000 65535 f \n');
+  for (let i = 1; i <= 5; i++) add(String(offs[i]).padStart(10, '0') + ' 00000 n \n');
+  add(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xr}\n%%EOF`);
+  return new Blob(parts, { type: 'application/pdf' });
 }
 
 function footer() {
