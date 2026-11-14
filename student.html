@@ -353,9 +353,8 @@ let certAssets = null;
 function loadCertAssets() {
   if (!certAssets) certAssets = Promise.all([
     new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = 'cert/template.png'; }),
-    new FontFace('CertNas', 'url(cert/nastaliq.woff2)', { weight: '700' }).load(),
     new FontFace('CertRuq', 'url(cert/ruqaa.woff2)', { weight: '700' }).load(),
-  ]).then(([img, f1, f2]) => { document.fonts.add(f1); document.fonts.add(f2); return img; }).catch(e => { certAssets = null; throw e; });
+  ]).then(([img, f]) => { document.fonts.add(f); return img; }).catch(e => { certAssets = null; throw e; });
   return certAssets;
 }
 async function renderCert(name, juz, date) {
@@ -365,17 +364,18 @@ async function renderCert(name, juz, date) {
   const k = c.width / 1755;
   const x = c.getContext('2d');
   x.drawImage(img, 0, 0);
-  x.fillStyle = '#52776D'; x.direction = 'rtl'; x.textAlign = 'center'; x.textBaseline = 'middle';
-  const put = (txt, family, size, cx, cy, maxW) => {
+  x.fillStyle = '#52776D'; x.direction = 'rtl'; x.textAlign = 'center'; x.textBaseline = 'alphabetic';
+  const put = (txt, size, cx, cy, maxW) => {
     let px = size * k;
-    x.font = `700 ${px}px ${family}`;
+    x.font = `700 ${px}px CertRuq`;
     const w = x.measureText(txt).width;
-    if (w > maxW * k) { px = px * maxW * k / w; x.font = `700 ${px}px ${family}`; }
+    if (w > maxW * k) { px = px * maxW * k / w; x.font = `700 ${px}px CertRuq`; }
     x.fillText(txt, cx * k, cy * k);
   };
-  put(name, 'CertNas', 54, 545, 518, 440);
-  put(juz, 'CertRuq', 60, 915, 676, 330);
-  put(date, 'CertRuq', 46, 362, 1010, 250);
+  put(name, 80, 520, 552, 440);
+  put(juz, 83, 915, 705, 330);
+  put(date, 67, 362, 1038, 320);
+  put('شيماء صالح', 72, 1210, 1036, 200);
   const jpg = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.92));
   const jb = new Uint8Array(await jpg.arrayBuffer());
   const imgUrl = URL.createObjectURL(jpg);
