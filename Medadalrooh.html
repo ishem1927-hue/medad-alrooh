@@ -5212,7 +5212,8 @@ function copyPortalMessage(id) {
   const e = portalCodes.map[id];
   const s = students.find(x => x.id === id);
   if (!e || !s) return;
-  const msg = `السلام عليكم ورحمة الله وبركاته 🤍\n${firstTwoWords(s.name)}، صفحتك في مداد الروح جاهزة، وفيها ملخص دورتك وإنجازاتك.\n\n🔗 الرابط: ${PORTAL_URL}\n👤 اسم المستخدم: ${portalCodeParts(e).user}\n🔑 كلمة المرور: ${portalCodeParts(e).pass}\n\nاحتفظي ببيانات الدخول ولا تشاركيها مع أحد 🌿`;
+  const parts = portalCodeParts(e);
+  const msg = `السلام عليكم ورحمة الله وبركاته 🤍\n\nأهلًا ${portalFirstName(s.name)}، صفحتك في بوابة طالبات مداد الروح جاهزة 🌿\n\nيمكنكِ الاطلاع على إنجازاتكِ وتحميل بطاقة التميز وشهادات ختم الأجزاء 🌟.\n\n🔗 رابط البوابة: ${PORTAL_URL}\n\n👤 اسم المستخدم: ${parts.user}\n\n🔑 كلمة المرور: ${parts.pass}\n\nبيانات الدخول خاصة بكِ فاحتفظي بها 🤍`;
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(msg).then(() => showToast('✅ تم نسخ رسالة ' + firstTwoWords(s.name))).catch(() => { prompt('انسخي الرسالة:', msg); });
   } else {
