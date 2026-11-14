@@ -12265,6 +12265,11 @@ function runWaImportPasteApply() {
 function runWaTaahudPasteApply() {
   const resultsEl = document.getElementById('waImportPasteResults');
   resultsEl.innerHTML = '';
+  // قسم "معتمدة سابقًا" المتبقي من استيراد الملف القديم ما له علاقة بنتيجة اللصق — نمسحه ونحفظ الحالة
+  window._waTaahudAlreadyCommitted = [];
+  const footerEl = document.getElementById('waImportFooterResults');
+  if (footerEl) footerEl.innerHTML = '';
+  waSaveCaches();
   const lines = document.getElementById('waImportPasteText').value.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   if (!lines.length) { showToast('الصقي النص أول'); return; }
 
