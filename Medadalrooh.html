@@ -5111,7 +5111,9 @@ supabaseClient
 const STORE_PORTAL_CODES = 'madad_portal_codes';
 const PORTAL_URL = 'https://ishem1927-hue.github.io/medad-alrooh/student.html';
 const PORTAL_CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // بدون حروف/أرقام تتشابه (0 O 1 I L)
-let portalCodes = { next: 1, map: {} }; // map: { رقم الطالبة: { seq: الرقم التسلسلي الثابت, code: الرمز } }
+let portalCodes = { next: 1, map: {} }; // map: { رقم الطالبة: { seq: الرقم التسلسلي الثابت, ini: حروف الاسم، code: الرمز } }
+// حرف إنجليزي لكل حرف عربي (للتشابه ما يضر، لأن كلمة المرور فريدة لكل طالبة)
+const PORTAL_LATIN = { 'ا':'A','أ':'A','إ':'A','آ':'A','ء':'A','ع':'A','ب':'B','ت':'T','ط':'T','ث':'S','س':'S','ص':'S','ج':'J','ح':'H','ه':'H','ة':'H','خ':'K','ك':'K','د':'D','ض':'D','ذ':'Z','ز':'Z','ظ':'Z','ر':'R','ش':'X','غ':'G','ف':'F','ق':'Q','ل':'L','م':'M','ن':'N','و':'W','ؤ':'W','ي':'Y','ى':'Y','ئ':'Y' };
 let portalPublishTimer = null;
 let portalLastPushed = '';
 let portalEnsureBusy = false;
@@ -5138,6 +5140,20 @@ function portalRandomChars(n) {
   }
   return out;
 }
+// أول حرف من كل اسم (٣ أسماء كحد أقصى) بعد حذف "ال"، و"عبد الله" وأخواتها تعتبر اسم واحد
+function portalInitials(name) {
+  const words = String(name || '').replace(/[\u064B-\u065F\u0640]/g, '').trim().split(/\s+/).filter(Boolean);
+  const names = [];
+  for (let i = 0; i < words.length; i++) {
+    let w = words[i];
+    if (w === 'عبد' && i + 1 < words.length) { i++; w += words[i]; }
+    names.push(w);
+  }
+  return names.slice(0, 3).map(w => {
+    if (w.length > 3 && w.startsWith('ال')) w = w.slice(2);
+    return PORTAL_LATIN[w[0]] || '';
+  }).join('') || 'X';
+}
 // شهر وسنة الانضمام (مثل 0127) من تاريخ بداية دورة انضمام الطالبة في المواعيد
 function portalJoinStamp(s) {
   const row = s.joinCycle ? scheduleRows.find(r => portalCycleNum(r) === s.joinCycle) : null;
@@ -5150,7 +5166,7 @@ function portalJoinStamp(s) {
 // يولّد رمز لكل طالبة ما عندها رمز (الرمز ثابت بعدها). قبل التوليد يتأكد من السحابة عشان ما يكتب فوق رموز موزّعة.
 async function ensurePortalCodes() {
   if (TEACHER_HALQA || portalEnsureBusy || !students.length) return false;
-  if (!students.some(s => !portalCodes.map[s.id])) return false;
+  if (!students.some(s => !portalCodes.map[s.id] || !portalCodes.map[s.id].ini)) return false;
   portalEnsureBusy = true;
   try {
     const { data, error } = await supabaseClient.from('madad_sync').select('value').eq('key', STORE_PORTAL_CODES).maybeSingle();
@@ -5162,12 +5178,23 @@ async function ensurePortalCodes() {
     const used = new Set(Object.values(portalCodes.map).map(v => v.code));
     let changed = false;
     students.forEach(s => {
-      if (portalCodes.map[s.id]) return;
+      const old = portalCodes.map[s.id];
+      if (old) {
+        // رمز قديم بدون حروف الاسم: نضيف الحروف بعد الشهر والسنة مرة وحدة
+        if (!old.ini) {
+          old.ini = portalInitials(s.name);
+          old.code = old.code.slice(0, 6) + old.ini + old.code.slice(6);
+          used.add(old.code);
+          changed = true;
+        }
+        return;
+      }
       const seq = portalCodes.next++;
+      const ini = portalInitials(s.name);
       let code;
-      do { code = 'MS' + portalJoinStamp(s) + String(seq).padStart(3, '0') + portalRandomChars(4); } while (used.has(code));
+      do { code = 'MS' + portalJoinStamp(s) + ini + String(seq).padStart(3, '0') + portalRandomChars(4); } while (used.has(code));
       used.add(code);
-      portalCodes.map[s.id] = { seq, code };
+      portalCodes.map[s.id] = { seq, ini, code };
       changed = true;
     });
     if (changed) savePortalCodes();
@@ -5175,14 +5202,17 @@ async function ensurePortalCodes() {
   } catch(e) { return false; }
   finally { portalEnsureBusy = false; }
 }
-function portalCodeShown(code) {
-  return code ? code.slice(0, 6) + '-' + code.slice(6, -4) + '-' + code.slice(-4) : '';
+// اسم المستخدم (MS0127-GAJ) وكلمة المرور (045-K7Q4) من الرمز المخزن
+function portalCodeParts(e) {
+  const seqStr = String(e.seq).padStart(3, '0');
+  const head = e.code.slice(0, e.code.length - 4 - seqStr.length);
+  return { user: head.slice(0, 6) + '-' + head.slice(6), pass: seqStr + '-' + e.code.slice(-4) };
 }
 function copyPortalMessage(id) {
   const e = portalCodes.map[id];
   const s = students.find(x => x.id === id);
   if (!e || !s) return;
-  const msg = `السلام عليكم ورحمة الله وبركاته 🤍\n${firstTwoWords(s.name)}، صفحتك في مداد الروح جاهزة، وفيها ملخص دورتك وإنجازاتك.\n\n🔗 الرابط: ${PORTAL_URL}\n🔑 رقمك التعريفي: ${portalCodeShown(e.code)}\n\nاحتفظي بالرقم ولا تشاركيه مع أحد 🌿`;
+  const msg = `السلام عليكم ورحمة الله وبركاته 🤍\n${firstTwoWords(s.name)}، صفحتك في مداد الروح جاهزة، وفيها ملخص دورتك وإنجازاتك.\n\n🔗 الرابط: ${PORTAL_URL}\n👤 اسم المستخدم: ${portalCodeParts(e).user}\n🔑 كلمة المرور: ${portalCodeParts(e).pass}\n\nاحتفظي ببيانات الدخول ولا تشاركيها مع أحد 🌿`;
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(msg).then(() => showToast('✅ تم نسخ رسالة ' + firstTwoWords(s.name))).catch(() => { prompt('انسخي الرسالة:', msg); });
   } else {
