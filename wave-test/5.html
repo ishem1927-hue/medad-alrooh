@@ -1,0 +1,14 @@
+<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>تجربة 5</title><style>
+html,body{margin:0}html{background:#F8F9F6}body{min-height:100vh;position:relative;overflow-x:hidden;background:transparent}
+.bg{position:absolute;left:0;right:0;top:-300px;bottom:-300px;z-index:0;pointer-events:none}
+.bg::before,.bg::after{content:'';position:absolute;left:0;right:0;height:500px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -300 400 500' preserveAspectRatio='none'%3E%3Cpath d='M0 -300H330V0C290 20 250 50 205 85C150 128 90 150 0 160Z' fill='%23DCE9E8' fill-opacity='.9'/%3E%3Cpath d='M0 -300H250V0C215 20 175 45 135 75C95 105 50 122 0 128Z' fill='%23B9CBCD' fill-opacity='.55'/%3E%3Cpath d='M0 176C95 164 160 140 215 98C262 62 306 30 345 0' fill='none' stroke='%23B9CBCD' stroke-width='1.4'/%3E%3C/svg%3E") no-repeat;background-size:100% 100%}
+.bg::before{top:0}.bg::after{bottom:0;transform:rotate(180deg)}
+.c{position:relative;z-index:1;text-align:center;font-family:sans-serif;color:#52776D;padding:5.5rem 1rem 8rem}
+.n{font-size:3rem;font-weight:700}.card{background:#fff;border:1px solid #B9CBCD;border-radius:18px;padding:1rem;margin:1rem auto;max-width:360px}
+a{color:#52776D}</style></head><body><div class="bg"></div><div class="c"><div class="n">5</div><div>طبقة تتحرك مع الصفحة + امتداد</div>
+<div class="card" id="info">…</div><a href="./">رجوع للقائمة</a></div>
+<div id="probe" style="position:fixed;visibility:hidden;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)"></div>
+<script>
+var p=getComputedStyle(document.getElementById('probe'));
+document.getElementById('info').innerHTML='ارتفاع النافذة: '+innerHeight+'<br>ارتفاع الشاشة: '+screen.height+'<br>مسافة الأمان فوق/تحت: '+p.paddingTop+' / '+p.paddingBottom;
+</script></body></html>
