@@ -64,9 +64,8 @@
   .tile { background: var(--tile); border: 0.5px solid var(--tile-bd); border-radius: 16px; padding: 0.7rem 0.8rem; }
     .tl { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.2rem; }
   .tv { font-size: 1.15rem; font-weight: 600; color: var(--deep); }
-  .c-plan { background: #FBF3F6; border-color: #EAD8E1; }
   .c-note { background: var(--note); border-color: var(--note-bd); }
-  #docToggle { background: var(--deep); border-color: var(--deep); color: #fff; }
+  #docToggle, #histToggle { background: var(--deep); border-color: var(--deep); color: #fff; }
   #docCard { background: var(--docs); border-color: var(--docs-bd); }
   .dgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
   .dh { font-size: 0.8rem; font-weight: 700; color: var(--deep); margin-bottom: 0.45rem; text-align: center; }
@@ -87,7 +86,6 @@
   #surveyCard .qt { color: var(--deep); }
   .svtoggle { display: block; width: 100%; margin-bottom: 0.7rem; padding: 0.7rem; border-radius: 12px; border: 0.5px solid #EAD8E1; background: var(--surface); color: var(--wine); font-family: 'Cairo'; font-size: 0.88rem; font-weight: 600; cursor: pointer; }
   .closing { text-align: center; background: var(--wine); color: #fff; border-color: var(--wine); font-weight: 400; line-height: 1.9; font-size: 0.88rem; }
-  .sec-title.big { font-size: 0.95rem; margin-bottom: 0.5rem; }
   .hrow { display: flex; align-items: center; gap: 0.7rem; padding: 0.5rem 0; border-top: 0.5px solid var(--border); font-size: 0.8rem; }
   .hrow .hc { flex: none; width: 2.8rem; text-align: center; color: var(--wine); font-weight: 600; }
   .hrow .hh { flex: 1; min-width: 0; color: var(--ink); line-height: 1.6; word-break: break-word; }
@@ -238,11 +236,6 @@ function renderPortal(p, surveyDone) {
     <div class="tile att"><div class="tl">نسبة الحضور</div><div class="tv">${attTxt}${star}</div></div>
   </div>`;
 
-  let plan = `<div class="sec-title">📖 مقرر الحفظ</div><div class="sec-text">${L.hifz ? esc(L.hifz) : '<span class="empty">—</span>'}</div>`;
-  if (L.kubra) plan += `<div class="row-sep"></div><div class="sec-title">⭐️ المراجعة الكبرى</div><div class="sec-text">${esc(L.kubra)}</div>`;
-  if (L.taahud) plan += `<div class="row-sep"></div><div class="sec-title">♾️ التعاهد</div><div class="sec-text">${esc(L.taahud)}</div>`;
-  html += `<div class="card c-plan">${plan}</div>`;
-
   if (L.note) html += `<div class="card c-note"><div class="sec-title">📝 ملاحظات المعلمة</div><div class="sec-text">${esc(L.note)}</div></div>`;
 
   docItems = Array.isArray(p.docs) ? p.docs : [];
@@ -257,8 +250,8 @@ function renderPortal(p, surveyDone) {
 
   const hist = Array.isArray(p.history) ? p.history : [];
   if (hist.length) {
-    html += `<div class="card"><div class="sec-title big">🗂️ الدورات السابقة</div>
-      <div class="hrow hhead"><div class="hc">الدورة</div><div class="hh">المقرر</div><div class="ha">نسبة الحضور</div></div>` +
+    html += `<button type="button" class="svtoggle" id="histToggle">🗂️ الدورات السابقة</button>
+      <div class="card hidden" id="histCard"><div class="hrow hhead"><div class="hc">الدورة</div><div class="hh">المقرر</div><div class="ha">نسبة الحضور</div></div>` +
       hist.map(h => `<div class="hrow"><div class="hc"><span class="cn">${toAr(h.cycle)}</span></div><div class="hh">${h.hifz ? esc(h.hifz) : '—'}</div><div class="ha">${h.att != null ? toAr(h.att) + '٪' : '—'}</div></div>`).join('') +
       `</div>`;
   }
@@ -290,6 +283,8 @@ function renderPortal(p, surveyDone) {
     if (off) delete answers[b.dataset.q]; else answers[b.dataset.q] = b.dataset.v;
     document.querySelectorAll('.opt[data-q="' + b.dataset.q + '"]').forEach(x => x.classList.toggle('on', !off && x === b));
   }));
+  const ht = $('histToggle');
+  if (ht) ht.addEventListener('click', () => { $('histCard').classList.toggle('hidden'); });
   const dt = $('docToggle');
   if (dt) dt.addEventListener('click', () => { $('docCard').classList.toggle('hidden'); });
   document.querySelectorAll('.drow').forEach(b => b.addEventListener('click', () => openDocModal(docItems[+b.dataset.i], p)));
