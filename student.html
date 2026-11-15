@@ -75,6 +75,7 @@
   .icons { display: flex; justify-content: center; gap: 1.1rem; margin-bottom: 0.9rem; }
   .icbtn { display: flex; align-items: center; justify-content: center; width: 3.4rem; height: 3.4rem; border-radius: 50%; border: 0.5px solid var(--tile-bd); background: var(--tile); font-size: 1.5rem; text-decoration: none; cursor: pointer; font-family: 'Cairo'; }
   .icbtn.shop { background: var(--surface); border-color: var(--rose); }
+  .icbtn.done { width: auto; padding: 0 1.3rem; border-radius: 999px; font-size: 0.92rem; font-weight: 600; color: var(--deep); cursor: default; }
   .phr { text-align: center; color: var(--wine); font-weight: 600; font-size: 0.95rem; margin-bottom: 0.4rem; }
   #docCard { background: var(--docs); border-color: var(--docs-bd); }
   .dgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
@@ -98,7 +99,7 @@
   .dview { flex-direction: column; background: rgba(73,59,67,0.85); z-index: 60; }
   .dview img { max-width: 100%; max-height: 78vh; border-radius: 10px; background: #fff; }
   .dview .x { position: absolute; top: 0.8rem; left: 1rem; border: none; background: none; font-size: 1.4rem; color: #fff; cursor: pointer; }
-  #surveyCard, .c-thanks { background: var(--tile); border-color: var(--tile-bd); }
+  #surveyCard { background: var(--tile); border-color: var(--tile-bd); }
   #surveyCard .qt { color: var(--deep); }
   .hrow { display: flex; align-items: center; gap: 0.7rem; padding: 0.5rem 0; border-top: 0.5px solid var(--border); font-size: 0.8rem; }
   .hrow .hc { flex: none; width: 2.8rem; text-align: center; color: var(--wine); font-weight: 600; }
@@ -276,8 +277,8 @@ function renderPortal(p, surveyDone) {
   const notes = Array.isArray(p.notes) ? p.notes : [];
   if (notes.length) html += `<div class="card c-note"><div class="sec-title">📝 ملاحظات المعلمة</div>` + notes.map(n => `<div class="sec-text">${esc(n)}</div>`).join('<div class="row-sep"></div>') + `</div>`;
 
-  html += `<div class="grow"></div>` + (surveyDone ? `<div class="card c-thanks"><div class="thanks">وصل رأيك، جزاك الله خيرًا 🤍</div></div>` : '') +
-    `<div class="icons">` + (surveyDone ? '' : `<button type="button" class="icbtn" id="svToggle" aria-label="شاركينا رأيك">💬</button>`) +
+  html += `<div class="grow"></div>` +
+    `<div class="icons">` + (surveyDone ? `<span class="icbtn done">وصل رأيك ☑️</span>` : `<button type="button" class="icbtn" id="svToggle" aria-label="شاركينا رأيك">💬</button>`) +
     `<a class="icbtn shop" href="${STORE_URL}" target="_blank" rel="noopener" aria-label="متجر مداد الروح">🛒</a></div>`;
   if (!surveyDone) html += `
       <div class="card hidden" id="surveyCard">
