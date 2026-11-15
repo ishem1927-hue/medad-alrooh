@@ -61,8 +61,21 @@
   .hdr { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 0.7rem; }
   .av { flex: none; width: 52px; height: 52px; border-radius: 50%; background: #EAD8E1; color: var(--wine); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 600; }
     .c-note { background: var(--note); border-color: var(--note-bd); }
+  #portal { display: flex; flex-direction: column; min-height: calc(100vh - 3.7rem); }
+  .rect { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0.1rem; width: 100%; height: 5.8rem; margin-bottom: 0.7rem; padding: 0.6rem; border-radius: 18px; border: 0.5px solid var(--tile-bd); background: var(--tile); color: var(--deep); font-family: 'Cairo'; cursor: pointer; }
+  .rect .ri { font-size: 1.6rem; line-height: 1.2; }
+  .rect .rt { font-size: 0.95rem; font-weight: 600; }
+  .rect .rs { font-size: 0.72rem; color: var(--muted); }
   #docToggle { background: var(--deep); border-color: var(--deep); color: #fff; }
-  #histToggle, #evToggle { background: var(--tile); border-color: var(--tile-bd); color: var(--deep); }
+  #docToggle .rs { color: #E8D5DF; }
+  .rect.open { height: 4.4rem; margin-bottom: 0; border-radius: 18px 18px 0 0; background: var(--wine); border-color: var(--wine); color: #fff; }
+  .rect.open .rs { display: none; }
+  .rect.open + .card { border-top: none; border-radius: 0 0 18px 18px; margin-bottom: 0.7rem; }
+  .grow { flex: 1; min-height: 1.2rem; }
+  .icons { display: flex; justify-content: center; gap: 1.1rem; margin-bottom: 0.9rem; }
+  .icbtn { display: flex; align-items: center; justify-content: center; width: 3.4rem; height: 3.4rem; border-radius: 50%; border: 0.5px solid var(--tile-bd); background: var(--tile); font-size: 1.5rem; text-decoration: none; cursor: pointer; font-family: 'Cairo'; }
+  .icbtn.shop { background: var(--surface); border-color: var(--rose); }
+  .phr { text-align: center; color: var(--wine); font-weight: 600; font-size: 0.95rem; margin-bottom: 0.4rem; }
   #docCard { background: var(--docs); border-color: var(--docs-bd); }
   .dgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
   .dh { font-size: 0.8rem; font-weight: 700; color: var(--deep); margin-bottom: 0.45rem; text-align: center; }
@@ -85,11 +98,8 @@
   .dview { flex-direction: column; background: rgba(73,59,67,0.85); z-index: 60; }
   .dview img { max-width: 100%; max-height: 78vh; border-radius: 10px; background: #fff; }
   .dview .x { position: absolute; top: 0.8rem; left: 1rem; border: none; background: none; font-size: 1.4rem; color: #fff; cursor: pointer; }
-  #svToggle { background: var(--tile); border-color: var(--tile-bd); color: var(--deep); }
   #surveyCard, .c-thanks { background: var(--tile); border-color: var(--tile-bd); }
   #surveyCard .qt { color: var(--deep); }
-  .svtoggle { display: block; width: 100%; margin-bottom: 0.7rem; padding: 0.7rem; border-radius: 12px; border: 0.5px solid #EAD8E1; background: var(--surface); color: var(--wine); font-family: 'Cairo'; font-size: 0.88rem; font-weight: 600; cursor: pointer; }
-  .closing { text-align: center; background: var(--wine); color: #fff; border-color: var(--wine); font-weight: 400; line-height: 1.9; font-size: 0.88rem; }
   .hrow { display: flex; align-items: center; gap: 0.7rem; padding: 0.5rem 0; border-top: 0.5px solid var(--border); font-size: 0.8rem; }
   .hrow .hc { flex: none; width: 2.8rem; text-align: center; color: var(--wine); font-weight: 600; }
   .hrow .hh { flex: 1; min-width: 0; color: var(--ink); line-height: 1.6; word-break: break-word; }
@@ -103,7 +113,6 @@
   .opt { flex: 1; text-align: center; padding: 0.32rem 0.1rem; border: 0.5px solid #EAD8E1; border-radius: 9px; background: #fff; font-family: 'Cairo'; font-size: 0.72rem; font-weight: 400; color: var(--wine); cursor: pointer; white-space: nowrap; }
   .opt.on { background: var(--rose); color: #fff; border-color: var(--rose); }
   textarea { width: 100%; min-height: 54px; padding: 0.5rem; border: 0.5px solid #EAD8E1; border-radius: 10px; font-family: 'Cairo'; font-size: 0.8rem; background: #FCFAFB; resize: vertical; color: var(--ink); }
-  .store { display: block; text-align: center; text-decoration: none; padding: 0.7rem; border-radius: 12px; border: 0.5px solid var(--rose); color: var(--wine); font-weight: 600; font-size: 0.88rem; background: var(--surface); }
   .row-sep { border-top: 1px dashed var(--border); margin: 0.7rem 0; }
   .empty { font-size: 0.82rem; color: var(--muted); }
   textarea:focus { outline: none; border-color: var(--wine); }
@@ -225,6 +234,10 @@ function logout() {
 }
 
 const EV_NAMES = ['الحلقة الثانية', 'الحلقة الثالثة', 'الحلقة الرابعة', 'الحلقة الختامية'];
+function rect(id, icon, title, sub) {
+  return `<button type="button" class="rect" id="${id}"><span class="ri">${icon}</span><span class="rt">${title}</span>${sub ? `<span class="rs">${sub}</span>` : ''}</button>`;
+}
+function cycWord(n) { return n === 1 ? 'دورة واحدة' : n === 2 ? 'دورتان' : toAr(n) + (n <= 10 ? ' دورات' : ' دورة'); }
 function evRows(e) {
   return `<div class="ev"><span>الحلقة الأولى</span><span class="no">لا يوجد تقييم</span></div>` +
     EV_NAMES.map((n, i) => `<div class="ev"><span>${n}</span>${e.r[i] === 'x' ? '<span class="st">⚪</span>' : e.r[i] ? `<span class="st">${'🌟'.repeat(+e.r[i])}</span>` : '<span class="no">—</span>'}</div>`).join('');
@@ -234,12 +247,13 @@ function renderPortal(p, surveyDone) {
   const top = `<div class="topbar"><div class="t">🎙️ مداد التلقين</div><button class="logout" onclick="confirmLogout()">خروج</button></div>`;
   let html = top;
 
-  const initial = String(p.display || p.name || '').trim().charAt(0);
-  html += `<div class="hdr"><div class="av">${esc(initial)}</div><div><div class="name">أهلًا ${esc(p.display || p.name)}</div>${p.joinCycle ? `<div class="meta">${esc(p.joinEmoji || '')} دورة الانضمام: دورة ${toAr(p.joinCycle)}</div>` : ''}</div></div>`;
+  const initial = String(p.name || p.display || '').trim().charAt(0);
+  html += `<div class="hdr"><div class="av">${esc(initial)}</div><div><div class="name">أهلًا ${esc(p.name || p.display)}</div>${p.joinCycle ? `<div class="meta">دورة الانضمام: مداد التلقين (${toAr(p.joinCycle)}) ${esc(p.joinEmoji || '')}</div>` : ''}</div></div>
+    <div style="height:1.1rem"></div>`;
 
   const hist = Array.isArray(p.cycles) ? p.cycles : [];
   if (hist.length) {
-    html += `<button type="button" class="svtoggle" id="histToggle">🗂️ الدورات المنتهية</button>
+    html += rect('histToggle', '🗂️', 'الدورات المنتهية', cycWord(hist.length)) + `
       <div class="card hidden" id="histCard"><div class="hrow hhead"><div class="hc">الدورة</div><div class="hh">المقرر</div><div class="ha">نسبة الحضور</div></div>` +
       hist.map(h => `<div class="hrow"><div class="hc"><span class="cn">${toAr(h.cycle)}</span></div><div class="hh">${h.hifz ? esc(h.hifz) : '—'}</div><div class="ha">${h.att != null ? toAr(h.att) + '٪' : '—'}</div></div>`).join('') +
       `</div>`;
@@ -249,24 +263,23 @@ function renderPortal(p, surveyDone) {
   const certs = docItems.filter(d => d.k === 'cert').sort((a, b) => b.juz - a.juz);
   const cards = docItems.filter(d => d.k === 'card' && CARD_TEMPLATES[d.cycle]).sort((a, b) => b.cycle - a.cycle);
   const col = (title, list, fn) => `<div><div class="dh">${title}</div>` + (list.length ? list.map(fn).join('') : '<div class="empty" style="text-align:center">لا يوجد</div>') + `</div>`;
-  html += `<button type="button" class="svtoggle" id="docToggle">📄 المستندات</button>
+  html += rect('docToggle', '📄', 'المستندات', [cards.length ? 'بطاقة تميز' : '', certs.length ? 'شهادة' : ''].filter(Boolean).join(' و')) + `
     <div class="card hidden" id="docCard"><div class="dgrid">` +
     col('🌟 بطاقات التميز', cards, d => `<button type="button" class="drow" data-i="${docItems.indexOf(d)}">بطاقة تميز دورة ${toAr(d.cycle)}</button>`) +
     col('🎓 شهادات الحفظ', certs, d => `<button type="button" class="drow" data-i="${docItems.indexOf(d)}">شهادة ختم الجزء ${juzNameAr(d.juz)}</button>`) +
     `</div></div>`;
 
   const evs = Array.isArray(p.ratings) ? p.ratings : [];
-  if (evs.length) html += `<button type="button" class="svtoggle" id="evToggle">⭐ تقييم الحلقات المباشرة</button>
+  if (evs.length) html += rect('evToggle', '⭐', 'تقييم الحلقات المباشرة', 'دورة ' + toAr(evs[0].cycle)) + `
     <div class="card hidden" id="evCard"><div class="chips">${evs.map((e, i) => `<button type="button" class="chip${i ? '' : ' on'}" data-i="${i}">دورة ${toAr(e.cycle)}</button>`).join('')}</div><div id="evRows">${evRows(evs[0])}</div></div>`;
 
   const notes = Array.isArray(p.notes) ? p.notes : [];
   if (notes.length) html += `<div class="card c-note"><div class="sec-title">📝 ملاحظات المعلمة</div>` + notes.map(n => `<div class="sec-text">${esc(n)}</div>`).join('<div class="row-sep"></div>') + `</div>`;
 
-  html += `<div class="card closing">سعدنا بوجودك معنا يا ${esc(p.first || p.display || p.name)} في هذه الدورة،<br>ونلقاك في الدورة القادمة بإذن الله 🤍</div>`;
-
-  html += surveyDone
-    ? `<div class="card c-thanks"><div class="thanks">وصل رأيك، جزاك الله خيرًا 🤍</div></div>`
-    : `<button type="button" class="svtoggle" id="svToggle">💬 شاركينا رأيك</button>
+  html += `<div class="grow"></div>` + (surveyDone ? `<div class="card c-thanks"><div class="thanks">وصل رأيك، جزاك الله خيرًا 🤍</div></div>` : '') +
+    `<div class="icons">` + (surveyDone ? '' : `<button type="button" class="icbtn" id="svToggle" aria-label="شاركينا رأيك">💬</button>`) +
+    `<a class="icbtn shop" href="${STORE_URL}" target="_blank" rel="noopener" aria-label="متجر مداد الروح">🛒</a></div>`;
+  if (!surveyDone) html += `
       <div class="card hidden" id="surveyCard">
         ${SURVEY.map(q => `<div class="q"><div class="qt">${q.title}</div><div class="opts">${q.opts.map(o => `<button type="button" class="opt" data-q="${q.id}" data-v="${o[0]}">${o[1]}</button>`).join('')}</div></div>`).join('')}
         <div class="q"><div class="qt">رأيك عن الدورة</div><textarea id="svComment" maxlength="1000"></textarea></div>
@@ -278,8 +291,7 @@ function renderPortal(p, surveyDone) {
         <button class="btn" id="svBtn" type="button">إرسال</button>
         <div class="msg" id="svMsg"></div>
       </div>`;
-
-  html += `<a class="store" href="${STORE_URL}" target="_blank" rel="noopener">🛒 متجر مداد الروح</a>` + footer();
+  html += `<div class="phr">سعدت بوجودك معنا يا ${esc(p.first || p.display || p.name)} 🤍✨</div>` + footer();
   $('portal').innerHTML = html;
 
   document.querySelectorAll('.opt').forEach(b => b.addEventListener('click', () => {
@@ -290,7 +302,7 @@ function renderPortal(p, surveyDone) {
   const ht = $('histToggle');
   const dt = $('docToggle');
   // فتح قسم يقفل الباقي
-  const fold = open => ['histCard', 'docCard', 'evCard'].forEach(id => { const el = $(id); if (el) el.classList.toggle('hidden', id !== open || !el.classList.contains('hidden')); });
+  const fold = open => [['histCard', 'histToggle'], ['docCard', 'docToggle'], ['evCard', 'evToggle']].forEach(([id, bt]) => { const el = $(id); if (!el) return; el.classList.toggle('hidden', id !== open || !el.classList.contains('hidden')); $(bt).classList.toggle('open', !el.classList.contains('hidden')); });
   if (ht) ht.addEventListener('click', () => fold('histCard'));
   if (dt) dt.addEventListener('click', () => fold('docCard'));
   const et = $('evToggle');
@@ -301,7 +313,7 @@ function renderPortal(p, surveyDone) {
   }));
   document.querySelectorAll('.drow').forEach(b => b.addEventListener('click', () => openDocModal(docItems[+b.dataset.i], p)));
   const tg = $('svToggle');
-  if (tg) tg.addEventListener('click', () => { tg.classList.add('hidden'); $('surveyCard').classList.remove('hidden'); });
+  if (tg) tg.addEventListener('click', () => { tg.classList.add('hidden'); const sc = $('surveyCard'); sc.classList.remove('hidden'); sc.scrollIntoView({ behavior: 'smooth', block: 'center' }); });
   const sb = $('svBtn');
   if (sb) sb.addEventListener('click', submitSurvey);
 }
