@@ -3186,6 +3186,12 @@ function renderStudents() {
             <button type="button" onclick="setStudentPath(${s.id}, false)" style="font-size:0.78rem;padding:0.3rem 0.8rem;border-radius:16px;border:1.5px solid;cursor:pointer;font-family:inherit;${!isFlexPath(s)?'background:var(--wine);color:#fff;border-color:var(--wine);':'background:transparent;color:var(--ink);border-color:var(--border);'}">أساسي</button>
             <button type="button" onclick="setStudentPath(${s.id}, true)" style="font-size:0.78rem;padding:0.3rem 0.8rem;border-radius:16px;border:1.5px solid;cursor:pointer;font-family:inherit;${isFlexPath(s)?'background:var(--wine);color:#fff;border-color:var(--wine);':'background:transparent;color:var(--ink);border-color:var(--border);'}">مرن</button>
           </div>
+          ${getTaahud(s.id).hasTaahud && !isFlexPath(s) ? `
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.5rem;">
+            <span style="font-size:0.75rem;color:var(--ink);">التعاهد:</span>
+            <button type="button" onclick="setStudentTaahudExcused(${s.id}, false)" style="font-size:0.78rem;padding:0.3rem 0.8rem;border-radius:16px;border:1.5px solid;cursor:pointer;font-family:inherit;${!isTaahudExcused(s)?'background:var(--wine);color:#fff;border-color:var(--wine);':'background:transparent;color:var(--ink);border-color:var(--border);'}">✓</button>
+            <button type="button" onclick="setStudentTaahudExcused(${s.id}, true)" style="font-size:0.78rem;padding:0.3rem 0.8rem;border-radius:16px;border:1.5px solid;cursor:pointer;font-family:inherit;${isTaahudExcused(s)?'background:var(--wine);color:#fff;border-color:var(--wine);':'background:transparent;color:var(--ink);border-color:var(--border);'}">✗</button>
+          </div>` : ''}
         ` : ''}
 
         ${filt === 'notes' ? `
@@ -4398,7 +4404,7 @@ function studentHasKubraByName(name) {
 function studentHasTaahudByName(name) {
   const st = maqAllStudents.find(x => x.name === name);
   if (!st) return false;
-  return getTaahud(st.id).hasTaahud;
+  return getTaahud(st.id).hasTaahud && !isTaahudExcused(st);
 }
 function setAttendThuTaahud(s, v) {
   const key = s + '_taahud';
@@ -4415,7 +4421,7 @@ function generateAttendReport() {
   const weekName = WEEK_NAMES[w];
   const summary = {};
   const isFinalWeek = (w === WEEK_NAMES.length - 1);
-  ATTEND_STUDENTS.forEach(s => { summary[s] = { sat: null, sw: [], thu: null, taahud: null, sat2: null }; });
+  ATTEND_STUDENTS.forEach(s => { summary[s] = { sat: null, sw: [], thu: null, taahud: null, taahudExcused: isTaahudExcused(maqAllStudents.find(x => x.name === s)), sat2: null }; });
   ATTEND_STUDENTS.forEach(s => {
     const stu = maqAllStudents.find(x => x.name === s);
     const h = stu && getStudentHalqaId(stu.id);
@@ -4477,6 +4483,7 @@ function generateAttendReport() {
     })) return false;
     if (d.thu !== 'done') return false;
     if (d.taahud !== null && d.taahud !== 'done') return false;
+    if (d.taahudExcused) return false; // مستأذنة من التعاهد: ما تتميّز
     if (isFinalWeek && d.sat2 !== 'attend') return false;
     return true;
   }
@@ -4505,8 +4512,10 @@ function generateAttendReport() {
   if (isFinalWeek) report3 += `${EMOJIS.sat2_attend} : ${EMOJIS.sat2_attend_lbl || 'حضور الحلقة الختامية'}\n`;
   report3 += `${EMOJIS.sw_challenge} : ${EMOJIS.sw_challenge_lbl || 'إنجاز مع التحدي'}\n`;
   report3 += `${EMOJIS.sw_miss} : ${EMOJIS.sw_miss_lbl || 'نقص في الإنجاز'}\n`;
-  report3 += `${EMOJIS.taahud_done} : ${EMOJIS.taahud_done_lbl || 'إنجاز مراجعة التعاهد'}\n`;
-  report3 += `${EMOJIS.taahud_miss} : ${EMOJIS.taahud_miss_lbl || 'عدم إنجاز مراجعة التعاهد'}\n`;
+  if (isFinalWeek) {
+    report3 += `${EMOJIS.taahud_done} : ${EMOJIS.taahud_done_lbl || 'إنجاز مراجعة التعاهد'}\n`;
+    report3 += `${EMOJIS.taahud_miss} : ${EMOJIS.taahud_miss_lbl || 'عدم إنجاز مراجعة التعاهد'}\n`;
+  }
   report3 += `${EMOJIS.excused} : ${EMOJIS.excused_lbl || 'غياب بعذر'}\n`;
   report3 += `${EMOJIS.absent} : ${EMOJIS.absent_lbl || 'غياب بدون عذر'}\n`;
   report3 += `${EMOJIS.absent_comp} : ${EMOJIS.absent_comp_lbl || 'غياب معوّض'}\n`;
@@ -4659,6 +4668,19 @@ function setStudentPath(id, flex) {
   if (typeof renderCurriculumTab === 'function') { try { renderCurriculumTab(); } catch(e) {} }
   if (typeof renderDailyReportPanel === 'function') { try { renderDailyReportPanel(); } catch(e) {} }
   showToast(flex ? 'تم تفعيل المسار المرن ✅' : 'رجعت للمسار الأساسي ✅');
+}
+
+function setStudentTaahudExcused(id, excused) {
+  const s = students.find(x => x.id === id);
+  if (!s || isTaahudExcused(s) === excused) return;
+  if (excused) s.taahudExcused = true;
+  else delete s.taahudExcused;
+  saveStudents();
+  renderStudents();
+  if (typeof loadMaqStudents === 'function') loadMaqStudents();
+  loadAttendStudentsList();
+  if (typeof renderCurriculumTab === 'function') { try { renderCurriculumTab(); } catch(e) {} }
+  showToast(excused ? 'تم تسجيلها مستأذنة من التعاهد ✅' : 'رجع التعاهد عادي ✅');
 }
 
 function setNextCycle(id, val) {
@@ -4814,6 +4836,7 @@ function startNewCycle() {
         s.nextCycle = null;  // تصفير
         s.group = '';         // تصفير المجموعة
         delete s.flexPath;    // تصفير المسار (يرجع أساسي)
+        delete s.taahudExcused; // تصفير الاستئذان من التعاهد
       });
       halqaDist = {};
       saveHalqaDist();
@@ -5604,6 +5627,8 @@ async function loadMaqData() {
 
 // المسار المرن: الطالبة تظهر بالحلقة المباشرة فقط (ما تدخل المتابعة اليومية ولا التقارير ولا نواقصها)
 function isFlexPath(s) { return !!s && s.flexPath === true; }
+// مستأذنة من مراجعة التعاهد طوال الدورة: ما تتميّز، وتطلع من قوائم التعاهد ومن التقرير
+function isTaahudExcused(s) { return !!s && s.taahudExcused === true; }
 
 function loadMaqStudents() {
   loadHalqaDist();
@@ -6458,7 +6483,7 @@ function renderMaqStudents() {
     card.className = 'maq-student-card';
     card.id = `maqcard_${s.id}`;
 
-    const evalHTML  = buildDayEvalHTML(s.name, th.hasTaahud);
+    const evalHTML  = buildDayEvalHTML(s.name, th.hasTaahud && !isTaahudExcused(s));
     const isOpen    = openMaqCardId === s.id;
     const eventOn   = !!eventParticipants[s.id];
     const showEventBtn = EMOJIS.event_lbl && EMOJIS.event_lbl.trim();
@@ -11116,7 +11141,7 @@ function closeWaImportModal() {
 
 // كل الطالبات (بأي مجموعة) اللي عندهن تعاهد فعّال حاليًا — بدون أي قائمة أسماء ثابتة بالكود
 function getTaahudEligibleStudents() {
-  return students.filter(s => s.active !== false && !s.withdrawn && !isFlexPath(s) && getTaahud(s.id).hasTaahud);
+  return students.filter(s => s.active !== false && !s.withdrawn && !isFlexPath(s) && !isTaahudExcused(s) && getTaahud(s.id).hasTaahud);
 }
 
 // يستخرج الاسم وقائمة أرقام المراجعات المنجزة من بطاقة "مراجعة التعاهد ♾️" — يتجاهل "تقسيم مراجعة التعاهد"
