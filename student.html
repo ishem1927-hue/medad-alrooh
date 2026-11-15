@@ -227,7 +227,7 @@ function logout() {
 const EV_NAMES = ['الحلقة الثانية', 'الحلقة الثالثة', 'الحلقة الرابعة', 'الحلقة الختامية'];
 function evRows(e) {
   return `<div class="ev"><span>الحلقة الأولى</span><span class="no">لا يوجد تقييم</span></div>` +
-    EV_NAMES.map((n, i) => `<div class="ev"><span>${n}</span>${e.r[i] ? `<span class="st">${'🌟'.repeat(+e.r[i])}</span>` : '<span class="no">—</span>'}</div>`).join('');
+    EV_NAMES.map((n, i) => `<div class="ev"><span>${n}</span>${e.r[i] === 'x' ? '<span class="st">⚪</span>' : e.r[i] ? `<span class="st">${'🌟'.repeat(+e.r[i])}</span>` : '<span class="no">—</span>'}</div>`).join('');
 }
 
 function renderPortal(p, surveyDone) {
