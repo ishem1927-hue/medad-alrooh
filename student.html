@@ -60,13 +60,9 @@
   .name { font-size: 1.05rem; font-weight: 600; color: var(--deep); }
   .hdr { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 0.7rem; }
   .av { flex: none; width: 52px; height: 52px; border-radius: 50%; background: #EAD8E1; color: var(--wine); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 600; }
-  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 0.7rem; }
-  .tile { background: var(--tile); border: 0.5px solid var(--tile-bd); border-radius: 16px; padding: 0.7rem 0.8rem; }
-    .tl { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.2rem; }
-  .tv { font-size: 1.15rem; font-weight: 600; color: var(--deep); }
-  .c-note { background: var(--note); border-color: var(--note-bd); }
+    .c-note { background: var(--note); border-color: var(--note-bd); }
   #docToggle { background: var(--deep); border-color: var(--deep); color: #fff; }
-  #histToggle { background: var(--note); border-color: var(--note-bd); color: var(--deep); }
+  #histToggle { background: var(--tile); border-color: var(--tile-bd); color: var(--deep); }
   #docCard { background: var(--docs); border-color: var(--docs-bd); }
   .dgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
   .dh { font-size: 0.8rem; font-weight: 700; color: var(--deep); margin-bottom: 0.45rem; text-align: center; }
@@ -106,7 +102,6 @@
   textarea:focus { outline: none; border-color: var(--wine); }
   .chk { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; font-size: 0.8rem; color: var(--ink); cursor: pointer; }
   .chk input { width: 18px; height: 18px; accent-color: var(--wine); }
-  .hint { font-size: 0.72rem; color: var(--muted); margin-top: 0.25rem; }
   .thanks { text-align: center; color: var(--deep); font-weight: 700; font-size: 0.9rem; }
   .foot { text-align: center; font-size: 0.75rem; color: var(--muted); margin-top: 1rem; }
   .foot a { color: var(--wine); text-decoration: none; font-weight: 700; }
@@ -224,20 +219,18 @@ function logout() {
 
 function renderPortal(p, surveyDone) {
   const top = `<div class="topbar"><div class="t">🎙️ مداد التلقين</div><button class="logout" onclick="confirmLogout()">خروج</button></div>`;
-  const L = p.last;
-  const attTxt = L.att != null ? toAr(L.att) + '٪' : '—';
-  const star = L.star ? ` <span class="star">🌟</span>` : '';
   let html = top;
 
   const initial = String(p.display || p.name || '').trim().charAt(0);
   html += `<div class="hdr"><div class="av">${esc(initial)}</div><div><div class="name">أهلًا ${esc(p.display || p.name)}</div>${p.joinCycle ? `<div class="meta">${esc(p.joinEmoji || '')} دورة الانضمام: دورة ${toAr(p.joinCycle)}</div>` : ''}</div></div>`;
 
-  html += `<div class="tiles">
-    <div class="tile last"><div class="tl">آخر دورة</div><div class="tv">${L.emoji ? esc(L.emoji) + ' ' : ''}دورة ${toAr(L.cycle)}</div></div>
-    <div class="tile att"><div class="tl">نسبة الحضور</div><div class="tv">${attTxt}${star}</div></div>
-  </div>`;
-
-  if (L.note) html += `<div class="card c-note"><div class="sec-title">📝 ملاحظات المعلمة</div><div class="sec-text">${esc(L.note)}</div></div>`;
+  const hist = Array.isArray(p.cycles) ? p.cycles : [];
+  if (hist.length) {
+    html += `<button type="button" class="svtoggle" id="histToggle">🗂️ الدورات المنتهية</button>
+      <div class="card hidden" id="histCard"><div class="hrow hhead"><div class="hc">الدورة</div><div class="hh">المقرر</div><div class="ha">نسبة الحضور</div></div>` +
+      hist.map(h => `<div class="hrow"><div class="hc"><span class="cn">${toAr(h.cycle)}</span></div><div class="hh">${h.hifz ? esc(h.hifz) : '—'}</div><div class="ha">${h.att != null ? toAr(h.att) + '٪' : '—'}</div></div>`).join('') +
+      `</div>`;
+  }
 
   docItems = Array.isArray(p.docs) ? p.docs : [];
   const certs = docItems.filter(d => d.k === 'cert').sort((a, b) => b.juz - a.juz);
@@ -249,13 +242,8 @@ function renderPortal(p, surveyDone) {
     col('🎓 شهادات الحفظ', certs, d => `<button type="button" class="drow" data-i="${docItems.indexOf(d)}">شهادة ختم الجزء ${juzNameAr(d.juz)}</button>`) +
     `</div></div>`;
 
-  const hist = Array.isArray(p.history) ? p.history : [];
-  if (hist.length) {
-    html += `<button type="button" class="svtoggle" id="histToggle">🗂️ الدورات السابقة</button>
-      <div class="card hidden" id="histCard"><div class="hrow hhead"><div class="hc">الدورة</div><div class="hh">المقرر</div><div class="ha">نسبة الحضور</div></div>` +
-      hist.map(h => `<div class="hrow"><div class="hc"><span class="cn">${toAr(h.cycle)}</span></div><div class="hh">${h.hifz ? esc(h.hifz) : '—'}</div><div class="ha">${h.att != null ? toAr(h.att) + '٪' : '—'}</div></div>`).join('') +
-      `</div>`;
-  }
+  const notes = Array.isArray(p.notes) ? p.notes : [];
+  if (notes.length) html += `<div class="card c-note"><div class="sec-title">📝 ملاحظات المعلمة</div>` + notes.map(n => `<div class="sec-text">${esc(n)}</div>`).join('<div class="row-sep"></div>') + `</div>`;
 
   html += `<div class="card closing">سعدنا بوجودك معنا يا ${esc(p.first || p.display || p.name)} في هذه الدورة،<br>ونلقاك في الدورة القادمة بإذن الله 🤍</div>`;
 
@@ -263,14 +251,12 @@ function renderPortal(p, surveyDone) {
     ? `<div class="card c-thanks"><div class="thanks">وصل رأيك، جزاك الله خيرًا 🤍</div></div>`
     : `<button type="button" class="svtoggle" id="svToggle">💬 شاركينا رأيك</button>
       <div class="card hidden" id="surveyCard">
-        <div class="hint" style="margin-bottom:0.6rem;">الجزء الأول يوصل باسمك.</div>
         ${SURVEY.map(q => `<div class="q"><div class="qt">${q.title}</div><div class="opts">${q.opts.map(o => `<button type="button" class="opt" data-q="${q.id}" data-v="${o[0]}">${o[1]}</button>`).join('')}</div></div>`).join('')}
-        <div class="q"><div class="qt">رأيك عن الدورة (اختياري)</div><textarea id="svComment" maxlength="1000"></textarea></div>
+        <div class="q"><div class="qt">رأيك عن الدورة</div><textarea id="svComment" maxlength="1000"></textarea></div>
         <div class="row-sep"></div>
-        <div class="q"><div class="qt">اقتراح أو ملاحظة (اختياري)</div>
+        <div class="q"><div class="qt">اقتراح أو ملاحظة</div>
           <textarea id="svSugg" maxlength="2000"></textarea>
           <label class="chk"><input type="checkbox" id="svShowName"> اجعلي اسمي ظاهرًا مع اقتراحي</label>
-          <div class="hint">لو ما حددتي الخيار، يوصل اقتراحك بدون اسم.</div>
         </div>
         <button class="btn" id="svBtn" type="button">إرسال</button>
         <div class="msg" id="svMsg"></div>
