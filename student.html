@@ -62,7 +62,7 @@
   .av { flex: none; width: 52px; height: 52px; border-radius: 50%; background: #EAD8E1; color: var(--wine); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 600; }
     .c-note { background: var(--note); border-color: var(--note-bd); }
   #docToggle { background: var(--deep); border-color: var(--deep); color: #fff; }
-  #histToggle { background: var(--tile); border-color: var(--tile-bd); color: var(--deep); }
+  #histToggle, #evToggle { background: var(--tile); border-color: var(--tile-bd); color: var(--deep); }
   #docCard { background: var(--docs); border-color: var(--docs-bd); }
   .dgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
   .dh { font-size: 0.8rem; font-weight: 700; color: var(--deep); margin-bottom: 0.45rem; text-align: center; }
@@ -75,6 +75,13 @@
   .dbox .go { flex: 1; padding: 0.7rem; border: none; border-radius: 12px; background: var(--deep); color: #fff; font-family: 'Cairo'; font-size: 0.92rem; font-weight: 700; cursor: pointer; }
   .dbox .go.alt { background: #fff; color: var(--deep); border: 1px solid var(--deep); }
   .dbox .go:disabled { opacity: 0.6; }
+  .chips { display: flex; gap: 0.4rem; overflow-x: auto; justify-content: safe center; margin-bottom: 0.7rem; padding-bottom: 0.2rem; }
+  .chip { flex: none; padding: 0.35rem 0.8rem; border-radius: 999px; border: 1px solid var(--tile-bd); background: #fff; color: var(--deep); font-family: 'Cairo'; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+  .chip.on { background: var(--deep); color: #fff; border-color: var(--deep); }
+  .ev { display: flex; justify-content: space-between; align-items: center; padding: 0.55rem 0; border-top: 0.5px solid var(--border); font-size: 0.88rem; }
+  .ev:first-of-type { border-top: none; }
+  .ev .st { font-size: 1.05rem; letter-spacing: 0.1rem; }
+  .ev .no { font-size: 0.8rem; color: var(--muted); }
   .dview { flex-direction: column; background: rgba(73,59,67,0.85); z-index: 60; }
   .dview img { max-width: 100%; max-height: 78vh; border-radius: 10px; background: #fff; }
   .dview .x { position: absolute; top: 0.8rem; left: 1rem; border: none; background: none; font-size: 1.4rem; color: #fff; cursor: pointer; }
@@ -217,6 +224,12 @@ function logout() {
   $('welcome').classList.remove('hidden');
 }
 
+const EV_NAMES = ['الحلقة الثانية', 'الحلقة الثالثة', 'الحلقة الرابعة', 'الحلقة الختامية'];
+function evRows(e) {
+  return `<div class="ev"><span>الحلقة الأولى</span><span class="no">لا يوجد تقييم</span></div>` +
+    EV_NAMES.map((n, i) => `<div class="ev"><span>${n}</span>${e.r[i] ? `<span class="st">${'🌟'.repeat(+e.r[i])}</span>` : '<span class="no">—</span>'}</div>`).join('');
+}
+
 function renderPortal(p, surveyDone) {
   const top = `<div class="topbar"><div class="t">🎙️ مداد التلقين</div><button class="logout" onclick="confirmLogout()">خروج</button></div>`;
   let html = top;
@@ -241,6 +254,10 @@ function renderPortal(p, surveyDone) {
     col('🌟 بطاقات التميز', cards, d => `<button type="button" class="drow" data-i="${docItems.indexOf(d)}">بطاقة تميز دورة ${toAr(d.cycle)}</button>`) +
     col('🎓 شهادات الحفظ', certs, d => `<button type="button" class="drow" data-i="${docItems.indexOf(d)}">شهادة ختم الجزء ${juzNameAr(d.juz)}</button>`) +
     `</div></div>`;
+
+  const evs = Array.isArray(p.ratings) ? p.ratings : [];
+  if (evs.length) html += `<button type="button" class="svtoggle" id="evToggle">⭐ تقييم الحلقات المباشرة</button>
+    <div class="card hidden" id="evCard"><div class="chips">${evs.map((e, i) => `<button type="button" class="chip${i ? '' : ' on'}" data-i="${i}">دورة ${toAr(e.cycle)}</button>`).join('')}</div><div id="evRows">${evRows(evs[0])}</div></div>`;
 
   const notes = Array.isArray(p.notes) ? p.notes : [];
   if (notes.length) html += `<div class="card c-note"><div class="sec-title">📝 ملاحظات المعلمة</div>` + notes.map(n => `<div class="sec-text">${esc(n)}</div>`).join('<div class="row-sep"></div>') + `</div>`;
@@ -272,10 +289,16 @@ function renderPortal(p, surveyDone) {
   }));
   const ht = $('histToggle');
   const dt = $('docToggle');
-  // فتح واحد من القسمين يقفل الثاني
-  const fold = (open, other) => { const o = $(other); if (o) o.classList.add('hidden'); $(open).classList.toggle('hidden'); };
-  if (ht) ht.addEventListener('click', () => fold('histCard', 'docCard'));
-  if (dt) dt.addEventListener('click', () => fold('docCard', 'histCard'));
+  // فتح قسم يقفل الباقي
+  const fold = open => ['histCard', 'docCard', 'evCard'].forEach(id => { const el = $(id); if (el) el.classList.toggle('hidden', id !== open || !el.classList.contains('hidden')); });
+  if (ht) ht.addEventListener('click', () => fold('histCard'));
+  if (dt) dt.addEventListener('click', () => fold('docCard'));
+  const et = $('evToggle');
+  if (et) et.addEventListener('click', () => fold('evCard'));
+  document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+    document.querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === c));
+    $('evRows').innerHTML = evRows(p.ratings[+c.dataset.i]);
+  }));
   document.querySelectorAll('.drow').forEach(b => b.addEventListener('click', () => openDocModal(docItems[+b.dataset.i], p)));
   const tg = $('svToggle');
   if (tg) tg.addEventListener('click', () => { tg.classList.add('hidden'); $('surveyCard').classList.remove('hidden'); });

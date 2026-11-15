@@ -4787,6 +4787,14 @@ function startNewCycle() {
           if (getSurahIndex(end.surah) !== -1) s.savedCurrentSurahText = end.isWhole ? end.surah : `${end.surah} ${toAr(end.ayah)}`;
         }
       });
+      // نحفظ تقييم الحلقات المباشرة للدورة المنتهية بالأرشيف قبل ما تنمسح بيانات المتابعة (الحلقة ٢ و٣ و٤ ثم الختامية)
+      students.forEach(s => {
+        const sg = s.group && s.group.trim() ? s.group.trim() : '';
+        const at = w => maqData[dk(sg, w, s.id)] || {};
+        const r = [at(1).rating, at(2).rating, at(3).rating, at(3).ratingClosing].map(v => v || '');
+        if (r.some(Boolean)) archiveData[archiveKey(s.id, currentCycleNumber)] = Object.assign({}, getArchive(s.id, currentCycleNumber), { ratings: r });
+      });
+      saveArchiveData();
       const finishedCycle = currentCycleNumber;
       currentCycleNumber = finishedCycle + 1;
       // تطبيق حالة الدورة القادمة
@@ -5372,6 +5380,7 @@ function portalBuildAllPages() {
       v: 1, ready: true, name: s.name, display: firstTwoWords(s.name), first: portalFirstName(s.name),
       joinCycle: s.joinCycle || null, joinEmoji: getJoinCycleEmoji(s) || '',
       cycles: cycles.slice().reverse().map(c => ({ cycle: c.cycle, hifz: c.hifz, att: c.att })),
+      ratings: cycles.slice().reverse().map(c => ({ cycle: c.cycle, r: getArchive(s.id, c.cycle).ratings })).filter(x => Array.isArray(x.r) && x.r.some(Boolean)),
       notes: cycles.slice().reverse().map(c => (getTeacherNote(s.id, c.cycle) || '').trim()).filter(Boolean),
       docs: portalCertDocs(s, doneRows, last.cycle).concat(cycles.filter(c => c.star).map(c => ({ k: 'card', cycle: c.cycle }))),
     } });
