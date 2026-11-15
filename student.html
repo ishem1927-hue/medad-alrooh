@@ -65,7 +65,8 @@
     .tl { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.2rem; }
   .tv { font-size: 1.15rem; font-weight: 600; color: var(--deep); }
   .c-note { background: var(--note); border-color: var(--note-bd); }
-  #docToggle, #histToggle { background: var(--deep); border-color: var(--deep); color: #fff; }
+  #docToggle { background: var(--deep); border-color: var(--deep); color: #fff; }
+  #histToggle { background: var(--note); border-color: var(--note-bd); color: var(--deep); }
   #docCard { background: var(--docs); border-color: var(--docs-bd); }
   .dgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
   .dh { font-size: 0.8rem; font-weight: 700; color: var(--deep); margin-bottom: 0.45rem; text-align: center; }
@@ -284,9 +285,11 @@ function renderPortal(p, surveyDone) {
     document.querySelectorAll('.opt[data-q="' + b.dataset.q + '"]').forEach(x => x.classList.toggle('on', !off && x === b));
   }));
   const ht = $('histToggle');
-  if (ht) ht.addEventListener('click', () => { $('histCard').classList.toggle('hidden'); });
   const dt = $('docToggle');
-  if (dt) dt.addEventListener('click', () => { $('docCard').classList.toggle('hidden'); });
+  // فتح واحد من القسمين يقفل الثاني
+  const fold = (open, other) => { const o = $(other); if (o) o.classList.add('hidden'); $(open).classList.toggle('hidden'); };
+  if (ht) ht.addEventListener('click', () => fold('histCard', 'docCard'));
+  if (dt) dt.addEventListener('click', () => fold('docCard', 'histCard'));
   document.querySelectorAll('.drow').forEach(b => b.addEventListener('click', () => openDocModal(docItems[+b.dataset.i], p)));
   const tg = $('svToggle');
   if (tg) tg.addEventListener('click', () => { tg.classList.add('hidden'); $('surveyCard').classList.remove('hidden'); });
