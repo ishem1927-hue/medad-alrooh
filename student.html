@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>بوابة طالبات مداد الروح</title>
 <meta name="description" content="بوابة طالبات مداد الروح: ادخلي برقمك التعريفي لتشوفي ملخص دورتك وإنجازاتك.">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
@@ -18,7 +18,7 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Cairo', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; -webkit-text-size-adjust: 100%; }
-  .wrap { max-width: 460px; margin: 0 auto; padding: calc(1.2rem + env(safe-area-inset-top)) 1rem calc(5rem + env(safe-area-inset-bottom)); min-height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; }
+  .wrap { max-width: 460px; margin: 0 auto; padding: 1.2rem 1rem 2.5rem; }
   .hidden { display: none !important; }
 
   /* الترحيب */
@@ -30,7 +30,7 @@
   .id-bg::before { top: 0; }
   .id-bg::after { bottom: 0; transform: rotate(180deg); }
   #welcome > :not(.id-bg) { position: relative; z-index: 1; }
-  #welcome .back-link { position: absolute; top: calc(1rem + env(safe-area-inset-top)); right: 1rem; width: 2.4rem; height: 2.4rem; border-radius: 50%; border: 1px solid #B9CBCD; background: #DCE9E8; color: #52776D; font-size: 1.3rem; line-height: 2.2rem; text-decoration: none; }
+  #welcome .back-link { position: absolute; top: 1rem; right: 1rem; width: 2.4rem; height: 2.4rem; border-radius: 50%; border: 1px solid #B9CBCD; background: #DCE9E8; color: #52776D; font-size: 1.3rem; line-height: 2.2rem; text-decoration: none; }
   #welcome .login-box .code-input + label { margin-top: 0.9rem; }
   #welcome .login-box { border: 1px solid rgba(185, 203, 205, 0.7); }
   #welcome .login-box label { color: #52776D; }
@@ -61,7 +61,7 @@
   .hdr { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 0.7rem; }
   .av { flex: none; width: 52px; height: 52px; border-radius: 50%; background: #EAD8E1; color: var(--wine); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 600; }
     .c-note { background: var(--note); border-color: var(--note-bd); }
-  #portal { display: flex; flex-direction: column; flex: 1; }
+  #portal { display: flex; flex-direction: column; min-height: calc(100vh - 3.7rem); }
   .rect { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0.1rem; width: 100%; height: 5.8rem; margin-bottom: 0.7rem; padding: 0.6rem; border-radius: 18px; border: 0.5px solid var(--tile-bd); background: var(--tile); color: var(--deep); font-family: 'Cairo'; cursor: pointer; }
   .rect .ri { font-size: 1.6rem; line-height: 1.2; }
   .rect .rt { font-size: 0.95rem; font-weight: 600; }

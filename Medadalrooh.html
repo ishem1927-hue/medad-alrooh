@@ -52,7 +52,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .screen.active { display: block; }
 
   /* ===== الرئيسية ===== */
-  header.home-header { text-align: center; padding: calc(2rem + env(safe-area-inset-top)) 1rem 1.2rem; }
+  header.home-header { text-align: center; padding: 2rem 1rem 1.2rem; }
   .logo-img { width: auto; height: 110px; margin: 0 auto 0.6rem; display: block; }
   .logo-tagline { font-size: 0.85rem; color: #52776D; margin-top: 0.2rem; font-weight: 700; }
 
@@ -62,13 +62,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   #home > :not(.id-bg), #loginScreen > :not(.id-bg) { position: relative; z-index: 1; }
   /* ===== صفحة الخيارات ===== */
   #entry > :not(.id-bg) { position: relative; z-index: 1; }
-  .entry-body { min-height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; max-width: 420px; margin: 0 auto; padding: env(safe-area-inset-top) 1.4rem calc(5rem + env(safe-area-inset-bottom)); text-align: center; }
+  .entry-body { min-height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; max-width: 420px; margin: 0 auto; padding: 0 1.4rem; text-align: center; }
   .entry-title { color: #52776D; font-size: 1.25rem; margin: 0.2rem 0 1.6rem; }
   .entry-card { display: flex; align-items: center; gap: 0.9rem; background: #fff; border: 1px solid rgba(185, 203, 205, 0.8); border-radius: 20px; padding: 1.3rem 1.1rem; margin-bottom: 0.9rem; text-align: right; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   .entry-ic { width: 54px; height: 54px; border-radius: 16px; background: #DCE9E8; display: flex; align-items: center; justify-content: center; font-size: 1.7rem; flex-shrink: 0; }
   .entry-card b { color: #52776D; font-size: 1.1rem; }
   .entry-ar { margin-right: auto; color: #B9CBCD; font-size: 1.6rem; }
-  .entry-back { position: absolute; top: calc(1rem + env(safe-area-inset-top)); right: 1rem; width: 2.4rem; height: 2.4rem; border-radius: 50%; border: 1px solid #B9CBCD; background: #DCE9E8; color: #52776D; font-size: 1.3rem; line-height: 1; cursor: pointer; z-index: 2; -webkit-tap-highlight-color: transparent; }
+  .entry-back { position: absolute; top: 1rem; right: 1rem; width: 2.4rem; height: 2.4rem; border-radius: 50%; border: 1px solid #B9CBCD; background: #DCE9E8; color: #52776D; font-size: 1.3rem; line-height: 1; cursor: pointer; z-index: 2; -webkit-tap-highlight-color: transparent; }
 
   .container { max-width: 600px; margin: 0 auto; padding: 0.5rem 1.2rem; }
 
@@ -815,9 +815,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 <body>
 
 <!-- ===================== شاشة تسجيل الدخول ===================== -->
-<div id="loginScreen" dir="rtl" style="display:none;position:fixed;inset:0;z-index:2000;background:#F8F9F6;align-items:center;justify-content:center;padding:calc(1.2rem + env(safe-area-inset-top)) 1.2rem calc(5rem + env(safe-area-inset-bottom));font-family:'Cairo';">
+<div id="loginScreen" dir="rtl" style="display:none;position:fixed;inset:0;z-index:2000;background:#F8F9F6;align-items:center;justify-content:center;padding:1.2rem;font-family:'Cairo';">
   <div class="id-bg"></div>
-  <button id="loginBackBtn" type="button" onclick="hideLoginScreen()" aria-label="رجوع" style="position:absolute;top:calc(1rem + env(safe-area-inset-top));right:1rem;width:2.4rem;height:2.4rem;border-radius:50%;border:1px solid #B9CBCD;background:#DCE9E8;color:#52776D;font-size:1.3rem;line-height:1;cursor:pointer;-webkit-tap-highlight-color:transparent;">‹</button>
+  <button id="loginBackBtn" type="button" onclick="hideLoginScreen()" aria-label="رجوع" style="position:absolute;top:1rem;right:1rem;width:2.4rem;height:2.4rem;border-radius:50%;border:1px solid #B9CBCD;background:#DCE9E8;color:#52776D;font-size:1.3rem;line-height:1;cursor:pointer;-webkit-tap-highlight-color:transparent;">‹</button>
   <form id="loginForm" onsubmit="return submitLogin(event)" style="width:100%;max-width:380px;text-align:center;">
     <img id="loginLogo" class="logo-img" alt="مداد الروح" style="visibility:hidden;">
     <div id="loginTitle" style="font-size:0.95rem;font-weight:700;color:#52776D;margin-bottom:1.4rem;">تسجيل دخول</div>
@@ -2028,22 +2028,12 @@ function showLoginScreen() {
   document.getElementById('loginError').textContent = '';
   document.getElementById('loginOtherBtn').style.display = email ? 'inline-block' : 'none';
   document.getElementById('loginScreen').style.display = 'flex';
-  syncViewportFit();
   setTimeout(() => (email ? pwInput : emailInput).focus(), 50);
 }
 
 function hideLoginScreen() {
   document.getElementById('loginScreen').style.display = 'none';
-  syncViewportFit();
 }
-// الصفحات ذات الخلفية المموّجة (الرئيسية، الخيارات، دخول الإدارة) تمتد لحواف الشاشة كاملة
-function syncViewportFit() {
-  const vf = document.querySelector('meta[name="viewport"]');
-  if (!vf) return;
-  const wave = document.querySelector('#home.active, #entry.active') || document.getElementById('loginScreen').style.display === 'flex';
-  vf.content = 'width=device-width, initial-scale=1.0' + (wave ? ', viewport-fit=cover' : '');
-}
-syncViewportFit();
 
 function loginUseOtherAccount() {
   const emailInput = document.getElementById('loginEmail');
@@ -2186,7 +2176,6 @@ supabaseClient.auth.onAuthStateChange((event) => {
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  syncViewportFit();
   if (id === 'talqeen') {
     const activeTab = document.querySelector('#talqeen .tab.active');
     const activePanel = document.querySelector('#talqeen .tab-panel.active');
