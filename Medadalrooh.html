@@ -5410,7 +5410,7 @@ function schedulePortalPublish() {
 const SURVEY_QUESTIONS = [
   { col: 'q_overall', title: 'الرضا العام عن الدورة', opts: { very: 'راضية جدًا', ok: 'راضية', improve: 'تحتاج تحسين' } },
   { col: 'q_followup', title: 'المتابعة والتنظيم', opts: { excellent: 'ممتاز', good: 'جيد', improve: 'يحتاج تحسين' } },
-  { col: 'q_load', title: 'حجم المقرر والوقت', opts: { suitable: 'مناسب', much: 'كثير', little: 'قليل' } },
+  { col: 'q_load', title: 'الاستفادة من الدورة', opts: { high: 'استفدت كثير', ok: 'استفدت', low: 'استفادتي قليلة' } },
 ];
 async function openSurveyResults(rowId) {
   const row = scheduleRows.find(r => r.id === rowId);
