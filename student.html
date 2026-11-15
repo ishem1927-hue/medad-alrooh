@@ -9,9 +9,12 @@
 <style>
   :root {
     --cream: #FCFAFB; --surface: #FFFFFF;
-    --wine: #86516D; --wine-deep: #86516D; --wine-soft: #F8EFF3; --rose: #86516D;
-    --ink: #493B43; --muted: #A58B9B; --green: #4E8A68; --red: #b8425f;
+    --wine: #86516D; --wine-soft: #F8EFF3; --rose: #86516D;
+    --ink: #493B43; --muted: #A58B9B; --red: #b8425f;
     --border: #EAD8E1;
+    /* ألوان صفحة الطالبة بعد الدخول — خاصة بالبرنامج (التلقين). برنامج ثاني = تغيير هالسطور فقط */
+    --deep: #5E2F47; --tile: #F6E5ED; --tile-bd: #EACDDA;
+    --note: #F3EAF1; --note-bd: #E2D0DE; --docs: #F3E1E9; --docs-bd: #E3C4D1;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Cairo', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; -webkit-text-size-adjust: 100%; }
@@ -45,54 +48,50 @@
 
   /* صفحة الطالبة */
   .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.9rem; }
-  .topbar .t { font-weight: 600; color: var(--wine-deep); font-size: 0.95rem; }
+  .topbar .t { font-weight: 600; color: var(--deep); font-size: 0.95rem; }
   .meta { font-size: 0.78rem; color: var(--muted); margin-top: 0.15rem; }
-  .sec-title { font-size: 0.78rem; font-weight: 600; color: var(--wine); margin-bottom: 0.35rem; }
+  .sec-title { font-size: 0.78rem; font-weight: 600; color: var(--deep); margin-bottom: 0.35rem; }
   .sec-text { font-size: 0.85rem; line-height: 1.9; white-space: pre-wrap; word-break: break-word; }
   .login-box { background: var(--surface); border: 0.5px solid var(--border); border-radius: 16px; padding: 1.1rem; }
   .code-input { width: 100%; padding: 0.75rem; border: 0.5px solid #EAD8E1; border-radius: 12px; background: #FCFAFB; font-family: 'Cairo'; font-size: 1.05rem; text-align: center; direction: ltr; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); }
   .btn { width: 100%; margin-top: 0.8rem; padding: 0.7rem; border: none; border-radius: 12px; background: var(--rose); color: #fff; font-family: 'Cairo'; font-size: 0.92rem; font-weight: 600; cursor: pointer; }
   .logout { background: none; border: 0.5px solid #EAD8E1; border-radius: 9px; padding: 0.2rem 0.65rem; font-family: 'Cairo'; font-size: 0.72rem; font-weight: 300; color: var(--muted); cursor: pointer; }
   .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 16px; padding: 0.85rem 1rem; margin-bottom: 0.7rem; }
-  .name { font-size: 1.05rem; font-weight: 600; color: var(--wine-deep); }
+  .name { font-size: 1.05rem; font-weight: 600; color: var(--deep); }
   .hdr { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 0.7rem; }
   .av { flex: none; width: 52px; height: 52px; border-radius: 50%; background: #EAD8E1; color: var(--wine); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 600; }
   .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 0.7rem; }
-  .tile { background: var(--surface); border: 0.5px solid var(--border); border-radius: 16px; padding: 0.7rem 0.8rem; }
-  .tile.att { background: #EEF7F1; border-color: #DCEBE1; }
-  .tl { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.2rem; }
-  .tv { font-size: 1.15rem; font-weight: 600; color: var(--wine-deep); }
-  .tile.att .tv { color: var(--green); }
-  .tile.last { background: #EAF4FB; border-color: #D6E8F4; }
-  .tile.last .tv { color: #3F6E94; }
-  .c-plan { background: #F8EFF3; border-color: #EAD8E1; }
-  .c-note { background: #FFF8E1; border-color: #F5EAC0; }
-  #docToggle { background: #E6F6F5; border-color: #CBE9E6; color: #3A7F7B; }
-  #docCard { background: #E6F6F5; border-color: #CBE9E6; }
+  .tile { background: var(--tile); border: 0.5px solid var(--tile-bd); border-radius: 16px; padding: 0.7rem 0.8rem; }
+    .tl { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.2rem; }
+  .tv { font-size: 1.15rem; font-weight: 600; color: var(--deep); }
+  .c-plan { background: #FBF3F6; border-color: #EAD8E1; }
+  .c-note { background: var(--note); border-color: var(--note-bd); }
+  #docToggle { background: var(--deep); border-color: var(--deep); color: #fff; }
+  #docCard { background: var(--docs); border-color: var(--docs-bd); }
   .dgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
-  .dh { font-size: 0.8rem; font-weight: 700; color: #3A7F7B; margin-bottom: 0.45rem; text-align: center; }
-  .drow { display: block; width: 100%; margin-bottom: 0.4rem; padding: 0.55rem 0.4rem; background: #fff; border: 0.5px solid #CBE9E6; border-radius: 12px; font-family: 'Cairo'; font-size: 0.76rem; line-height: 1.5; color: var(--ink); text-align: center; cursor: pointer; }
+  .dh { font-size: 0.8rem; font-weight: 700; color: var(--deep); margin-bottom: 0.45rem; text-align: center; }
+  .drow { display: block; width: 100%; margin-bottom: 0.4rem; padding: 0.55rem 0.4rem; background: #fff; border: 0.5px solid var(--docs-bd); border-radius: 12px; font-family: 'Cairo'; font-size: 0.76rem; line-height: 1.5; color: var(--ink); text-align: center; cursor: pointer; }
   .dov { position: fixed; inset: 0; background: rgba(73,59,67,0.45); display: flex; align-items: center; justify-content: center; padding: 1.2rem; z-index: 50; }
   .dbox { position: relative; background: #fff; border-radius: 18px; padding: 1.4rem 1.2rem 1.2rem; width: 100%; max-width: 340px; text-align: center; }
   .dbox .x { position: absolute; top: 0.5rem; left: 0.7rem; border: none; background: none; font-size: 1.1rem; color: var(--muted); cursor: pointer; }
   .dbox p { font-size: 0.9rem; line-height: 2; color: var(--ink); margin: 0.2rem 0 1rem; }
   .dbtns { display: flex; gap: 0.5rem; }
-  .dbox .go { flex: 1; padding: 0.7rem; border: none; border-radius: 12px; background: #3A7F7B; color: #fff; font-family: 'Cairo'; font-size: 0.92rem; font-weight: 700; cursor: pointer; }
-  .dbox .go.alt { background: #fff; color: #3A7F7B; border: 1px solid #3A7F7B; }
+  .dbox .go { flex: 1; padding: 0.7rem; border: none; border-radius: 12px; background: var(--deep); color: #fff; font-family: 'Cairo'; font-size: 0.92rem; font-weight: 700; cursor: pointer; }
+  .dbox .go.alt { background: #fff; color: var(--deep); border: 1px solid var(--deep); }
   .dbox .go:disabled { opacity: 0.6; }
   .dview { flex-direction: column; background: rgba(73,59,67,0.85); z-index: 60; }
   .dview img { max-width: 100%; max-height: 78vh; border-radius: 10px; background: #fff; }
   .dview .x { position: absolute; top: 0.8rem; left: 1rem; border: none; background: none; font-size: 1.4rem; color: #fff; cursor: pointer; }
-  #svToggle { background: #FFF0E6; border-color: #F8DCC6; color: #A5663A; }
-  #surveyCard { background: #FFF0E6; border-color: #F8DCC6; }
-  #surveyCard .qt { color: #8A5530; }
+  #svToggle { background: var(--tile); border-color: var(--tile-bd); color: var(--deep); }
+  #surveyCard, .c-thanks { background: var(--tile); border-color: var(--tile-bd); }
+  #surveyCard .qt { color: var(--deep); }
   .svtoggle { display: block; width: 100%; margin-bottom: 0.7rem; padding: 0.7rem; border-radius: 12px; border: 0.5px solid #EAD8E1; background: var(--surface); color: var(--wine); font-family: 'Cairo'; font-size: 0.88rem; font-weight: 600; cursor: pointer; }
-  .closing { text-align: center; background: #F6EEF9; color: #6F4A80; border-color: #EBDDF1; font-weight: 400; line-height: 1.9; font-size: 0.88rem; }
+  .closing { text-align: center; background: var(--wine); color: #fff; border-color: var(--wine); font-weight: 400; line-height: 1.9; font-size: 0.88rem; }
   .sec-title.big { font-size: 0.95rem; margin-bottom: 0.5rem; }
   .hrow { display: flex; align-items: center; gap: 0.7rem; padding: 0.5rem 0; border-top: 0.5px solid var(--border); font-size: 0.8rem; }
   .hrow .hc { flex: none; width: 2.8rem; text-align: center; color: var(--wine); font-weight: 600; }
   .hrow .hh { flex: 1; min-width: 0; color: var(--ink); line-height: 1.6; word-break: break-word; }
-  .hrow .ha { flex: none; width: 4.2rem; text-align: center; color: var(--green); font-weight: 600; }
+  .hrow .ha { flex: none; width: 4.2rem; text-align: center; color: var(--deep); font-weight: 600; }
   .hrow .cn { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border-radius: 50%; background: var(--wine-soft); }
   .hrow.hhead { border-top: none; padding: 0 0 0.3rem; font-size: 0.68rem; }
   .hrow.hhead > div { color: var(--muted); font-weight: 300; }
@@ -109,7 +108,7 @@
   .chk { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; font-size: 0.8rem; color: var(--ink); cursor: pointer; }
   .chk input { width: 18px; height: 18px; accent-color: var(--wine); }
   .hint { font-size: 0.72rem; color: var(--muted); margin-top: 0.25rem; }
-  .thanks { text-align: center; color: var(--green); font-weight: 700; font-size: 0.9rem; }
+  .thanks { text-align: center; color: var(--deep); font-weight: 700; font-size: 0.9rem; }
   .foot { text-align: center; font-size: 0.75rem; color: var(--muted); margin-top: 1rem; }
   .foot a { color: var(--wine); text-decoration: none; font-weight: 700; }
 </style>
@@ -267,7 +266,7 @@ function renderPortal(p, surveyDone) {
   html += `<div class="card closing">سعدنا بوجودك معنا يا ${esc(p.first || p.display || p.name)} في هذه الدورة،<br>ونلقاك في الدورة القادمة بإذن الله 🤍</div>`;
 
   html += surveyDone
-    ? `<div class="card"><div class="thanks">وصل رأيك، جزاك الله خيرًا 🤍</div></div>`
+    ? `<div class="card c-thanks"><div class="thanks">وصل رأيك، جزاك الله خيرًا 🤍</div></div>`
     : `<button type="button" class="svtoggle" id="svToggle">💬 شاركينا رأيك</button>
       <div class="card hidden" id="surveyCard">
         <div class="hint" style="margin-bottom:0.6rem;">الجزء الأول يوصل باسمك.</div>
