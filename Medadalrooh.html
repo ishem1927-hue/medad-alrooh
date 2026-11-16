@@ -4368,13 +4368,13 @@ function setAttendSW(s, v) {
   if (stu) setPrimaryAttendAlert(currentWeek, currentDay, stu.id, stu.name, newVal);
   saveAttendData(); renderCurriculumTab();
 }
-function toggleAbsentComp(s, dayIdx, type, weekOverride) {
+function toggleAbsentComp(s, dayIdx, weekOverride) {
   const week = (typeof weekOverride === 'number') ? weekOverride : currentWeek;
   const key = s + '_comp';
   const cur = getAttendVal(week, dayIdx, key);
-  const newVal = cur === type ? null : type;
+  const newVal = cur ? null : 'comp';
   setAttendVal(week, dayIdx, key, newVal);
-  // تعويض الخطة (مع/بدون تحدي) يعتبر كبرى نفس اليوم منجزة تلقائيًا، للطالبات اللي عندها كبرى بذاك اليوم
+  // تعويض الغياب يعتبر كبرى نفس اليوم منجزة تلقائيًا، للطالبات اللي عندها كبرى بذاك اليوم
   const stu = maqAllStudents.find(x => x.name === s);
   if (stu) {
     const sg = stu.group && stu.group.trim() ? stu.group.trim() : '';
@@ -4424,7 +4424,7 @@ function generateAttendReport() {
   for (let d = 1; d <= 4; d++) {
     ATTEND_STUDENTS.forEach(s => { summary[s].sw.push(getAttendVal(w, d, s)); });
   }
-  ATTEND_STUDENTS.forEach(s => { summary[s].swComp = [1,2,3,4].map(d => { const v = getAttendVal(w, d, s + '_comp'); return v === 'challenge' || v === 'nochallenge'; }); });
+  ATTEND_STUDENTS.forEach(s => { summary[s].swComp = [1,2,3,4].map(d => { return !!getAttendVal(w, d, s + '_comp'); }); });
   ATTEND_STUDENTS.forEach(s => {
     summary[s].thu = getAttendVal(w, 5, s);
     // ♾️ مراجعة التعاهد: تُقيّم بس بالحلقة الختامية (آخر خميس بالدورة)
@@ -4470,9 +4470,7 @@ function generateAttendReport() {
     if (d.sw.some((v, idx) => {
       if (v === 'challenge') return false;
       if (v === 'full' && isNoChallengeDay(w, idx + 1)) return false; // اليوم أصلًا ما فيه تحدي — ما تنخصم
-      const compensatedWithChallenge = d.swComp && d.swComp[idx] && getAttendVal(w, idx + 1, s + '_comp') === 'challenge';
-      if (!compensatedWithChallenge) return true;
-      return !isFirstAbsenceInCycle(s, w, idx + 1);
+      return true;
     })) return false;
     if (d.thu !== 'done') return false;
     if (d.taahud !== null && d.taahud !== 'done') return false;
@@ -6127,15 +6125,14 @@ function buildDayEvalHTML(name, hasTaahud) {
       <button class="sw-btn ${val==='absent'?'sel-absent':''}" onclick="setAttendSW('${name}','absent')">${EMOJIS.absent} غياب</button>
     </div>`;
   }
-  // زرّي "عوّضت مع التحدي / بدون التحدي" يبانون بس لو الطالبة كانت غايبة (بعذر أو بدون عذر) باليوم اللي قبله مباشرة
+  // زر "عوّضت" يبان بس لو الطالبة كانت غايبة (بعذر أو بدون عذر) باليوم اللي قبله مباشرة
   // (يشمل كل الأيام المؤهلة بما فيها الخميس؛ الأحد مستثنى تلقائيًا لأن اليوم اللي قبله ليس من نوع sw)
   if (currentDay >= 2 && ATTEND_DAYS[currentDay - 1] && ATTEND_DAYS[currentDay - 1].type === 'sw') {
     const prevVal = getAttendVal(currentWeek, currentDay - 1, name);
     if (prevVal === 'absent' || prevVal === 'excused') {
       const compVal = getAttendVal(currentWeek, currentDay - 1, name + '_comp');
       html += `<div class="sw-options" style="margin-top:0.4rem;display:flex;gap:0.4rem;">
-        <button class="sw-btn ${compVal==='challenge'?'sel-comp':''}" onclick="toggleAbsentComp('${name}',${currentDay - 1},'challenge')">${EMOJIS.absent_comp} عوّضت مع التحدي</button>
-        <button class="sw-btn ${compVal==='nochallenge'?'sel-comp':''}" onclick="toggleAbsentComp('${name}',${currentDay - 1},'nochallenge')">${EMOJIS.absent_comp} عوّضت بدون التحدي</button>
+        <button class="sw-btn ${compVal?'sel-comp':''}" onclick="toggleAbsentComp('${name}',${currentDay - 1})">${EMOJIS.absent_comp} عوّضت</button>
       </div>`;
     }
   }
@@ -6145,8 +6142,7 @@ function buildDayEvalHTML(name, hasTaahud) {
     if (prevThuVal === 'absent' || prevThuVal === 'excused') {
       const compVal = getAttendVal(currentWeek - 1, 5, name + '_comp');
       html += `<div class="sw-options" style="margin-top:0.4rem;display:flex;gap:0.4rem;">
-        <button class="sw-btn ${compVal==='challenge'?'sel-comp':''}" onclick="toggleAbsentComp('${name}',5,'challenge',${currentWeek - 1})">${EMOJIS.absent_comp} عوّضت خميس الأسبوع الماضي (مع التحدي)</button>
-        <button class="sw-btn ${compVal==='nochallenge'?'sel-comp':''}" onclick="toggleAbsentComp('${name}',5,'nochallenge',${currentWeek - 1})">${EMOJIS.absent_comp} عوّضت خميس الأسبوع الماضي (بدون التحدي)</button>
+        <button class="sw-btn ${compVal?'sel-comp':''}" onclick="toggleAbsentComp('${name}',5,${currentWeek - 1})">${EMOJIS.absent_comp} عوّضت خميس الأسبوع الماضي</button>
       </div>`;
     }
   }
@@ -6370,8 +6366,7 @@ function renderSatView() {
             if (thuVal === 'absent' || thuVal === 'excused') {
               var thuCompVal = getAttendVal(currentWeek, 5, s.name + '_comp');
               out += '<div class="sw-options" style="margin-top:0.4rem;margin-bottom:0.5rem;display:flex;gap:0.4rem;">'
-                +'<button class="sw-btn '+(thuCompVal==='challenge'?'sel-comp':'')+'" onclick="toggleAbsentComp(\''+s.name+'\',5,\'challenge\')">'+EMOJIS.absent_comp+' عوّضت الخميس (مع التحدي)</button>'
-                +'<button class="sw-btn '+(thuCompVal==='nochallenge'?'sel-comp':'')+'" onclick="toggleAbsentComp(\''+s.name+'\',5,\'nochallenge\')">'+EMOJIS.absent_comp+' عوّضت الخميس (بدون التحدي)</button>'
+                +'<button class="sw-btn '+(thuCompVal?'sel-comp':'')+'" onclick="toggleAbsentComp(\''+s.name+'\',5)">'+EMOJIS.absent_comp+' عوّضت الخميس</button>'
                 +'</div>';
             }
           }
@@ -8615,19 +8610,6 @@ function pointsForAttendVal(val) {
 }
 
 // يحسب هل الطالبة مستبعدة من حساب اليوم المطلوب (بسبب غيابين متتاليين تراكمياً عبر كل أسابيع الدورة)
-// يتحقق هل هذا الغياب (بيوم معيّن من أيام الأحد-الأربعاء) هو أول غياب للطالبة بكامل الدورة لين الآن
-function isFirstAbsenceInCycle(name, week, dayIdx) {
-  let count = 0;
-  for (let w = 0; w <= week; w++) {
-    const maxD = (w < week) ? 4 : dayIdx;
-    for (let d = 1; d <= maxD; d++) {
-      const val = getAttendVal(w, d, name);
-      if (val === 'absent' || val === 'excused') count++;
-    }
-  }
-  return count === 1;
-}
-
 function computeStudentDailyStatus(name, week, uptoDay) {
   let absenceStreak = 0;
   let commitStreak  = 0;
