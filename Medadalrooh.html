@@ -10985,7 +10985,7 @@ function waRenderPersistedSections(intro = '📌 حالات محفوظة من ج
 
   if ((window._waUnknownCache || []).some(u => u)) {
     html += `<div id="waUnknownSection">`;
-    html += `<div style="font-weight:700;color:#c0392b;margin:0.6rem 0 0.3rem;">⚠️ أسماء غير معروفة:</div>`;
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;margin:0.6rem 0 0.3rem;"><span style="font-weight:700;color:#c0392b;">⚠️ أسماء غير معروفة:</span><button class="icon-btn-sm warn" style="padding:0.15rem 0.5rem;" onclick="clearWaUnknownAll()">🗑️ مسح الكل</button></div>`;
     window._waUnknownCache.forEach((u, i) => {
       if (!u) return;
       const gs = groupStudentsFor(u.groupVal);
@@ -12043,7 +12043,7 @@ async function runWaImportAnalysis() {
   }
   if (window._waUnknownCache.some(u => u)) {
     html += `<div id="waUnknownSection">`;
-    html += `<div style="font-weight:700;color:#c0392b;margin:0.6rem 0 0.3rem;">⚠️ أسماء غير معروفة:</div>`;
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;margin:0.6rem 0 0.3rem;"><span style="font-weight:700;color:#c0392b;">⚠️ أسماء غير معروفة:</span><button class="icon-btn-sm warn" style="padding:0.15rem 0.5rem;" onclick="clearWaUnknownAll()">🗑️ مسح الكل</button></div>`;
     window._waUnknownCache.forEach((u, i) => {
       if (!u) return;
       html += `<div id="waUnknownRow_${i}" style="font-size:0.78rem;margin-bottom:0.4rem;">"${u.rawName}" <span style="color:var(--muted);">(المرسل: ${u.sender || 'غير معروف'})</span> —
@@ -12439,6 +12439,22 @@ function dismissWaReviewCard(i) {
 }
 
 // تشيل حاوية قسم كاملة (العنوان + الصفوف) لو ما بقي فيها أي صف بعد الحذف، عشان العنوان ما يضل عالق لحاله فاضي
+// مسح كل الأسماء غير المعروفة المعلّقة (مثلًا لو اختيرت مجموعة غلط بالاستيراد) — ما يلمس بطاقات المراجعة ولا بقية الأقسام
+function clearWaUnknownAll() {
+  const count = (window._waUnknownCache || []).filter(u => u).length;
+  if (!count) return;
+  showConfirmModal('مسح الأسماء غير المعروفة',
+    '<div>تبين تمسحين ' + toAr(count) + ' اسم غير معروف من القائمة؟ ما يتأثر شي ثاني (بطاقات المراجعة أو الطالبات المسجّلات).</div>',
+    () => {
+      window._waUnknownCache = [];
+      const sec = document.getElementById('waUnknownSection');
+      if (sec) sec.remove();
+      const res = document.getElementById('waImportResults');
+      if (res && res.children.length === 1 && res.textContent.includes('📌')) res.innerHTML = '';
+      waSaveCaches();
+      showToast('انمسحت الأسماء غير المعروفة 🗑️');
+    });
+}
 function waRemoveSectionIfEmpty(sectionId) {
   const section = document.getElementById(sectionId);
   if (section && !section.querySelector('[id]')) section.remove();
