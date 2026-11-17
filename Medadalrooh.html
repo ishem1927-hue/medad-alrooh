@@ -114,6 +114,35 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   }
   .course-topbar .title { font-weight: 800; font-size: 1.05rem; color: var(--wine); }
 
+  /* ===== شاشة مداد التجويد: ألوان أصفر ناعم (تنطبق على هذي الشاشة فقط) ===== */
+  #tajweed {
+    --cream: #FFFCF2; --surface: #FFFFFF; --surface2: #FBF1CC;
+    --wine: #9A7B1F; --wine-light: #9A7B1F; --wine-deep: #9A7B1F;
+    --wine-soft: rgba(154,123,31,0.10); --wine-soft2: rgba(154,123,31,0.16);
+    --ink: #4A3F1E; --muted: #8F8157; --border: #F1E7C4;
+    background: var(--cream);
+  }
+  #tajweed .course-topbar { background: #F6E9B5; border-bottom-color: #F1E7C4; }
+  #tajweed .course-topbar .title { color: var(--ink); }
+  #tajweed .back-btn { background: rgba(255,255,255,0.6); color: var(--ink); }
+  .tj-wrap { padding: 1.1rem 1.2rem 1.5rem; }
+  .tj-count {
+    background: var(--surface2); border-radius: 16px; padding: 1rem 1.2rem;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .tj-count-label { font-size: 0.8rem; color: #7A6B3A; font-weight: 700; }
+  .tj-count-num { font-size: 1.9rem; font-weight: 800; color: var(--ink); line-height: 1.3; }
+  .tj-count-ic { font-size: 2rem; }
+  .tj-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; margin-top: 0.8rem; }
+  .tj-card, .tj-admin { cursor: pointer; -webkit-tap-highlight-color: transparent; transition: transform 0.15s; font-weight: 800; color: var(--ink); }
+  .tj-card:active, .tj-admin:active { transform: scale(0.97); }
+  .tj-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 1.1rem 0.5rem; text-align: center; font-size: 0.95rem;
+  }
+  .tj-card span { display: block; font-size: 1.8rem; margin-bottom: 0.3rem; }
+  .tj-admin { background: #F1DF9C; border-radius: 16px; padding: 0.9rem; margin-top: 0.7rem; text-align: center; font-size: 0.95rem; }
+
   .placeholder-body {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     padding: 5rem 1.5rem; text-align: center; color: var(--muted);
@@ -1383,10 +1412,28 @@ var AUTH_STORAGE_KEY = 'sb-btosiqsrpvrjajwhyrph-auth-token';
 <!-- ===================== شاشة مداد التجويد ===================== -->
 <div class="screen" id="tajweed">
   <div class="course-topbar">
-    <button class="back-btn" onclick="leaveProgram()">‹</button>
-    <span class="title" onclick="handleIdeasUnlockTap('tajweed')" style="cursor:pointer;">📝 مداد التجويد</span>
+    <button class="back-btn" onclick="tajweedBack()">‹</button>
+    <span class="title" id="tajweedTitle">📝 مداد التجويد</span>
   </div>
-  <div id="ideasBoard_tajweed" style="display:none;padding:0 1.2rem 1.5rem;">
+
+  <div id="tjHome" class="tj-wrap">
+    <div class="tj-count">
+      <div>
+        <div class="tj-count-label">إجمالي الطالبات</div>
+        <div class="tj-count-num" id="tjStudentCount">٠</div>
+      </div>
+      <div class="tj-count-ic">👥</div>
+    </div>
+    <div class="tj-grid">
+      <div class="tj-card" onclick="tajweedShowView('students')"><span>👩‍🎓</span>الطالبات</div>
+      <div class="tj-card" onclick="tajweedShowView('follow')"><span>📋</span>المتابعة</div>
+      <div class="tj-card" onclick="tajweedShowView('calc')"><span>🧮</span>الحاسبة</div>
+      <div class="tj-card" onclick="tajweedShowView('schedule')"><span>📅</span>المواعيد</div>
+    </div>
+    <div class="tj-admin" onclick="tajweedShowView('admin')">⚙️ الإدارة</div>
+  </div>
+
+  <div id="ideasBoard_tajweed" style="display:none;padding:1rem 1.2rem 1.5rem;">
     <div class="list-header"><span>💡 أفكار ومحتوى</span></div>
 
     <div style="display:flex;gap:0.4rem;margin-bottom:0.6rem;">
@@ -2144,6 +2191,37 @@ function leaveProgram() {
   showConfirmModal('تسجيل الخروج', '', doLogout);
 }
 
+// ===================== شاشة مداد التجويد: التنقل بين الصفحة الرئيسية والأقسام =====================
+const TAJWEED_VIEW_TITLES = {
+  students: '👩‍🎓 الطالبات', follow: '📋 المتابعة', calc: '🧮 الحاسبة', schedule: '📅 المواعيد', admin: '⚙️ الإدارة'
+};
+let tajweedView = 'home';
+
+function tajweedShowView(view) {
+  tajweedView = view;
+  const isHome = view === 'home';
+  document.getElementById('tjHome').style.display = isHome ? '' : 'none';
+  document.getElementById('ideasBoard_tajweed').style.display = view === 'admin' ? '' : 'none';
+  document.getElementById('tajweedTitle').textContent = isHome ? '📝 مداد التجويد' : TAJWEED_VIEW_TITLES[view];
+  if (isHome) renderTajweedHome();
+  window.scrollTo(0, 0);
+}
+
+// زر الرجوع: من أي قسم يرجع للصفحة الرئيسية، ومن الرئيسية يطلع من البرنامج
+function tajweedBack() {
+  if (tajweedView !== 'home') { tajweedShowView('home'); return; }
+  leaveProgram();
+}
+
+function renderTajweedHome() {
+  let n = 0;
+  try {
+    const list = JSON.parse(localStorage.getItem('madad_tajweed_students'));
+    if (Array.isArray(list)) n = list.length;
+  } catch (e) {}
+  document.getElementById('tjStudentCount').textContent = toAr(n);
+}
+
 // بعد الدخول (الصفحة تنعاد تحميلها) نفتح البرنامج اللي كانت اختارته
 (function openProgramAfterLogin() {
   try {
@@ -2177,6 +2255,7 @@ function showScreen(id) {
     const activePanel = document.querySelector('#talqeen .tab-panel.active');
     if (activeTab && activePanel) setTalqeenTab(activeTab, activePanel.id);
   }
+  if (id === 'tajweed') tajweedShowView('home');
 }
 let _homeBtnTapCount = 0;
 function handleHomeTabTap(el) {
@@ -9660,7 +9739,7 @@ async function initAppData() {
 }
 // ===================== قسم الأفكار (مداد التجويد / مداد التمكين) =====================
 const ideasState = {
-  tajweed: { categories: [], items: [], filter: 'all', editingId: null, tapCount: 0, tapTimer: null },
+  tajweed: { categories: [], items: [], filter: 'all', editingId: null },
   tamkeen: { categories: [], items: [], filter: 'all', editingId: null, tapCount: 0, tapTimer: null },
   tilawah: { categories: [], items: [], filter: 'all', editingId: null, tapCount: 0, tapTimer: null },
   tafsir: { categories: [], items: [], filter: 'all', editingId: null, tapCount: 0, tapTimer: null },
@@ -9681,7 +9760,7 @@ function handleIdeasUnlockTap(screen) {
 function applyIdeasVisibility() {
   let unlocked = false;
   try { unlocked = localStorage.getItem(IDEAS_UNLOCK_KEY) === 'true'; } catch(e) {}
-  ['tajweed', 'tamkeen', 'tilawah', 'tafsir'].forEach(screen => {
+  ['tamkeen', 'tilawah', 'tafsir'].forEach(screen => {
     const el = document.getElementById(`ideasBoard_${screen}`);
     if (el) el.style.display = unlocked ? '' : 'none';
   });
