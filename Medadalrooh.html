@@ -87,6 +87,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .course-name { font-weight: 800; font-size: 1.08rem; color: var(--ink); margin-bottom: 0.2rem; }
   .course-num-badge { color: var(--wine); font-weight: 700; font-size: 0.95rem; }
   .course-tagline { font-size: 0.78rem; color: var(--muted); line-height: 1.5; display: block; }
+  .course-card.soon { opacity: 0.55; pointer-events: none; }
+  .course-card.soon .course-arrow { font-size: 0.8rem; }
   .course-arrow { color: var(--wine); font-size: 1.3rem; opacity: 0.6; }
   .cc-talqeen { background: var(--surface2); }
   .cc-tajweed { background: #FFF8E1; border-color: #F5EAC0; }
@@ -873,7 +875,20 @@ var AUTH_STORAGE_KEY = 'sb-btosiqsrpvrjajwhyrph-auth-token';
   </header>
 
   <div class="container">
-    <div class="course-card cc-talqeen" onclick="openEntry('talqeen')">
+    <div class="entry-card" onclick="openPrograms('admin')"><div class="entry-ic">🛡️</div><b>الإدارة</b><span class="entry-ar">‹</span></div>
+    <div class="entry-card" onclick="openPrograms('teacher')"><div class="entry-ic">👩‍🏫</div><b>دخول المعلمات</b><span class="entry-ar">‹</span></div>
+    <div class="entry-card" onclick="openPrograms('student')"><div class="entry-ic">🎓</div><b>بوابة الطالبات</b><span class="entry-ar">‹</span></div>
+  </div>
+
+</div>
+
+<!-- ===================== صفحة البرامج (بعد اختيار الدور) ===================== -->
+<div class="screen" id="entry">
+  <button class="entry-back" onclick="showScreen('home')" aria-label="رجوع">‹</button>
+  <div class="entry-body">
+    <img id="entryLogo" class="logo-img" alt="مداد الروح">
+    <h2 class="entry-title" id="entryTitle"></h2>
+    <div class="course-card cc-talqeen" data-prog="talqeen" onclick="pickProgram('talqeen')">
       <div class="course-icon">🎙️</div>
       <div class="course-info">
         <div class="course-name">مداد التلقين <span class="course-num-badge" id="homeTalqeenNum"></span></div>
@@ -882,7 +897,7 @@ var AUTH_STORAGE_KEY = 'sb-btosiqsrpvrjajwhyrph-auth-token';
       <div class="course-arrow">‹</div>
     </div>
 
-    <div class="course-card cc-tajweed" id="tajweedCard" style="display:none;" onclick="openEntry('tajweed')">
+    <div class="course-card cc-tajweed" id="tajweedCard" style="display:none;" data-prog="tajweed" onclick="pickProgram('tajweed')">
       <div class="course-icon">📝</div>
       <div class="course-info">
         <div class="course-name">مداد التجويد</div>
@@ -891,7 +906,7 @@ var AUTH_STORAGE_KEY = 'sb-btosiqsrpvrjajwhyrph-auth-token';
       <div class="course-arrow">‹</div>
     </div>
 
-    <div class="course-card cc-tamkeen" id="tamkeenCard" style="display:none;" onclick="openEntry('tamkeen')">
+    <div class="course-card cc-tamkeen" id="tamkeenCard" style="display:none;" data-prog="tamkeen" onclick="pickProgram('tamkeen')">
       <div class="course-icon">⛰️</div>
       <div class="course-info">
         <div class="course-name">مداد التمكين</div>
@@ -900,7 +915,7 @@ var AUTH_STORAGE_KEY = 'sb-btosiqsrpvrjajwhyrph-auth-token';
       <div class="course-arrow">‹</div>
     </div>
 
-    <div class="course-card cc-tilawah" id="tilawahCard" style="display:none;" onclick="openEntry('tilawah')">
+    <div class="course-card cc-tilawah" id="tilawahCard" style="display:none;" data-prog="tilawah" onclick="pickProgram('tilawah')">
       <div class="course-icon">📖</div>
       <div class="course-info">
         <div class="course-name">مداد التلاوة</div>
@@ -909,7 +924,7 @@ var AUTH_STORAGE_KEY = 'sb-btosiqsrpvrjajwhyrph-auth-token';
       <div class="course-arrow">‹</div>
     </div>
 
-    <div class="course-card cc-tafsir" id="tafsirCard" style="display:none;" onclick="openEntry('tafsir')">
+    <div class="course-card cc-tafsir" id="tafsirCard" style="display:none;" data-prog="tafsir" onclick="pickProgram('tafsir')">
       <div class="course-icon">📜</div>
       <div class="course-info">
         <div class="course-name">مداد التفسير</div>
@@ -917,19 +932,6 @@ var AUTH_STORAGE_KEY = 'sb-btosiqsrpvrjajwhyrph-auth-token';
       </div>
       <div class="course-arrow">‹</div>
     </div>
-  </div>
-
-</div>
-
-<!-- ===================== صفحة الخيارات (إدارة / معلمات / طالبات) ===================== -->
-<div class="screen" id="entry">
-  <button class="entry-back" onclick="showScreen('home')" aria-label="رجوع">‹</button>
-  <div class="entry-body">
-    <img id="entryLogo" class="logo-img" alt="مداد الروح">
-    <h2 class="entry-title" id="entryTitle"></h2>
-    <div class="entry-card" onclick="enterAs('admin')"><div class="entry-ic">🛡️</div><b>الإدارة</b><span class="entry-ar">‹</span></div>
-    <div class="entry-card" onclick="enterAs('teacher')"><div class="entry-ic">👩‍🏫</div><b>دخول المعلمات</b><span class="entry-ar">‹</span></div>
-    <div class="entry-card" onclick="location.href='student.html'"><div class="entry-ic">🎓</div><b>بوابة الطالبات</b><span class="entry-ar">‹</span></div>
   </div>
 </div>
 
@@ -2138,7 +2140,7 @@ if (TEACHER_HALQA) document.body.classList.add('teacher-mode');
 async function doLogout() {
   try { await supabaseClient.auth.signOut({ scope: 'local' }); } catch (e) {}
   try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch (e) {}
-  showScreen(entryProgram ? 'entry' : 'home');
+  showScreen('home');
 }
 
 // شعار شاشة الدخول ياخذ صورته من شعار الصفحة الأولى (بدون تكرار الصورة داخل الملف)
@@ -2154,8 +2156,10 @@ async function doLogout() {
 // كل باب يقبل نوع حساب واحد: الإدارة = إيميل الإدارة بس، المعلمات = إيميل فيه +teacher
 const ADMIN_EMAIL = 'medadalrooh1447@gmail.com';
 const PROGRAM_NAMES = { talqeen: 'مداد التلقين', tajweed: 'مداد التجويد', tamkeen: 'مداد التمكين', tilawah: 'مداد التلاوة', tafsir: 'مداد التفسير' };
+const ROLE_NAMES = { admin: 'الإدارة', teacher: 'دخول المعلمات', student: 'بوابة الطالبات' };
 const ENTER_PROGRAM_KEY = 'madad_enter_program';
-let entryProgram = null; // البرنامج اللي اختارته المستخدمة
+let entryRole = null;    // 'admin' | 'teacher' | 'student' — الدور اللي اختارته المستخدمة أول شي
+let entryProgram = null; // البرنامج اللي اختارته بعد الدور
 let loginRole = null;    // 'admin' | 'teacher' — الباب اللي فتحت منه شاشة الدخول
 
 function emailFitsRole(email, role) {
@@ -2171,25 +2175,39 @@ function savedSessionEmail() {
   } catch (e) { return ''; }
 }
 
-function openEntry(prog) {
-  if (!PROGRAM_NAMES[prog]) return;
-  entryProgram = prog;
-  document.getElementById('entryTitle').textContent = PROGRAM_NAMES[prog];
+// صفحة البرامج: الإدارة تفتح لها كل البرامج، والمعلمات والطالبات التلقين فقط والباقي «قريبًا»
+function openPrograms(role) {
+  if (!ROLE_NAMES[role]) return;
+  entryRole = role;
+  document.getElementById('entryTitle').textContent = ROLE_NAMES[role];
+  document.querySelectorAll('#entry .course-card').forEach(c => {
+    const open = role === 'admin' || c.dataset.prog === 'talqeen';
+    c.classList.toggle('soon', !open);
+    c.querySelector('.course-arrow').textContent = open ? '‹' : 'قريبًا';
+  });
   showScreen('entry');
+}
+
+function pickProgram(prog) {
+  if (!PROGRAM_NAMES[prog]) return;
+  if (entryRole !== 'admin' && prog !== 'talqeen') return;
+  entryProgram = prog;
+  if (entryRole === 'student') { location.href = 'student.html'; return; }
+  enterAs(entryRole);
 }
 
 // لو الجلسة المحفوظة من نوع الباب تدخل مباشرة، وإلا تظهر شاشة الدخول وبعدها يفتح البرنامج
 function enterAs(role) {
   if (emailFitsRole(savedSessionEmail(), role)) { showScreen(entryProgram); return; }
   loginRole = role;
-  document.getElementById('loginTitle').textContent = role === 'admin' ? 'دخول الإدارة' : 'دخول المعلمات';
+  document.getElementById('loginTitle').textContent = ROLE_NAMES[role] + ' — ' + PROGRAM_NAMES[entryProgram];
   try { sessionStorage.setItem(ENTER_PROGRAM_KEY, entryProgram); } catch (e) {}
   showLoginScreen();
 }
 
 // زر الرجوع داخل البرنامج: الإدارة ترجع لصفحة الخيارات بدون خروج، والمعلمة تسجل خروج (بعد التأكيد)
 function leaveProgram() {
-  if (emailFitsRole(savedSessionEmail(), 'admin')) { showScreen('entry'); return; }
+  if (emailFitsRole(savedSessionEmail(), 'admin')) { openPrograms('admin'); return; }
   showConfirmModal('تسجيل الخروج', '', doLogout);
 }
 
@@ -2230,22 +2248,23 @@ function renderTajweedHome() {
     const prog = sessionStorage.getItem(ENTER_PROGRAM_KEY);
     sessionStorage.removeItem(ENTER_PROGRAM_KEY);
     if (prog && localStorage.getItem(AUTH_STORAGE_KEY) && document.getElementById(prog)) {
-      openEntry(prog);
+      entryProgram = prog;
+      entryRole = emailFitsRole(savedSessionEmail(), 'admin') ? 'admin' : 'teacher';
       showScreen(prog);
     }
   } catch (e) {}
 })();
 
-// الرجوع من بوابة الطالبات يفتح صفحة الخيارات مباشرة (الرابط ينتهي بـ #entry=البرنامج)
-(function openEntryFromLink() {
-  const m = /^#entry=(\w+)$/.exec(location.hash);
+// الرجوع من بوابة الطالبات يفتح صفحة البرامج مباشرة (الرابط ينتهي بـ #programs=الدور)
+(function openProgramsFromLink() {
+  const m = /^#programs=(\w+)$/.exec(location.hash);
   if (!m) return;
-  openEntry(m[1]);
+  openPrograms(m[1]);
   try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
 })();
 
 supabaseClient.auth.onAuthStateChange((event) => {
-  if (event === 'SIGNED_OUT') { hideLoginScreen(); showScreen(entryProgram ? 'entry' : 'home'); }
+  if (event === 'SIGNED_OUT') { hideLoginScreen(); showScreen('home'); }
 });
 
 
