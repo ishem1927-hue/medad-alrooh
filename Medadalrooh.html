@@ -1599,7 +1599,14 @@ var AUTH_STORAGE_KEY = 'sb-btosiqsrpvrjajwhyrph-auth-token';
     
   </div>
 
-  <div class="tj-panel" id="tjPanel_schedule"></div>
+  <div class="tj-panel" id="tjPanel_schedule">
+    <div class="sched-view-toggle">
+      <button class="sched-view-btn active" id="tjsBtnUpcoming" onclick="tjsSetView('upcoming')">القادمة</button>
+      <button class="sched-view-btn" id="tjsBtnFinished" onclick="tjsSetView('finished')">المنتهية</button>
+    </div>
+    <button class="sched-add-btn" id="tjsAddBtn" onclick="tjsAdd()">+ إضافة مستوى</button>
+    <div id="tjsList"></div>
+  </div>
 
   <div class="tj-panel" id="tjPanel_admin">
     <div class="list-header"><span>💡 أفكار ومحتوى</span></div>
@@ -1849,6 +1856,23 @@ var AUTH_STORAGE_KEY = 'sb-btosiqsrpvrjajwhyrph-auth-token';
     <div class="modal-actions">
       <button class="modal-btn cancel" onclick="closeDoneModal()">إلغاء</button>
       <button class="modal-btn confirm" style="background:var(--green);border-color:var(--green);" onclick="confirmDone()">✓ تم</button>
+    </div>
+  </div>
+</div>
+
+<!-- نافذة إدخال عدد الطالبات عند إتمام مستوى التجويد -->
+<div class="modal-overlay" id="tjsDoneModal" onclick="if(event.target===this)tjsCloseDone()">
+  <div class="modal-card">
+    <div class="modal-icon">✓</div>
+    <div class="modal-title">إتمام المستوى</div>
+    <div class="modal-text" style="margin-bottom:0.4rem">كم عدد الطالبات في بداية هذا المستوى؟</div>
+    <input id="tjsDoneStart" type="number" class="edit-input" placeholder="مثال: ١١" style="margin-bottom:0.8rem;width:100%">
+    <div class="modal-text" style="margin-bottom:0.4rem">وكم عدد الطالبات في نهايته؟</div>
+    <input id="tjsDoneEnd" type="number" class="edit-input" placeholder="مثال: ٩" style="margin-bottom:1rem;width:100%"
+      onkeydown="if(event.key==='Enter')tjsConfirmDone()">
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="tjsCloseDone()">إلغاء</button>
+      <button class="modal-btn confirm" onclick="tjsConfirmDone()">✓ تم</button>
     </div>
   </div>
 </div>
@@ -2129,7 +2153,7 @@ const ALL_DATA_KEYS = [
   'madad_talqeen_tasks', 'madad_talqeen_team', 'madad_talqeen_schedule',
   'hasibat_madad', 'hasibat_custom_pay', 'hasibat_obligations',
   'madad_finance_balance', 'madad_finance_total', 'madad_finance_expenses',
-  'madad_tajweed_students', 'madad_tajweed_calc', 'madad_tajweed_calc_pay', 'madad_tajweed_calc_oblig',
+  'madad_tajweed_students', 'madad_tajweed_schedule', 'madad_tajweed_calc', 'madad_tajweed_calc_pay', 'madad_tajweed_calc_oblig',
   'madad_ideas_categories_tajweed', 'madad_ideas_list_tajweed',
   'madad_ideas_categories_tamkeen', 'madad_ideas_list_tamkeen',
   'madad_ideas_categories_tilawah', 'madad_ideas_list_tilawah',
@@ -2419,6 +2443,7 @@ function tajweedShowView(view) {
   if (view === 'home') renderTajweedHome();
   if (view === 'students') renderTajweedStudents();
   if (view === 'calc') tjcRender();
+  if (view === 'schedule') tjsRender();
   window.scrollTo(0, 0);
 }
 
@@ -10027,6 +10052,7 @@ async function initAppData() {
 
   tjLoad();
   tjcLoadAll();
+  tjsLoad();
   await loadIdeas('tajweed');
   renderIdeas('tajweed');
   await loadIdeas('tamkeen');
@@ -10559,6 +10585,232 @@ function tjcRender() {
     })
     .subscribe();
 });
+
+// ===================== مواعيد التجويد (منفصلة تمامًا عن مواعيد التلقين) =====================
+const TJS_KEY = 'madad_tajweed_schedule';
+const TJS_MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+let tjSchedule = [];   // [{id, level, startDate, endDate, hasVacation, vacStartDate, vacEndDate, done, startCount, endCount}]
+let tjsView = 'upcoming';
+let tjsDoneId = null;
+
+function tjsLoad() {
+  try {
+    const v = JSON.parse(localStorage.getItem(TJS_KEY));
+    tjSchedule = Array.isArray(v) ? v : [];
+  } catch (e) { tjSchedule = []; }
+  tjsRender();
+}
+function tjsSave() {
+  localStorage.setItem(TJS_KEY, JSON.stringify(tjSchedule));
+  syncPush(TJS_KEY);
+}
+function tjsSetView(v) { tjsView = v; tjsRender(); }
+
+function tjsAdd() {
+  tjSchedule.push({
+    id: Date.now(), level: '', startDate: '', endDate: '',
+    hasVacation: false, vacStartDate: '', vacEndDate: '',
+    done: false, startCount: null, endCount: null
+  });
+  tjsSave();
+  tjsRender();
+}
+function tjsEdit(id, field, val) {
+  const r = tjSchedule.find(x => x.id === id);
+  if (!r) return;
+  r[field] = val;
+  tjsSave();
+}
+function tjsDelete(id) {
+  const r = tjSchedule.find(x => x.id === id);
+  if (!r) return;
+  showConfirmModal(
+    '🗑️ حذف المستوى',
+    'حذف «' + tjEsc(r.level || 'المستوى') + '»؟',
+    () => {
+      tjSchedule = tjSchedule.filter(x => x.id !== id);
+      tjsSave();
+      tjsRender();
+    }
+  );
+}
+function tjsToggleVacation(id) {
+  const r = tjSchedule.find(x => x.id === id);
+  if (!r) return;
+  r.hasVacation = !r.hasVacation;
+  tjsSave();
+  tjsRender();
+}
+function tjsMove(id, dir) {
+  const list = tjSchedule.filter(r => tjsView === 'upcoming' ? !r.done : r.done);
+  const idx = list.findIndex(r => r.id === id);
+  const to = idx + dir;
+  if (idx === -1 || to < 0 || to >= list.length) return;
+  const a = tjSchedule.findIndex(r => r.id === list[idx].id);
+  const b = tjSchedule.findIndex(r => r.id === list[to].id);
+  [tjSchedule[a], tjSchedule[b]] = [tjSchedule[b], tjSchedule[a]];
+  tjsSave();
+  tjsRender();
+}
+
+function tjsDateSelects(rowId, field, iso) {
+  const parts = getDateParts(iso);
+  const thisYear = new Date().getFullYear();
+  let days = '<option value="">يوم</option>';
+  for (let d = 1; d <= 31; d++) days += `<option value="${d}" ${parts.d === d ? 'selected' : ''}>${toAr(d)}</option>`;
+  let months = '<option value="">شهر</option>';
+  TJS_MONTHS.forEach((n, i) => { months += `<option value="${i + 1}" ${parts.m === (i + 1) ? 'selected' : ''}>${n}</option>`; });
+  let years = '<option value="">سنة</option>';
+  for (let y = thisYear - 1; y <= thisYear + 5; y++) years += `<option value="${y}" ${parts.y === String(y) ? 'selected' : ''}>${toAr(y)}</option>`;
+  const base = `tjsd_${rowId}_${field}`;
+  const on = `onchange="tjsDatePartChange(${rowId},'${field}')"`;
+  return `<div class="sched-date-selects">
+    <select id="${base}_d" class="sched-date-select" ${on}>${days}</select>
+    <select id="${base}_m" class="sched-date-select sched-month-select" ${on}>${months}</select>
+    <select id="${base}_y" class="sched-date-select sched-year-select" ${on}>${years}</select>
+  </div>`;
+}
+function tjsDatePartChange(rowId, field) {
+  const base = `tjsd_${rowId}_${field}`;
+  const d = document.getElementById(base + '_d').value;
+  const m = document.getElementById(base + '_m').value;
+  const y = document.getElementById(base + '_y').value;
+  if (!d || !m || !y) return;
+  tjsEdit(rowId, field, `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+  tjsRender();
+}
+
+function tjsOpenDone(id) {
+  tjsDoneId = id;
+  document.getElementById('tjsDoneStart').value = '';
+  document.getElementById('tjsDoneEnd').value = tjStudents.length;
+  document.getElementById('tjsDoneModal').classList.add('open');
+  setTimeout(() => document.getElementById('tjsDoneStart').focus(), 100);
+}
+function tjsCloseDone() {
+  document.getElementById('tjsDoneModal').classList.remove('open');
+  tjsDoneId = null;
+}
+function tjsConfirmDone() {
+  const st = document.getElementById('tjsDoneStart').value.trim();
+  const en = document.getElementById('tjsDoneEnd').value.trim();
+  if (!st || !en) { showToast('اكتبي عدد الطالبات في البداية والنهاية'); return; }
+  const r = tjSchedule.find(x => x.id === tjsDoneId);
+  if (r) { r.done = true; r.startCount = st; r.endCount = en; tjsSave(); }
+  tjsCloseDone();
+  tjsRender();
+}
+function tjsUndoDone(id) {
+  const r = tjSchedule.find(x => x.id === id);
+  if (!r) return;
+  r.done = false;
+  tjsSave();
+  tjsRender();
+}
+
+function tjsDateField(label, rowId, field, iso) {
+  return `<div class="sched-date-field">
+    <span class="sched-date-label">${label}</span>
+    ${tjsDateSelects(rowId, field, iso)}
+    <div class="sched-hijri-display">${formatHijriGregorian(iso)}</div>
+  </div>`;
+}
+
+function tjsUpcomingCard(r, idx, list) {
+  const isCurrent = idx === 0;
+  const badge = isCurrent
+    ? '<span class="sched-badge current">📍 حالي</span>'
+    : '<span class="sched-badge upcoming">⏳ قادم</span>';
+  return `
+    <div class="sched-row ${isCurrent ? 'sched-current' : 'sched-upcoming'}">
+      <div class="sched-row-main">
+        <div class="sched-move-btns">
+          <button class="sched-move-btn" onclick="tjsMove(${r.id},-1)" ${idx === 0 ? 'disabled' : ''}>▲</button>
+          <button class="sched-move-btn" onclick="tjsMove(${r.id},1)" ${idx === list.length - 1 ? 'disabled' : ''}>▼</button>
+        </div>
+        <span style="font-size:0.85rem;">📊 المستوى</span>
+        <input class="sched-num-input" style="flex:1;min-width:0;width:auto;text-align:right;" placeholder="اكتبي المستوى" value="${tjEsc(r.level)}" oninput="tjsEdit(${r.id},'level',this.value)">
+        ${badge}
+        <button class="sched-del" onclick="tjsDelete(${r.id})">✕</button>
+      </div>
+      <div class="sched-dates-grid">
+        ${tjsDateField('تاريخ البداية', r.id, 'startDate', r.startDate)}
+        ${tjsDateField('تاريخ النهاية', r.id, 'endDate', r.endDate)}
+      </div>
+      ${r.hasVacation ? `
+        <div class="sched-vac-box">
+          <div class="sched-vac-head">
+            <span>🪫 إجازة بعد هذا المستوى</span>
+            <button class="sched-vac-remove" onclick="tjsToggleVacation(${r.id})">✕ إزالة الإجازة</button>
+          </div>
+          <div class="sched-dates-grid" style="margin-bottom:0;">
+            ${tjsDateField('بداية الإجازة', r.id, 'vacStartDate', r.vacStartDate)}
+            ${tjsDateField('نهاية الإجازة', r.id, 'vacEndDate', r.vacEndDate)}
+          </div>
+        </div>
+      ` : `<button class="sched-add-vac-btn" onclick="tjsToggleVacation(${r.id})">🪫 + إضافة إجازة بعده</button>`}
+      <button class="sched-done-btn" onclick="tjsOpenDone(${r.id})">وضع تم ✓</button>
+    </div>`;
+}
+
+function tjsFinishedCard(r, idx, list) {
+  return `
+    <div class="sched-row sched-finished">
+      <div class="sched-row-main">
+        <div class="sched-move-btns">
+          <button class="sched-move-btn" onclick="tjsMove(${r.id},-1)" ${idx === 0 ? 'disabled' : ''}>▲</button>
+          <button class="sched-move-btn" onclick="tjsMove(${r.id},1)" ${idx === list.length - 1 ? 'disabled' : ''}>▼</button>
+        </div>
+        <span style="font-size:0.85rem;">📊 المستوى ${tjEsc(r.level) || '—'}</span>
+        <span class="sched-badge" style="background:var(--surface2);color:var(--muted);margin-right:auto;">✓ منتهي</span>
+        <button class="sched-del" onclick="tjsDelete(${r.id})">✕</button>
+      </div>
+      <div class="sched-finished-dates">📅 ${formatGregorianArabic(r.startDate)} ← ${formatGregorianArabic(r.endDate)}</div>
+      <div class="sched-finished-dates">${formatHijriGregorian(r.startDate)} ← ${formatHijriGregorian(r.endDate)}</div>
+      ${r.hasVacation ? `
+        <div class="sched-finished-dates" style="color:var(--muted);margin-top:0.5rem;">🪫 إجازة: ${formatGregorianArabic(r.vacStartDate)} ← ${formatGregorianArabic(r.vacEndDate)}</div>
+        <div class="sched-finished-dates" style="color:var(--muted);">${formatHijriGregorian(r.vacStartDate)} ← ${formatHijriGregorian(r.vacEndDate)}</div>
+      ` : ''}
+      <div class="sched-finished-count">
+        <span>👩‍🎓 عدد الطالبات في البداية:</span>
+        <input type="number" class="sched-count-input" value="${r.startCount != null ? tjEsc(r.startCount) : ''}" oninput="tjsEdit(${r.id},'startCount',this.value)">
+      </div>
+      <div class="sched-finished-count">
+        <span>🏁 عدد الطالبات في النهاية:</span>
+        <input type="number" class="sched-count-input" value="${r.endCount != null ? tjEsc(r.endCount) : ''}" oninput="tjsEdit(${r.id},'endCount',this.value)">
+      </div>
+      <button class="sched-undo-btn" onclick="tjsUndoDone(${r.id})">↩️ تراجع (رجّعيه للقادم)</button>
+    </div>`;
+}
+
+function tjsRender() {
+  const el = document.getElementById('tjsList');
+  if (!el) return;
+  document.getElementById('tjsBtnUpcoming').classList.toggle('active', tjsView === 'upcoming');
+  document.getElementById('tjsBtnFinished').classList.toggle('active', tjsView === 'finished');
+  document.getElementById('tjsAddBtn').style.display = tjsView === 'upcoming' ? 'block' : 'none';
+  const list = tjSchedule.filter(r => tjsView === 'upcoming' ? !r.done : r.done);
+  if (!list.length) {
+    el.innerHTML = tjsView === 'upcoming'
+      ? '<div class="empty-state"><div class="empty-icon">📅</div><div>لا توجد مستويات قادمة بعد</div></div>'
+      : '<div class="empty-state"><div class="empty-icon">✓</div><div>لا توجد مستويات منتهية بعد</div></div>';
+    return;
+  }
+  el.innerHTML = list.map((r, i) => tjsView === 'upcoming' ? tjsUpcomingCard(r, i, list) : tjsFinishedCard(r, i, list)).join('');
+}
+
+// تحديث لحظي لمواعيد التجويد
+supabaseClient
+  .channel('madad_tajweed_schedule_channel')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'madad_sync', filter: 'key=eq.' + TJS_KEY }, (payload) => {
+    if (isOwnEcho(TJS_KEY, payload.new && payload.new.updated_at)) return;
+    const v = payload.new && payload.new.value;
+    if (!Array.isArray(v)) return;
+    localStorage.setItem(TJS_KEY, JSON.stringify(v));
+    tjSchedule = v;
+    if (tajweedView === 'schedule' && !document.activeElement.matches('#tjsList input, #tjsList select')) tjsRender();
+  })
+  .subscribe();
 
 // تحديث لحظي لأفكار التجويد والتمكين والتلاوة والتفسير
 ['tajweed','tamkeen','tilawah','tafsir'].forEach(screen => {
