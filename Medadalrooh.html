@@ -2506,7 +2506,7 @@ function renderTajweedStudents() {
         <span class="sc-num">${toAr(i + 1)}</span>
         <div class="sc-name">${tjEsc(s.name)}</div>
         <div class="sc-acts">
-          ${tjCalc.some(c => c.id === s.id) ? '' : `<button class="sc-act" title="إضافة للحاسبة" onclick="tjcAddStudent(${s.id})">🧮</button>`}
+          ${tjCalc.some(c => c.id === s.id) ? '' : `<button class="sc-act" onclick="tjcAddStudent(${s.id})">🧮</button>`}
           <button class="sc-act" onclick="tjStartEdit(${s.id})">✏️</button>
           <button class="sc-act" onclick="tjDeleteStudent(${s.id})">🗑</button>
         </div>
@@ -10335,7 +10335,7 @@ function tjcRenderObligList() {
           <option value="sar" ${o.currency === 'sar' ? 'selected' : ''}>ر.س</option>
         </select>
         <button class="oblig-btn ${o.paid ? 'paid' : ''}" onclick="tjcToggleOblig(${idx})" style="font-size:0.75rem;">${o.paid ? 'تم السداد ✅' : 'لم يتم السداد'}</button>
-        <button onclick="tjcDeleteOblig(${idx})" style="background:none;border:none;color:rgba(184,66,95,0.4);cursor:pointer;font-size:0.85rem;padding:0 0.2rem;" title="حذف">✕</button>
+        <button onclick="tjcDeleteOblig(${idx})" style="background:none;border:none;color:rgba(184,66,95,0.4);cursor:pointer;font-size:0.85rem;padding:0 0.2rem;">✕</button>
       </span>`;
     el.appendChild(row);
   });
@@ -10414,7 +10414,7 @@ function tjcRemoveStudent(id) {
   if (!s) return;
   showConfirmModal(
     '➖ إزالة من الحاسبة',
-    'إزالة «' + tjEsc(s.name) + '» من الحاسبة؟ تبقى في قائمة الطالبات ما تنحذف.',
+    'إزالة «' + tjEsc(s.name) + '» من الحاسبة؟',
     () => {
       tjCalc = tjCalc.filter(c => c.id !== id);
       tjcSave();
@@ -10426,7 +10426,7 @@ function tjcRemoveStudent(id) {
 function tjcClear() {
   showConfirmModal(
     '🗑️ إفراغ الحاسبة',
-    'تنشال كل الطالبات من الحاسبة. تبقى في قائمة الطالبات، وترجعينها وحدة وحدة بزر 🧮 في بطاقتها.',
+    'إفراغ الحاسبة؟',
     () => {
       tjCalc = [];
       tjcSave();
@@ -10502,7 +10502,7 @@ function tjcRender() {
       <div class="student-info">
         <div class="student-name-text" style="display:flex;align-items:center;justify-content:space-between;gap:0.4rem;">
           <span>${tjEsc(s.name)}</span>
-          <button class="sc-act" title="إزالة من الحاسبة" onclick="tjcRemoveStudent(${s.id})">✕</button>
+          <button class="sc-act" onclick="tjcRemoveStudent(${s.id})">✕</button>
         </div>
         <span class="pay-badge ${info.type}">${displayLabel}</span>
         <button class="change-pay-btn" onclick="tjcTogglePaySel(${s.id})">تغيير طريقة الدفع ▾</button>
