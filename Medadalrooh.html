@@ -143,6 +143,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   #tajweed .course-topbar { justify-content: flex-start; }
   .tj-admin-btn { margin-right: auto; width: 34px; height: 34px; border-radius: 50%; border: none; background: rgba(255,255,255,0.6); font-size: 1rem; cursor: pointer; padding: 0; }
   #tajweed .sc-row { color: var(--ink); }
+  #tajweed .hasib-student-card .sc-act { flex-shrink: 0; }
   .tj-empty { text-align: center; color: var(--muted); font-size: 0.85rem; padding: 1.5rem 0; }
   .tj-card-form > * { margin-bottom: 0.5rem; }
   .tj-form-btns { display: flex; gap: 0.5rem; }
@@ -1450,6 +1451,154 @@ var AUTH_STORAGE_KEY = 'sb-btosiqsrpvrjajwhyrph-auth-token';
   </div>
 
   <div class="tj-panel" id="tjPanel_follow"></div>
+  <div class="tj-panel" id="tjPanel_calc">
+    <div class="sched-view-toggle">
+      <button class="filter-btn" onclick="tjcRefresh(this)" style="font-weight:700;padding:0.3rem 0.6rem;">⟳</button>
+      <button class="sched-view-btn active">حاسبة الدورة</button>
+    </div>
+
+
+    <div class="summary-bar" style="gap:0.4rem;grid-template-columns:repeat(4,1fr);">
+      <div class="sum-chip" id="tjc_sumChip_all" onclick="tjcSetFilter('all')" style="cursor:pointer;padding:0.5rem 0.3rem;">
+        <div class="sum-num" id="tjc_sumTotal" style="font-size:1.1rem;">0</div>
+        <div class="sum-lbl" style="font-size:0.68rem;">إجمالي</div>
+      </div>
+      <div class="sum-chip" id="tjc_sumChip_paid" onclick="tjcSetFilter('paid')" style="cursor:pointer;padding:0.5rem 0.3rem;">
+        <div class="sum-num green" id="tjc_sumPaid" style="font-size:1.1rem;">0</div>
+        <div class="sum-lbl" style="font-size:0.68rem;">دفعت</div>
+      </div>
+      <div class="sum-chip" id="tjc_sumChip_pending" onclick="tjcSetFilter('pending')" style="cursor:pointer;padding:0.5rem 0.3rem;">
+        <div class="sum-num" id="tjc_sumUnpaid" style="color:var(--muted);font-size:1.1rem;">0</div>
+        <div class="sum-lbl" style="font-size:0.68rem;">لم تدفع</div>
+      </div>
+      <div class="sum-chip" id="tjc_sumChip_kafala" onclick="tjcSetFilter('kafala')" style="cursor:pointer;padding:0.5rem 0.3rem;">
+        <div class="sum-num" id="tjc_sumFree" style="color:var(--wine);font-size:1.1rem;">0</div>
+        <div class="sum-lbl" style="font-size:0.68rem;">مجاني</div>
+      </div>
+    </div>
+
+    <div class="list-header">
+      <span>قائمة الطالبات</span>
+      <span onclick="tjcClear()" style="cursor:pointer;font-size:0.85rem;color:#c0392b;">🗑️ إفراغ الحاسبة</span>
+    </div>
+    <div id="tjc_hasibStudentList"></div>
+
+    <div class="hasib-collapsible" id="tjc_hasibPaymentBlock">
+      <div class="hasib-collapsible-header" onclick="tjcToggleBlock('hasibPaymentBlock')">
+        <span>📊 ملخص طرق الدفع</span>
+        <span class="chev">‹</span>
+      </div>
+      <div class="hasib-collapsible-body">
+
+    <div class="totals-card">
+      <div class="totals-grid">
+        <div class="total-row">
+          <span class="total-label">🇴🇲 تحويل عُماني</span>
+          <span style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;">
+            <span class="total-value" id="tjc_countOMR" style="color:var(--muted);font-size:0.85rem;">0 طالبة</span>
+            <span class="total-value" id="tjc_totalOMR" style="color:var(--wine-light)">0 ر.ع</span>
+          </span>
+        </div>
+        <div class="total-row">
+          <span class="total-label">📱 STC / Apple Pay</span>
+          <span style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;">
+            <span class="total-value" id="tjc_countSTC" style="color:var(--muted);font-size:0.85rem;">0 طالبة</span>
+            <span class="total-value" id="tjc_totalSTC" style="color:var(--wine-light)">0 ر.س</span>
+          </span>
+        </div>
+        <div class="total-row">
+          <span class="total-label">💳 مدى</span>
+          <span style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;">
+            <span class="total-value" id="tjc_countMada" style="color:var(--muted);font-size:0.85rem;">0 طالبة</span>
+            <span class="total-value" id="tjc_totalMada" style="color:var(--wine-light)">0 ر.س</span>
+          </span>
+        </div>
+        <div class="total-row">
+          <span class="total-label">💳 Visa / Mastercard</span>
+          <span style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;">
+            <span class="total-value" id="tjc_countVisa" style="color:var(--muted);font-size:0.85rem;">0 طالبة</span>
+            <span class="total-value" id="tjc_totalVisa" style="color:var(--wine-light)">0 ر.س</span>
+          </span>
+        </div>
+        <div class="total-row" id="tjc_totalCustomRow" style="display:none">
+          <span class="total-label" id="tjc_customLabelDisplay">💳 طريقة دفع أخرى</span>
+          <span style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;">
+            <span class="total-value" id="tjc_countCustom" style="color:var(--muted);font-size:0.85rem;">0 طالبة</span>
+            <span class="total-value" id="tjc_totalCustom" style="color:var(--wine-light)">0 ر.س</span>
+          </span>
+        </div>
+        <div class="total-row" style="border-top:1px solid var(--border);margin-top:0.3rem;padding-top:0.6rem">
+          <span class="total-label">الإجمالي (سعودي)</span><span class="total-value green" id="tjc_totalSAR">0 ر.س</span>
+        </div>
+      </div>
+
+      <div style="margin-top:0.9rem;padding-top:0.9rem;border-top:1px dashed var(--border);">
+        <div style="font-size:0.72rem;color:var(--muted);margin-bottom:0.4rem;">💳 طريقة دفع أخرى</div>
+        <div style="display:flex;flex-direction:column;gap:0.4rem;">
+          <input id="tjc_customPayLabel" placeholder="الاسم" onblur="tjcSaveCustomPay()"
+            style="box-sizing:border-box;width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.7rem;font-family:'Cairo';font-size:0.78rem;color:var(--ink);outline:none;">
+          <input id="tjc_customPayAmount" type="number" step="0.01" placeholder="المبلغ ر.س" onblur="tjcSaveCustomPay()"
+            style="box-sizing:border-box;width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.7rem;font-family:'Cairo';font-size:0.78rem;color:var(--ink);outline:none;">
+        </div>
+      </div>
+    </div>
+
+      </div>
+    </div>
+
+    <div class="hasib-collapsible" id="tjc_hasibObligBlock">
+      <div class="hasib-collapsible-header" onclick="tjcToggleBlock('hasibObligBlock')">
+        <span>💸 الالتزامات</span>
+        <span class="chev">‹</span>
+      </div>
+      <div class="hasib-collapsible-body">
+
+    <div class="totals-card">
+      <div class="totals-grid" id="tjc_obligList"></div>
+
+      <div id="tjc_addObligForm" style="display:none;margin-top:1rem;padding-top:1rem;border-top:1px dashed var(--border);">
+        <div style="font-size:0.75rem;color:var(--wine);font-weight:700;margin-bottom:0.6rem;">➕ التزام جديد</div>
+        <div style="display:grid;grid-template-columns:1fr;gap:0.5rem;">
+          <input id="tjc_newObligLabel" placeholder="اسم الالتزام (مثل: استضافة الموقع)"
+            style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.55rem 0.8rem;font-family:'Cairo';font-size:0.85rem;color:var(--ink);outline:none;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+            <input id="tjc_newObligAmount" type="number" step="0.01" placeholder="المبلغ"
+              style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.55rem 0.8rem;font-family:'Cairo';font-size:0.85rem;color:var(--ink);outline:none;">
+            <select id="tjc_newObligCurrency"
+              style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.55rem 0.8rem;font-family:'Cairo';font-size:0.85rem;color:var(--ink);outline:none;">
+              <option value="omr">ر.ع (عُماني)</option>
+              <option value="sar">ر.س (سعودي)</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:0.5rem;">
+            <button onclick="tjcAddOblig()" style="flex:1;padding:0.55rem;border-radius:8px;border:none;background:linear-gradient(135deg,var(--wine),var(--wine-light));color:white;font-family:'Cairo';font-size:0.85rem;font-weight:700;cursor:pointer;">إضافة ✓</button>
+            <button onclick="tjcToggleAddOblig()" style="padding:0.55rem 1rem;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Cairo';font-size:0.85rem;cursor:pointer;">إلغاء</button>
+          </div>
+        </div>
+      </div>
+
+      <button id="tjc_toggleAddObligBtn" onclick="tjcToggleAddOblig()"
+        style="width:100%;margin-top:0.8rem;padding:0.55rem;border-radius:8px;border:1px dashed var(--border);background:transparent;color:var(--muted);font-family:'Cairo';font-size:0.82rem;cursor:pointer;">
+        ➕ إضافة التزام جديد
+      </button>
+    </div>
+
+      </div>
+    </div>
+
+    <div class="totals-card" style="text-align:center;background:linear-gradient(135deg,var(--wine),var(--wine-light));color:white;">
+      <div class="totals-title" style="color:white;justify-content:center;">💰 الإجمالي الكلي</div>
+      <div class="total-value green" id="tjc_grandTotal" style="font-size:1.6rem;font-weight:800;color:white;display:block;margin-top:0.4rem;">0 ر.ع</div>
+      <!-- العناصر التالية مخفية بصريًا، موجودة بس عشان الحسابات الداخلية تستمر تشتغل صحيح -->
+      <div style="display:none;">
+        <span id="tjc_grandOMR">0</span><span id="tjc_grandSARtoOMR">0</span>
+        <span id="tjc_grandBeforeOblig">0</span><span id="tjc_obligPaid">0</span>
+      </div>
+    </div>
+
+    
+  </div>
+
   <div class="tj-panel" id="tjPanel_schedule"></div>
 
   <div class="tj-panel" id="tjPanel_admin">
@@ -1476,6 +1625,7 @@ var AUTH_STORAGE_KEY = 'sb-btosiqsrpvrjajwhyrph-auth-token';
     <div class="tab" data-tj="home" onclick="tajweedShowView('home')"><span class="tab-icon">🏠</span>الرئيسية</div>
     <div class="tab" data-tj="students" onclick="tajweedShowView('students')"><span class="tab-icon">👩‍🎓</span>الطالبات</div>
     <div class="tab" data-tj="follow" onclick="tajweedShowView('follow')"><span class="tab-icon">📋</span>المتابعة</div>
+    <div class="tab" data-tj="calc" onclick="tajweedShowView('calc')"><span class="tab-icon">🧮</span>الحاسبة</div>
     <div class="tab" data-tj="schedule" onclick="tajweedShowView('schedule')"><span class="tab-icon">📅</span>المواعيد</div>
   </div>
 </div>
@@ -1979,7 +2129,7 @@ const ALL_DATA_KEYS = [
   'madad_talqeen_tasks', 'madad_talqeen_team', 'madad_talqeen_schedule',
   'hasibat_madad', 'hasibat_custom_pay', 'hasibat_obligations',
   'madad_finance_balance', 'madad_finance_total', 'madad_finance_expenses',
-  'madad_tajweed_students',
+  'madad_tajweed_students', 'madad_tajweed_calc', 'madad_tajweed_calc_pay', 'madad_tajweed_calc_oblig',
   'madad_ideas_categories_tajweed', 'madad_ideas_list_tajweed',
   'madad_ideas_categories_tamkeen', 'madad_ideas_list_tamkeen',
   'madad_ideas_categories_tilawah', 'madad_ideas_list_tilawah',
@@ -2260,7 +2410,7 @@ function tjLevelOptions(sel) {
 
 function tajweedShowView(view) {
   tajweedView = view;
-  ['home', 'students', 'follow', 'schedule', 'admin'].forEach(v => {
+  ['home', 'students', 'follow', 'calc', 'schedule', 'admin'].forEach(v => {
     document.getElementById('tjPanel_' + v).classList.toggle('active', v === view);
   });
   document.querySelectorAll('#tjTabbar .tab').forEach(t => t.classList.toggle('active', t.dataset.tj === view));
@@ -2268,6 +2418,7 @@ function tajweedShowView(view) {
   document.getElementById('tajweedTitle').textContent = view === 'admin' ? '🗃️ الإدارة' : '📝 مداد التجويد';
   if (view === 'home') renderTajweedHome();
   if (view === 'students') renderTajweedStudents();
+  if (view === 'calc') tjcRender();
   window.scrollTo(0, 0);
 }
 
@@ -2296,8 +2447,11 @@ function tjAddStudent() {
   const nameEl = document.getElementById('tjNewName');
   const name = nameEl.value.trim();
   if (!name) { nameEl.focus(); return; }
+  const newId = Date.now();
+  tjCalc.push({ id: newId, pay: 'pending' });
+  tjcSave();
   tjStudents.push({
-    id: Date.now(),
+    id: newId,
     name,
     age: document.getElementById('tjNewAge').value.trim(),
     level: document.getElementById('tjNewLevel').value || TJ_LEVELS[0]
@@ -2327,7 +2481,9 @@ function tjDeleteStudent(id) {
   const s = tjStudents.find(x => x.id === id);
   if (!s || !confirm('حذف الطالبة «' + s.name + '»؟')) return;
   tjStudents = tjStudents.filter(x => x.id !== id);
+  tjCalc = tjCalc.filter(x => x.id !== id);
   tjSave();
+  tjcSave();
   renderTajweedStudents();
 }
 
@@ -2350,6 +2506,7 @@ function renderTajweedStudents() {
         <span class="sc-num">${toAr(i + 1)}</span>
         <div class="sc-name">${tjEsc(s.name)}</div>
         <div class="sc-acts">
+          ${tjCalc.some(c => c.id === s.id) ? '' : `<button class="sc-act" title="إضافة للحاسبة" onclick="tjcAddStudent(${s.id})">🧮</button>`}
           <button class="sc-act" onclick="tjStartEdit(${s.id})">✏️</button>
           <button class="sc-act" onclick="tjDeleteStudent(${s.id})">🗑</button>
         </div>
@@ -9869,6 +10026,7 @@ async function initAppData() {
   renderStudents();
 
   tjLoad();
+  tjcLoadAll();
   await loadIdeas('tajweed');
   renderIdeas('tajweed');
   await loadIdeas('tamkeen');
@@ -10065,6 +10223,342 @@ supabaseClient
     if (tajweedView === 'students' && tjEditId === null) renderTajweedStudents();
   })
   .subscribe();
+
+// ===================== حاسبة التجويد (منفصلة تمامًا عن حاسبة التلقين) =====================
+const TJC_KEY = 'madad_tajweed_calc';
+const TJC_PAY_KEY = 'madad_tajweed_calc_pay';
+const TJC_OBLIG_KEY = 'madad_tajweed_calc_oblig';
+const TJC_SAR_TO_OMR = 0.102561;
+const TJC_AMOUNTS = {
+  omani:   { amount: 10,    currency: 'ر.ع', type: 'omani' },
+  stc:     { amount: 92.23, currency: 'ر.س', type: 'saudi' },
+  mada:    { amount: 92.58, currency: 'ر.س', type: 'saudi' },
+  visa:    { amount: 91.14, currency: 'ر.س', type: 'saudi' },
+  custom:  { amount: 0,     currency: 'ر.س', type: 'saudi' },
+  pending: { amount: 0,     currency: '',    type: 'pending' },
+  kafala:  { amount: 0,     currency: '',    type: 'kafala' },
+};
+const TJC_LABELS = {
+  omani: '🇴🇲 تحويل عُماني', stc: '📱 STC / Apple Pay', mada: '💳 مدى',
+  visa: '💳 Visa / Mastercard', custom: '💳 طريقة دفع أخرى', pending: '⏳ لم تدفع بعد',
+  kafala: '🪑 مجاني',
+};
+let tjCalc = [];            // [{id, pay}] — الطالبة تظهر بالحاسبة إذا لها سطر هنا
+let tjcFilter = 'all';
+let tjcCustomPay = { label: '', amount: 0 };
+let tjcObligations = [];
+const tjc = id => document.getElementById('tjc_' + id);
+
+function tjcLoadAll() {
+  const read = (k, def) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? def : v; } catch (e) { return def; } };
+  const c = read(TJC_KEY, []);
+  tjCalc = Array.isArray(c) ? c : [];
+  const cp = read(TJC_PAY_KEY, { label: '', amount: 0 });
+  tjcCustomPay = cp && typeof cp === 'object' ? cp : { label: '', amount: 0 };
+  const o = read(TJC_OBLIG_KEY, []);
+  tjcObligations = Array.isArray(o) ? o : [];
+  if (tjc('customPayLabel')) {
+    tjc('customPayLabel').value = tjcCustomPay.label || '';
+    tjc('customPayAmount').value = tjcCustomPay.amount || '';
+  }
+  tjcUpdateCustomUI();
+  tjcRenderObligList();
+  tjcRender();
+}
+function tjcSave() {
+  localStorage.setItem(TJC_KEY, JSON.stringify(tjCalc));
+  syncPush(TJC_KEY);
+}
+function tjcSaveObligations() {
+  localStorage.setItem(TJC_OBLIG_KEY, JSON.stringify(tjcObligations));
+  syncPush(TJC_OBLIG_KEY);
+}
+
+async function tjcRefresh(btn) {
+  if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+  await syncPullAll();
+  tjLoad();
+  tjcLoadAll();
+  if (btn) { btn.textContent = '⟳'; btn.disabled = false; }
+  showToast('✅ تم التحديث');
+}
+
+function tjcToggleBlock(id) {
+  const el = tjc(id);
+  if (el) el.classList.toggle('open');
+}
+function tjcSetFilter(f) { tjcFilter = f; tjcRender(); }
+
+// طريقة دفع أخرى
+function tjcSaveCustomPay() {
+  tjcCustomPay.label = tjc('customPayLabel').value.trim();
+  tjcCustomPay.amount = parseFloat(tjc('customPayAmount').value) || 0;
+  localStorage.setItem(TJC_PAY_KEY, JSON.stringify(tjcCustomPay));
+  syncPush(TJC_PAY_KEY);
+  tjcUpdateCustomUI();
+  tjcRender();
+}
+function tjcUpdateCustomUI() {
+  const row = tjc('totalCustomRow');
+  const lbl = tjc('customLabelDisplay');
+  if (tjcCustomPay.label && tjcCustomPay.amount > 0) {
+    TJC_AMOUNTS.custom.amount = tjcCustomPay.amount;
+    TJC_LABELS.custom = '💳 ' + tjcCustomPay.label;
+    if (row) row.style.display = '';
+    if (lbl) lbl.textContent = '💳 ' + tjcCustomPay.label;
+  } else if (row) row.style.display = 'none';
+}
+
+// الالتزامات
+function tjcRenderObligList() {
+  const el = tjc('obligList');
+  if (!el) return;
+  if (!tjcObligations.length) {
+    el.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:0.85rem;padding:0.8rem;">لا توجد التزامات</div>';
+    return;
+  }
+  el.innerHTML = '';
+  tjcObligations.forEach((o, idx) => {
+    const row = document.createElement('div');
+    row.className = 'total-row';
+    row.style.gap = '0.5rem';
+    row.style.flexWrap = 'wrap';
+    row.innerHTML = `
+      <span class="total-label" contenteditable="true" onblur="tjcEditOblig(${idx},'label',this.innerText.trim())"
+        style="outline:none;cursor:text;flex:1;min-width:120px;">${tjEsc(o.label)}</span>
+      <span style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;">
+        <input type="number" step="0.01" value="${Number(o.amount) || 0}" onblur="tjcEditOblig(${idx},'amount',this.value)"
+          style="width:70px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:0.3rem 0.5rem;font-family:'Cairo';font-size:0.8rem;color:var(--ink);outline:none;text-align:center;">
+        <select onchange="tjcEditOblig(${idx},'currency',this.value)"
+          style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:0.3rem 0.4rem;font-family:'Cairo';font-size:0.75rem;color:var(--ink);outline:none;cursor:pointer;">
+          <option value="omr" ${o.currency === 'omr' ? 'selected' : ''}>ر.ع</option>
+          <option value="sar" ${o.currency === 'sar' ? 'selected' : ''}>ر.س</option>
+        </select>
+        <button class="oblig-btn ${o.paid ? 'paid' : ''}" onclick="tjcToggleOblig(${idx})" style="font-size:0.75rem;">${o.paid ? 'تم السداد ✅' : 'لم يتم السداد'}</button>
+        <button onclick="tjcDeleteOblig(${idx})" style="background:none;border:none;color:rgba(184,66,95,0.4);cursor:pointer;font-size:0.85rem;padding:0 0.2rem;" title="حذف">✕</button>
+      </span>`;
+    el.appendChild(row);
+  });
+}
+function tjcEditOblig(idx, field, val) {
+  if (!tjcObligations[idx]) return;
+  if (field === 'amount') tjcObligations[idx].amount = parseFloat(val) || 0;
+  else tjcObligations[idx][field] = val;
+  tjcSaveObligations();
+  if (field === 'currency') tjcRenderObligList();
+  tjcRender();
+}
+function tjcToggleOblig(idx) {
+  if (!tjcObligations[idx]) return;
+  tjcObligations[idx].paid = !tjcObligations[idx].paid;
+  tjcSaveObligations();
+  tjcRenderObligList();
+  tjcRender();
+  showToast(tjcObligations[idx].paid ? 'تم السداد ✅' : 'تم إلغاء السداد');
+}
+function tjcDeleteOblig(idx) {
+  tjcObligations.splice(idx, 1);
+  tjcSaveObligations();
+  tjcRenderObligList();
+  tjcRender();
+  showToast('تم الحذف');
+}
+function tjcToggleAddOblig() {
+  const form = tjc('addObligForm');
+  const btn = tjc('toggleAddObligBtn');
+  const open = form.style.display !== 'none';
+  form.style.display = open ? 'none' : 'block';
+  btn.style.display = open ? 'block' : 'none';
+  if (!open) tjc('newObligLabel').focus();
+}
+function tjcAddOblig() {
+  const label = tjc('newObligLabel').value.trim();
+  const amount = parseFloat(tjc('newObligAmount').value) || 0;
+  const currency = tjc('newObligCurrency').value;
+  if (!label) { showToast('اكتبي اسم الالتزام'); return; }
+  if (amount <= 0) { showToast('اكتبي مبلغاً صحيحاً'); return; }
+  tjcObligations.push({ id: 'oblig_' + Date.now(), label, amount, currency, paid: false });
+  tjcSaveObligations();
+  tjcRenderObligList();
+  tjcRender();
+  tjc('newObligLabel').value = '';
+  tjc('newObligAmount').value = '';
+  tjc('newObligCurrency').value = 'omr';
+  tjcToggleAddOblig();
+  showToast('تمت إضافة الالتزام ✅');
+}
+function tjcObligTotalOMR() {
+  let total = 0;
+  tjcObligations.forEach(o => {
+    if (!o.paid) return;
+    total += o.currency === 'omr' ? o.amount : o.amount * TJC_SAR_TO_OMR;
+  });
+  return total;
+}
+
+// الطالبات داخل الحاسبة
+function tjcTogglePaySel(id) { tjc('paysel_' + id).classList.toggle('open'); }
+function tjcChangePay(id, val) {
+  const c = tjCalc.find(x => x.id === id);
+  if (c && val) { c.pay = val; tjcSave(); tjcRender(); showToast('تم التحديث ✅'); }
+}
+function tjcAddStudent(id) {
+  if (!tjStudents.some(s => s.id === id) || tjCalc.some(c => c.id === id)) return;
+  tjCalc.push({ id, pay: 'pending' });
+  tjcSave();
+  renderTajweedStudents();
+  showToast('انضافت للحاسبة ✅');
+}
+function tjcRemoveStudent(id) {
+  const s = tjStudents.find(x => x.id === id);
+  if (!s) return;
+  showConfirmModal(
+    '➖ إزالة من الحاسبة',
+    'إزالة «' + tjEsc(s.name) + '» من الحاسبة؟ تبقى في قائمة الطالبات ما تنحذف.',
+    () => {
+      tjCalc = tjCalc.filter(c => c.id !== id);
+      tjcSave();
+      tjcRender();
+      showToast('تمت الإزالة من الحاسبة ✅');
+    }
+  );
+}
+function tjcClear() {
+  showConfirmModal(
+    '🗑️ إفراغ الحاسبة',
+    'تنشال كل الطالبات من الحاسبة. تبقى في قائمة الطالبات، وترجعينها وحدة وحدة بزر 🧮 في بطاقتها.',
+    () => {
+      tjCalc = [];
+      tjcSave();
+      tjcRender();
+      renderTajweedStudents();
+      showToast('تم إفراغ الحاسبة ✅');
+    }
+  );
+}
+
+function tjcRender() {
+  if (!tjc('hasibStudentList')) return;
+  const byId = new Map(tjStudents.map(s => [s.id, s]));
+  const visible = tjCalc.filter(c => byId.has(c.id));
+  const cnt = p => visible.filter(c => c.pay === p).length;
+  const paid = visible.filter(c => c.pay !== 'pending' && c.pay !== 'kafala');
+  const unpaid = visible.filter(c => c.pay === 'pending');
+  const free = visible.filter(c => c.pay === 'kafala');
+
+  tjc('sumTotal').textContent = visible.length;
+  tjc('sumPaid').textContent = paid.length;
+  tjc('sumUnpaid').textContent = unpaid.length;
+  tjc('sumFree').textContent = free.length;
+  ['all', 'paid', 'pending', 'kafala'].forEach(f => tjc('sumChip_' + f).classList.toggle('active', tjcFilter === f));
+
+  const omrTotal = cnt('omani') * 10;
+  const stcTotal = cnt('stc') * 92.23;
+  const madaTotal = cnt('mada') * 92.58;
+  const visaTotal = cnt('visa') * 91.14;
+  const customTotal = cnt('custom') * (tjcCustomPay.amount || 0);
+  const sarTotal = stcTotal + madaTotal + visaTotal + customTotal;
+  const grandBefore = omrTotal + sarTotal * TJC_SAR_TO_OMR;
+  const obligTotal = tjcObligTotalOMR();
+  const grandTotal = grandBefore - obligTotal;
+
+  tjc('countOMR').textContent = cnt('omani') + ' طالبة';
+  tjc('totalOMR').textContent = omrTotal ? omrTotal.toFixed(3) + ' ر.ع' : '0 ر.ع';
+  tjc('countSTC').textContent = cnt('stc') + ' طالبة';
+  tjc('totalSTC').textContent = stcTotal ? stcTotal.toFixed(2) + ' ر.س' : '0 ر.س';
+  tjc('countMada').textContent = cnt('mada') + ' طالبة';
+  tjc('totalMada').textContent = madaTotal ? madaTotal.toFixed(2) + ' ر.س' : '0 ر.س';
+  tjc('countVisa').textContent = cnt('visa') + ' طالبة';
+  tjc('totalVisa').textContent = visaTotal ? visaTotal.toFixed(2) + ' ر.س' : '0 ر.س';
+  tjc('countCustom').textContent = cnt('custom') + ' طالبة';
+  tjc('totalCustom').textContent = customTotal ? customTotal.toFixed(2) + ' ر.س' : '0 ر.س';
+  tjc('totalSAR').textContent = sarTotal ? sarTotal.toFixed(2) + ' ر.س' : '0 ر.س';
+  tjc('grandTotal').textContent = grandTotal ? grandTotal.toFixed(3) + ' ر.ع' : '0 ر.ع';
+
+  let list = visible;
+  if (tjcFilter === 'paid') list = paid;
+  if (tjcFilter === 'pending') list = unpaid;
+  if (tjcFilter === 'kafala') list = free;
+  list = list.map(c => ({ ...c, name: firstTwoWords(byId.get(c.id).name) }))
+             .sort((a, b) => a.name.trim().localeCompare(b.name.trim(), 'ar'));
+
+  const el = tjc('hasibStudentList');
+  el.innerHTML = '';
+  if (!list.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">👩‍🎓</div><div>لا توجد طالبات</div></div>';
+    return;
+  }
+  const customOpt = (tjcCustomPay.label && tjcCustomPay.amount > 0)
+    ? `<option value="custom" __SEL__>💳 ${tjEsc(tjcCustomPay.label)}</option>` : '';
+  const appendCard = (s, idx) => {
+    const info = TJC_AMOUNTS[s.pay] || TJC_AMOUNTS.pending;
+    const isPending = s.pay === 'pending';
+    const card = document.createElement('div');
+    card.className = 'hasib-student-card' + (isPending ? ' unpaid' : '');
+    const displayAmount = s.pay === 'custom' ? (tjcCustomPay.amount || 0) : info.amount;
+    const displayLabel = s.pay === 'custom' ? '💳 ' + tjEsc(tjcCustomPay.label) : TJC_LABELS[s.pay];
+    card.innerHTML = `
+      <span class="hasib-student-num">${idx + 1}</span>
+      <div class="student-info">
+        <div class="student-name-text" style="display:flex;align-items:center;justify-content:space-between;gap:0.4rem;">
+          <span>${tjEsc(s.name)}</span>
+          <button class="sc-act" title="إزالة من الحاسبة" onclick="tjcRemoveStudent(${s.id})">✕</button>
+        </div>
+        <span class="pay-badge ${info.type}">${displayLabel}</span>
+        <button class="change-pay-btn" onclick="tjcTogglePaySel(${s.id})">تغيير طريقة الدفع ▾</button>
+        <select class="inline-pay-select" id="tjc_paysel_${s.id}" onchange="tjcChangePay(${s.id}, this.value)">
+          <option value="">— اختاري —</option>
+          <optgroup label="💸 مدفوع">
+            <option value="omani" ${s.pay === 'omani' ? 'selected' : ''}>🇴🇲 تحويل عُماني</option>
+            <option value="stc" ${s.pay === 'stc' ? 'selected' : ''}>📱 STC / Apple Pay</option>
+            <option value="mada" ${s.pay === 'mada' ? 'selected' : ''}>💳 مدى</option>
+            <option value="visa" ${s.pay === 'visa' ? 'selected' : ''}>💳 Visa / Mastercard</option>
+            ${customOpt.replace('__SEL__', s.pay === 'custom' ? 'selected' : '')}
+            <option value="pending" ${s.pay === 'pending' ? 'selected' : ''}>⏳ لم تدفع بعد</option>
+          </optgroup>
+          <option value="kafala" ${s.pay === 'kafala' ? 'selected' : ''}>🪑 مجاني</option>
+        </select>
+      </div>
+      <div class="student-amount">
+        ${isPending ? '<div class="amount-num pending">لم تدفع</div>'
+          : `<div class="amount-num ${info.type}">${displayAmount.toFixed(2)}</div><div class="amount-currency">${info.currency}</div>`}
+      </div>`;
+    el.appendChild(card);
+  };
+  if (tjcFilter === 'paid') {
+    [{ title: 'المتجر', methods: ['stc', 'mada', 'visa'] }, { title: 'التحويل', methods: ['omani'] }, { title: 'طريقة أخرى', methods: ['custom'] }].forEach(g => {
+      const members = list.filter(s => g.methods.includes(s.pay));
+      if (!members.length) return;
+      const header = document.createElement('div');
+      header.className = 'list-header hasib-group-title';
+      header.innerHTML = `<span>${g.title}</span><span>${members.length}</span>`;
+      el.appendChild(header);
+      members.forEach(appendCard);
+    });
+  } else list.forEach(appendCard);
+}
+
+// تحديث لحظي للحاسبة (بين الأجهزة)
+[
+  [TJC_KEY, v => { tjCalc = Array.isArray(v) ? v : []; }],
+  [TJC_PAY_KEY, v => { if (v && typeof v === 'object') tjcCustomPay = v; }],
+  [TJC_OBLIG_KEY, v => { tjcObligations = Array.isArray(v) ? v : []; }],
+].forEach(([key, apply]) => {
+  supabaseClient
+    .channel(key + '_channel')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'madad_sync', filter: 'key=eq.' + key }, (payload) => {
+      if (isOwnEcho(key, payload.new && payload.new.updated_at)) return;
+      const v = payload.new && payload.new.value;
+      if (v === undefined || v === null) return;
+      localStorage.setItem(key, JSON.stringify(v));
+      apply(v);
+      tjcUpdateCustomUI();
+      tjcRenderObligList();
+      tjcRender();
+      if (tajweedView === 'students' && tjEditId === null) renderTajweedStudents();
+    })
+    .subscribe();
+});
 
 // تحديث لحظي لأفكار التجويد والتمكين والتلاوة والتفسير
 ['tajweed','tamkeen','tilawah','tafsir'].forEach(screen => {
