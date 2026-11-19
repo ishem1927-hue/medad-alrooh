@@ -82,11 +82,37 @@ function build(key){
  }
  cache[key]=pieces;return pieces;
 }
+
+var HL={
+ g1:[[800,398],[355,560],[530,810],[110,420],[720,700],[722,960],[800,480],[262,880],[510,615],[180,545]],
+ g2:[[720,700],[110,420],[510,615],[800,398],[815,950],[530,810],[800,480],[355,560],[180,545],[262,880]]
+};
+function parsePoly(str){return str.split(' ').map(function(s){var a=s.split(',');return[+a[0],+a[1]]})}
+function inPoly(px,py,pts){var c=false;for(var i=0,j=pts.length-1;i<pts.length;j=i++){var xi=pts[i][0],yi=pts[i][1],xj=pts[j][0],yj=pts[j][1];if(((yi>py)!==(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi)+xi))c=!c}return c}
+var ordCache={};
+function orderFor(key){
+ if(ordCache[key])return ordCache[key];
+ var P=build(key),cfg=CFG[key],R=cfg.rows.length,rowOf=[],idx=0,i,polys=P.map(parsePoly);
+ cfg.rows.forEach(function(n,ri){for(var k=0;k<n;k++)rowOf[idx++]=ri});
+ var used={},first=[];
+ HL[key].forEach(function(pt){
+  var x=pt[0]-BX,y=pt[1]-BY,f=-1,bd=1e12;
+  for(i=0;i<P.length;i++)if(!used[i]&&inPoly(x,y,polys[i])){f=i;break}
+  if(f<0){for(i=0;i<P.length;i++){if(used[i])continue;var cx=0,cy=0;polys[i].forEach(function(q){cx+=q[0];cy+=q[1]});cx/=polys[i].length;cy/=polys[i].length;var dd=(cx-x)*(cx-x)+(cy-y)*(cy-y);if(dd<bd){bd=dd;f=i}}}
+  used[f]=1;first.push(f);
+ });
+ var r=rng(cfg.seed*7+3);
+ function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(r()*(i+1)),t=a[i];a[i]=a[j];a[j]=t}return a}
+ var up=[],low=[];
+ for(i=0;i<P.length;i++){if(used[i])continue;(rowOf[i]>=R-2?low:up).push(i)}
+ ordCache[key]=first.concat(shuffle(up),shuffle(low));
+ return ordCache[key];
+}
 function scene(key,pre){
- var cfg=CFG[key],P=build(key),d=Math.min(state[key].length,P.length);
+ var cfg=CFG[key],P=build(key),ord=orderFor(key),d=Math.min(state[key].length,P.length);
  var o='<svg viewBox="0 0 '+IW+' '+IH+'" role="img" aria-label="لوحة غرفة المنجزات"><defs><image id="im'+pre+'" width="'+IW+'" height="'+IH+'" href="'+cfg.img+'"/></defs><use href="#im'+pre+'"/>';
  o+='<svg x="'+BX+'" y="'+BY+'" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'"><g transform="translate(-'+BX+' -'+BY+')"><image href="'+cfg.img.replace('.jpg','g.jpg')+'" width="'+IW+'" height="'+IH+'"/></g>';
- for(var i=0;i<d;i++)o+='<clipPath id="'+pre+'c'+i+'"><polygon points="'+P[i]+'"/></clipPath><g clip-path="url(#'+pre+'c'+i+')"><g transform="translate(-'+BX+' -'+BY+')"><use href="#im'+pre+'"/></g></g>';
+ for(var i=0;i<d;i++)o+='<clipPath id="'+pre+'c'+i+'"><polygon points="'+P[ord[i]]+'"/></clipPath><g clip-path="url(#'+pre+'c'+i+')"><g transform="translate(-'+BX+' -'+BY+')"><use href="#im'+pre+'"/></g></g>';
  for(i=0;i<P.length;i++)o+='<polygon points="'+P[i]+'" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>';
  o+='</svg>';
  var left=Math.max(0,cfg.n-d),done=left===0;
