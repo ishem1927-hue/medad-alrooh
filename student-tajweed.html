@@ -47,6 +47,11 @@
   .tab.lk { opacity: 0.55; cursor: default; }
 
   .rect { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0.1rem; width: 100%; height: 5.4rem; margin-bottom: 0.7rem; padding: 0.6rem; border-radius: 18px; border: 1px solid #F0DE9E; background: var(--bar); color: var(--ink); font-family: 'Cairo'; cursor: pointer; }
+  .rect { position: relative; }
+  .dot { position: absolute; top: 0.6rem; left: 0.7rem; width: 0.7rem; height: 0.7rem; border-radius: 50%; }
+  .dot.ok { background: #5BA84E; }
+  .dot.half { background: #E58F2F; }
+  .dot.bad { background: #D4503E; }
   .rect .ri { font-size: 1.5rem; line-height: 1.2; }
   .rect .rt { font-size: 0.95rem; font-weight: 800; }
   .rect .rs { font-size: 0.72rem; color: var(--muted); }
@@ -86,6 +91,8 @@
   .note { background: var(--cream); border: 1px solid var(--border); border-radius: 12px; padding: 0.6rem 0.8rem; margin-bottom: 0.9rem; font-size: 0.86rem; line-height: 1.9; white-space: pre-wrap; word-break: break-word; }
   .note b { display: block; font-size: 0.78rem; color: var(--gold); margin-bottom: 0.15rem; }
   .mk { font-size: 0.74rem; font-weight: 700; margin: -0.3rem 0 0.8rem; }
+  .mks { display: flex; flex-wrap: wrap; gap: 0.2rem 0.8rem; margin-bottom: 0.4rem; }
+  .mks .mk { margin: 0; }
   .mk.ok { color: #3F7A34; }
   .mk.half { color: #B5651D; }
   .mk.bad { color: #B3402F; }
@@ -161,7 +168,6 @@ const HOMEWORK = {
 };
 const MAX_FILE = 4 * 1024 * 1024;
 const MAX_REC_SEC = 300;
-const MIN_BYTES_PER_SEC = 1500;   // أقل من هذا يعني التسجيل ناقص
 const HW_MAX = 5;
 
 function $(id) { return document.getElementById(id); }
@@ -277,7 +283,7 @@ function askConfirm(text, onYes) {
 }
 function logout() {
   try { localStorage.removeItem(SAVED_KEY); } catch (e) {}
-  stopMic(); releaseMic();
+  stopMic();
   S.code = ''; S.payload = null; S.wk = null; S.local = {};
   $('pName').textContent = ''; $('pLevel').textContent = ''; $('pAv').textContent = '';
   $('tabs').innerHTML = ''; $('weekBody').innerHTML = '';
@@ -296,9 +302,9 @@ function renderTabs() {
   }).join('');
 }
 
-function rect(id, icon, title, sub, locked) {
+function rect(id, icon, title, sub, locked, dot) {
   const open = !locked && S.open === id;
-  return `<button type="button" class="rect${open ? ' open' : ''}${locked ? ' lk' : ''}" ${locked ? '' : `data-act="fold" data-id="${id}"`}><span class="ri">${locked ? '🔒' : icon}</span><span class="rt">${title}</span>${sub ? `<span class="rs">${sub}</span>` : ''}</button>`;
+  return `<button type="button" class="rect${open ? ' open' : ''}${locked ? ' lk' : ''}" ${locked ? '' : `data-act="fold" data-id="${id}"`}>${dot ? `<i class="dot ${dot}"></i>` : ''}<span class="ri">${locked ? '🔒' : icon}</span><span class="rt">${title}</span>${sub ? `<span class="rs">${sub}</span>` : ''}</button>`;
 }
 
 function lessonCard(l, idx) {
@@ -331,7 +337,7 @@ function slotHtml(slot, label, ro) {
   if (ro) return `<div class="rec"><b>${label}</b><span class="tm">—</span></div>`;
   if (S.rec && S.rec.slot === slot) return `<div class="rec"><b>${label}</b><span class="tm" id="recTimer">0:00</span><button type="button" class="ic" data-act="stop">⏹</button></div>`;
   const busy = !!S.rec || S.up !== null;
-  return `<div class="rec"><b>${label}</b><span><button type="button" class="ic" data-act="mic" data-slot="${slot}" ${busy ? 'disabled' : ''}>🎙</button> <label class="ic" style="cursor:pointer">📎<input type="file" accept="audio/*" hidden data-slot="${slot}" ${busy ? 'disabled' : ''}></label></span></div>`;
+  return `<div class="rec"><b>${label}</b><span><button type="button" class="ic" data-act="mic" data-slot="${slot}" ${busy ? 'disabled' : ''}>🎙</button> <label class="ic" style="cursor:pointer">📎<input type="file" hidden data-slot="${slot}" ${busy ? 'disabled' : ''}></label></span></div>`;
 }
 
 function homeworkCard() {
@@ -340,8 +346,6 @@ function homeworkCard() {
   const ro = !canEdit();
   let h = '<div class="card hidden" id="c_hw">';
   if (sub === 'submitted') h += '<span class="done">✅ تم التسليم</span>';
-  const fb = S.wk.feedback;
-  if (fb && fb.note) h += `<div class="note"><b>ملاحظات المعلمة</b>${esc(fb.note)}</div>`;
   HOMEWORK[S.week].forEach(sec => {
     h += `<div class="sec">${sec.title}</div>`;
     sec.items.forEach((it, i) => { h += itemHtml(it, i + 1, ro); });
@@ -353,6 +357,27 @@ function homeworkCard() {
   }
   h += '<div class="msg" id="hwMsg"></div></div>';
   return h;
+}
+
+function feedbackLabel(it) {
+  return it.type === 'record' ? 'التطبيق العملي' : /^q\d$/.test(it.id) ? 'السؤال ' + toAr(it.id.slice(1)) : 'نشاط الدرس';
+}
+function feedbackDot() {
+  const m = (S.wk.feedback && S.wk.feedback.marks) || {};
+  const v = Object.values(m);
+  if (!v.length) return S.wk.feedback ? 'ok' : '';
+  return v.includes('bad') ? 'bad' : v.includes('half') ? 'half' : 'ok';
+}
+// ملاحظة المعلمة وملخص الصحيح والخاطئ: ظاهرة دائمًا بعد الرصد بدون فتح الواجب
+function feedbackCard() {
+  const fb = S.wk.feedback;
+  if (!fb || (!fb.note && !Object.keys(fb.marks || {}).length)) return '';
+  let h = '<div class="note"><b>ملاحظات المعلمة</b>';
+  const rows = [];
+  HOMEWORK[S.week].forEach(sec => sec.items.forEach(it => { const m = fb.marks && fb.marks[it.id]; if (m && MARK[m]) rows.push(`<span class="mk ${m}">${feedbackLabel(it)}: ${MARK[m]}</span>`); }));
+  if (rows.length) h += `<div class="mks">${rows.join('')}</div>`;
+  if (fb.note) h += `<div>${esc(fb.note)}</div>`;
+  return h + '</div>';
 }
 
 function gradesCard() {
@@ -370,7 +395,7 @@ function renderWeek() {
   const locked = hwState() === 'locked';
   body.innerHTML =
     rect('lesson', '📖', l.title, l.sub) + lessonCard(l, S.page || 0) +
-    rect('hw', '✍️', 'الواجب', '', locked) + (locked ? '' : homeworkCard()) +
+    rect('hw', '✍️', 'الواجب', '', locked, feedbackDot()) + (locked ? '' : homeworkCard()) + feedbackCard() +
     rect('gr', '📊', 'الدرجات', '') + gradesCard() +
     `<a class="btn" href="tajweed/booklet.pdf" download="مداد التجويد - المذكرة.pdf">⬇️ تحميل المذكرة</a>`;
   // القيم النصية
@@ -395,21 +420,13 @@ async function submitHw() {
   try {
     clearTimeout(S.saveT);
     const r = await rpc('tajweed_submit', { p_code: S.code, p_week: S.week, p_answers: S.answers });
-    if (r.status === 'ok') { S.editing = false; releaseMic(); await loadWeek(); renderAll(); return; }
+    if (r.status === 'ok') { S.editing = false; await loadWeek(); renderAll(); return; }
     await loadWeek(); S.editing = false; renderAll();
     hwMsg(r.status === 'closed' ? 'انتهت مهلة الواجب.' : 'تعذّر التسليم، حاولي مرة ثانية.');
   } catch (e) { hwMsg('تعذّر الاتصال، حاولي مرة ثانية.'); }
 }
 
 /* التسجيل الصوتي: يُرفع مباشرة كمسودة مخفية عن المعلمة لين التسليم */
-async function getStream() {
-  if (S.stream && S.stream.getAudioTracks().some(t => t.readyState === 'live')) return S.stream;
-  S.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  return S.stream;
-}
-function releaseMic() {
-  if (S.stream) { S.stream.getTracks().forEach(t => t.stop()); S.stream = null; }
-}
 function stopMic() {
   clearInterval(S.timer);
   if (S.rec && S.rec.mr && S.rec.mr.state !== 'inactive') { S.rec.cancel = true; try { S.rec.mr.stop(); } catch (e) {} }
@@ -419,7 +436,7 @@ async function startMic(slot) {
   hwMsg('');
   if (!window.MediaRecorder || !navigator.mediaDevices) { hwMsg('التسجيل المباشر غير متاح، استخدمي رفع ملف 📎'); return; }
   let stream;
-  try { stream = await getStream(); }
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
   catch (e) { hwMsg('تعذّر تشغيل المايك، استخدمي رفع ملف 📎'); return; }
   const mt = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg'].find(t => MediaRecorder.isTypeSupported(t));
   const mr = new MediaRecorder(stream, Object.assign({ audioBitsPerSecond: 32000 }, mt ? { mimeType: mt } : {}));
@@ -427,6 +444,7 @@ async function startMic(slot) {
   const info = { slot, mr, t0: Date.now(), cancel: false };
   mr.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
   mr.onstop = () => setTimeout(() => {
+    stream.getTracks().forEach(t => t.stop());
     clearInterval(S.timer);
     if (info.cancel) return;
     const type = mr.mimeType || mt || 'audio/webm';
@@ -435,7 +453,7 @@ async function startMic(slot) {
     uploadClip(slot, new Blob(chunks, { type }), type, dur, true);
   }, 120);
   S.rec = info;
-  mr.start(1000);
+  mr.start();
   renderWeek();
   S.timer = setInterval(() => {
     const t = (Date.now() - info.t0) / 1000;
@@ -474,10 +492,6 @@ function readB64(blob) {
 }
 async function uploadClip(slot, blob, type, dur, fromMic) {
   hwMsg('');
-  if (fromMic && (blob.size < 1000 || blob.size / Math.max(dur, 1) < MIN_BYTES_PER_SEC)) {
-    hwMsg('التسجيل ما انحفظ كامل، أعيدي التسجيل أو ارفعي ملف 📎');
-    renderWeek(); return;
-  }
   S.up = slot; renderWeek();
   try {
     const data = await readB64(blob);
@@ -570,14 +584,13 @@ async function refreshState() {
 }
 setInterval(refreshState, 60000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshState(); });
-window.addEventListener('pagehide', releaseMic);
 
 /* الأحداث (تفويض واحد) */
 $('weekBody').addEventListener('click', e => {
   const t = e.target.closest('[data-act]');
   if (!t) return;
   const act = t.dataset.act;
-  if (act === 'fold') { S.open = S.open === t.dataset.id ? null : t.dataset.id; if (S.open !== 'hw' && !S.rec) releaseMic(); renderWeek(); }
+  if (act === 'fold') { S.open = S.open === t.dataset.id ? null : t.dataset.id; renderWeek(); }
   else if (act === 'pick') { S.answers[t.dataset.q] = t.dataset.v; scheduleSave(); renderWeek(); }
   else if (act === 'zoom') openZoom(t.src);
   else if (act === 'prev' || act === 'next') {
