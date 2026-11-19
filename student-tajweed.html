@@ -29,7 +29,7 @@
   .code-input:focus { outline: none; border-color: var(--gold); }
   .btn { display: block; width: 100%; margin-top: 0.9rem; padding: 0.7rem; border: none; border-radius: 14px; background: var(--bar); color: var(--gold); font-family: 'Cairo'; font-size: 0.95rem; font-weight: 800; cursor: pointer; text-align: center; text-decoration: none; }
   .btn:disabled { opacity: 0.55; }
-  .msg { margin-top: 0.7rem; font-size: 0.82rem; color: var(--red); min-height: 1.2rem; }
+  .msg { margin-top: 0.7rem; font-size: 0.82rem; color: var(--red); min-height: 1.2rem; white-space: pre-line; line-height: 1.9; }
   .contact { margin-top: 1.3rem; font-size: 0.8rem; color: var(--muted); }
   .contact a { color: var(--gold); font-weight: 700; text-decoration: none; }
 
@@ -42,7 +42,7 @@
   .level { display: inline-block; margin-top: 0.2rem; background: var(--bar); color: var(--gold); font-size: 0.74rem; font-weight: 800; padding: 0.15rem 0.7rem; border-radius: 9px; }
 
   .tabs { margin-bottom: 0.9rem; }
-  .tabsT { font-weight: 800; font-size: 0.95rem; margin-bottom: 0.4rem; }
+  .tabsT { margin-bottom: 0.4rem; padding: 0.4rem 0; border-radius: 14px; border: 1px solid #F0DE9E; background: var(--bar); color: var(--ink); text-align: center; font-weight: 800; font-size: 0.9rem; }
   .tabsR { display: flex; gap: 0.25rem; }
   .tab { flex: 1; min-width: 0; text-align: center; border: 1px solid var(--border); background: #fff; border-radius: 9px; padding: 0.25rem 0; font-family: 'Cairo'; font-size: 0.7rem; font-weight: 400; color: var(--muted); cursor: pointer; white-space: nowrap; }
   .tab i { display: block; font-style: normal; font-size: 0.55rem; line-height: 1; }
@@ -92,6 +92,7 @@
   .sm { border: none; border-radius: 10px; background: var(--bar); color: var(--gold); font-family: 'Cairo'; font-weight: 800; font-size: 0.8rem; padding: 0.35rem 0.9rem; cursor: pointer; }
   .done { display: inline-block; background: var(--bar); color: var(--gold); font-weight: 800; font-size: 0.78rem; padding: 0.15rem 0.8rem; border-radius: 10px; margin-bottom: 0.8rem; }
   .note { background: var(--cream); border: 1px solid var(--border); border-radius: 12px; padding: 0.6rem 0.8rem; margin-bottom: 0.9rem; font-size: 0.86rem; line-height: 1.9; white-space: pre-wrap; word-break: break-word; }
+  .note { margin-top: 0.7rem; }
   .note b { display: block; font-size: 0.78rem; color: var(--gold); margin-bottom: 0.15rem; }
   .mk { font-size: 0.74rem; font-weight: 700; margin: -0.3rem 0 0.8rem; }
   .mks { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.6rem; }
@@ -100,6 +101,8 @@
   .mk.half { color: #B5651D; }
   .mk.bad { color: #B3402F; }
   .fine { margin-top: 0.5rem; font-size: 0.74rem; color: var(--muted); text-align: center; }
+  .grT { font-weight: 800; font-size: 0.9rem; margin-bottom: 0.6rem; }
+  .gcard { margin-top: 1.4rem; }
   .gr { display: flex; gap: 0.5rem; }
   .gr div { flex: 1; text-align: center; background: var(--cream); border-radius: 12px; padding: 0.55rem 0.2rem; font-size: 0.76rem; color: var(--muted); font-weight: 700; }
   .gr b { display: block; font-size: 1.05rem; color: var(--gold); font-weight: 800; }
@@ -382,21 +385,29 @@ function feedbackDot() {
   return v.includes('bad') ? 'bad' : v.includes('half') ? 'half' : 'ok';
 }
 // ملاحظة المعلمة وملخص الصحيح والخاطئ: ظاهرة دائمًا بعد الرصد بدون فتح الواجب
-function feedbackCard() {
+// تصحيح الإجابات: أسطر الصحيح والناقص والخاطئ
+function correctionRows() {
   const fb = S.wk.feedback;
-  if (!fb || (!fb.note && !Object.keys(fb.marks || {}).length)) return '';
-  let h = '<div class="note"><b>ملاحظات المعلمة</b>';
   const rows = [];
+  if (!fb || !fb.marks) return rows;
   HOMEWORK[S.week].forEach(sec => sec.items.forEach(it => {
     if (it.type === 'record') {
-      it.slots.forEach((lb, i) => { const m = fb.marks && fb.marks[it.id + (i + 1)]; if (m && MARK[m]) rows.push(`<span class="mk ${m}">${feedbackLabel(it)} (${lb}): ${MARK[m]}</span>`); });
+      it.slots.forEach((lb, i) => { const m = fb.marks[it.id + (i + 1)]; if (m && MARK[m]) rows.push(`<span class="mk ${m}">${feedbackLabel(it)} (${lb}): ${MARK[m]}</span>`); });
       return;
     }
-    const m = fb.marks && fb.marks[it.id]; if (m && MARK[m]) rows.push(`<span class="mk ${m}">${feedbackLabel(it)}: ${MARK[m]}</span>`);
+    const m = fb.marks[it.id]; if (m && MARK[m]) rows.push(`<span class="mk ${m}">${feedbackLabel(it)}: ${MARK[m]}</span>`);
   }));
-  if (rows.length) h += `<div class="mks">${rows.join('')}</div>`;
-  if (fb.note) h += `<div>${esc(fb.note)}</div>`;
-  return h + '</div>';
+  return rows;
+}
+// تصحيح الإجابات (منطوي) وملاحظة المعلمة (ظاهرة) كل واحد لحاله
+function feedbackCard() {
+  const fb = S.wk.feedback;
+  if (!fb) return '';
+  const rows = correctionRows();
+  let h = '';
+  if (rows.length) h += rect('fx', '✅', 'تصحيح الإجابات', '') + `<div class="card hidden" id="c_fx"><div class="mks">${rows.join('')}</div></div>`;
+  if (fb.note) h += `<div class="note"><b>ملاحظة المعلمة</b>${esc(fb.note)}</div>`;
+  return h;
 }
 
 function gradesCard() {
@@ -404,7 +415,7 @@ function gradesCard() {
   const fb = S.wk.feedback;
   const hw = fb && fb.grade !== undefined ? fb.grade : null;
   const v = (x, max) => (x === undefined || x === null || x === '') ? '—' : toAr(x).replace('.', '٫') + ' / ' + toAr(max);
-  return `<div class="card hidden" id="c_gr"><div class="gr"><div>الحضور<b>${v(g.att, 1)}</b></div><div>المشاركة<b>${v(g.part, 1)}</b></div><div>الواجب<b>${v(hw, HW_MAX)}</b></div></div></div>`;
+  return `<div class="card gcard"><div class="grT">📊 الدرجات</div><div class="gr"><div>الحضور<b>${v(g.att, 1)}</b></div><div>المشاركة<b>${v(g.part, 1)}</b></div><div>الواجب<b>${v(hw, HW_MAX)}</b></div></div></div>`;
 }
 
 function renderWeek() {
@@ -415,11 +426,11 @@ function renderWeek() {
   body.innerHTML =
     rect('lesson', '📖', l.title, l.sub) + lessonCard(l, S.page || 0) +
     rect('hw', '✍️', 'الواجب', '', locked, feedbackDot()) + (locked ? '' : homeworkCard()) + feedbackCard() +
-    rect('gr', '📊', 'الدرجات', '') + gradesCard() +
-    `<a class="btn" href="tajweed/booklet.pdf" download="مداد التجويد - المذكرة.pdf">⬇️ تحميل المذكرة</a>`;
+    gradesCard() +
+    `<button type="button" class="btn" data-act="dl">⬇️ تحميل المذكرة</button>`;
   // القيم النصية
   body.querySelectorAll('textarea[data-q]').forEach(t => { t.value = S.answers[t.dataset.q] || ''; });
-  ['lesson', 'hw', 'gr'].forEach(id => { const c = $('c_' + id); if (c) c.classList.toggle('hidden', S.open !== id); });
+  ['lesson', 'hw', 'fx'].forEach(id => { const c = $('c_' + id); if (c) c.classList.toggle('hidden', S.open !== id); });
 }
 
 /* ============ تفاعلات الصفحة ============ */
@@ -434,6 +445,31 @@ function scheduleSave() {
 }
 function hwMsg(t) { const m = $('hwMsg'); if (m) m.textContent = t || ''; }
 
+// البنود الفاضية قبل التسليم (الأسئلة والمقاطع الثلاثة والنشاط كلها مطلوبة)
+function missingItems() {
+  const miss = [];
+  HOMEWORK[S.week].forEach(sec => sec.items.forEach(it => {
+    if (it.type === 'record') {
+      it.slots.forEach((lb, i) => { if (!S.wk.recs.some(r => r.slot === i + 1)) miss.push(`${feedbackLabel(it)} (${lb})`); });
+    } else if (!String(S.answers[it.id] || '').trim()) miss.push(feedbackLabel(it));
+  }));
+  return miss;
+}
+async function downloadBooklet() {
+  const name = 'مداد التجويد - المذكرة.pdf';
+  try {
+    const blob = await (await fetch('tajweed/booklet.pdf')).blob();
+    const file = new File([blob], name, { type: 'application/pdf' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: name }); } catch (e) {}
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  } catch (e) { window.location.href = 'tajweed/booklet.pdf'; }
+}
 async function submitHw() {
   hwMsg('');
   try {
@@ -633,7 +669,8 @@ $('weekBody').addEventListener('click', e => {
     renderWeek();
   }
   else if (act === 'edit') { S.editing = true; S.answers = clone(S.wk.sub.final); renderWeek(); }
-  else if (act === 'submit') (subStatus() === 'submitted' ? askConfirm('تسليم التعديل؟', submitHw, 'هذا التعديل الأخير، ولا يمكنك تعديل إجاباتك بعد ذلك.') : askConfirm('تسليم الواجب؟', submitHw));
+  else if (act === 'dl') downloadBooklet();
+  else if (act === 'submit') { const miss = missingItems(); if (miss.length) { hwMsg('لم يتم حل:\n' + miss.join('\n')); const m = $('hwMsg'); if (m) m.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; } (subStatus() === 'submitted' ? askConfirm('تسليم التعديل؟', submitHw, 'هذا التعديل الأخير، ولا يمكنك تعديل إجاباتك بعد ذلك.') : askConfirm('تسليم الواجب؟', submitHw)); }
   else if (act === 'play') playClip(+t.dataset.slot, t);
   else if (act === 'mic') startMic(+t.dataset.slot);
   else if (act === 'stop') { if (S.rec) { S.rec.user = true; S.rec.mr.stop(); } }
