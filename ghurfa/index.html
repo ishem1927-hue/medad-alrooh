@@ -143,7 +143,8 @@ async function pollStudent(){
 }
 
 var pin='',cur='g1',timer=null,busy=false;
-try{pin=sessionStorage.getItem('p')||'';cur=sessionStorage.getItem('t')||'g1'}catch(e){}
+try{pin=localStorage.getItem('ghp')||sessionStorage.getItem('p')||''}catch(e){}
+try{cur=sessionStorage.getItem('t')||'g1'}catch(e){}
 function setSt(t){var e=document.getElementById('st');if(e)e.textContent=t}
 function gate(msg){
  app.innerHTML='<div class="pin"><p style="font-weight:600;margin:0 0 12px">أدخلي الرمز</p><input id="pi" type="password" inputmode="numeric" autocomplete="off"><div class="err" id="pe">'+(msg||'')+'</div><button class="btn" id="pb">دخول</button></div>';
@@ -152,7 +153,7 @@ function gate(msg){
   try{
    var r=await api('/rest/v1/rpc/ghurfa_check',{method:'POST',body:JSON.stringify({p_pin:v})});
    var ok=r.ok&&(await r.json())===true;
-   if(ok){pin=v;try{sessionStorage.setItem('p',pin)}catch(e){}await load();drawAdmin()}else{document.getElementById('pe').textContent='الرمز غير صحيح'}
+   if(ok){pin=v;try{localStorage.setItem('ghp',pin)}catch(e){}try{sessionStorage.setItem('p',pin)}catch(e){}await load();drawAdmin()}else{document.getElementById('pe').textContent='الرمز غير صحيح'}
   }catch(e){document.getElementById('pe').textContent='تعذر الاتصال، حاولي مرة ثانية'}
  };
  document.getElementById('pb').onclick=go;
@@ -178,7 +179,7 @@ async function toggle(v){
    var r=await api('/rest/v1/rpc/ghurfa_set',{method:'POST',body:JSON.stringify({p_pin:pin,p_group:g,p_done:state[g]})});
    if(!r.ok){
     var t='';try{t=await r.text()}catch(e){}
-    if(/bad pin|28000/.test(t)){pin='';try{sessionStorage.removeItem('p')}catch(e){}gate('انتهت الجلسة، أدخلي الرمز من جديد');return}
+    if(/bad pin|28000/.test(t)){pin='';try{localStorage.removeItem('ghp');sessionStorage.removeItem('p')}catch(e){}gate('انتهت الجلسة، أدخلي الرمز من جديد');return}
     throw new Error(r.status);
    }
    setSt('تم الحفظ، والطالبات يشوفونه الحين');
@@ -189,7 +190,7 @@ async function startAdmin(){
  if(!pin){gate();return}
  try{
   var r=await api('/rest/v1/rpc/ghurfa_check',{method:'POST',body:JSON.stringify({p_pin:pin})});
-  if(!(r.ok&&(await r.json())===true)){pin='';gate();return}
+  if(!(r.ok&&(await r.json())===true)){pin='';try{localStorage.removeItem('ghp');sessionStorage.removeItem('p')}catch(e){}gate();return}
   await load();drawAdmin();
  }catch(e){gate('تعذر الاتصال، حاولي مرة ثانية')}
 }
