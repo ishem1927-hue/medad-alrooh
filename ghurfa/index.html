@@ -9,11 +9,15 @@
 <style>
 *{box-sizing:border-box}
 html,body{margin:0}
-body{background:#f2c8ab;font-family:'Cairo',system-ui,sans-serif;color:#633806;min-height:100vh}
+body{background:linear-gradient(#f0c4a9,#f4c8a8 60%,#e5baa1);background-attachment:fixed;font-family:'Cairo',system-ui,sans-serif;color:#633806;min-height:100vh}
 .wrap{max-width:560px;margin:0 auto}
 .wrap.stu{max-width:none}
+.pic{-webkit-mask-image:linear-gradient(to right,transparent,#000 3%,#000 97%,transparent),linear-gradient(to bottom,#000 96%,transparent);-webkit-mask-composite:source-in;mask-image:linear-gradient(to right,transparent,#000 3%,#000 97%,transparent),linear-gradient(to bottom,#000 96%,transparent);mask-composite:intersect}
 .pic svg{display:block;width:100%;height:auto}
-.stu .pic svg{height:100vh;height:100dvh}
+.stu .pic svg{height:auto;max-height:100vh;max-height:100dvh}
+.med{display:flex;flex-direction:column;align-items:center;padding:6px 16px 30px;background:#e5baa1}
+.circle{width:112px;height:112px;border-radius:50%;background:#FAEEDA;border:3px solid #854F0B;outline:2px solid #FAEEDA;outline-offset:-9px;display:flex;align-items:center;justify-content:center;font-size:46px;font-weight:700;color:#633806;line-height:1}
+.lab{font-size:18px;font-weight:600;margin:10px 0 0;color:#633806;text-align:center}
 .tabs{display:flex;gap:8px;padding:12px 14px 0}
 .tabs button,.btn{font-family:inherit;font-size:15px;font-weight:600;border:1.5px solid #854F0B;background:#FAEEDA;color:#633806;border-radius:8px;padding:9px 14px;cursor:pointer}
 .tabs button{flex:1}
@@ -30,17 +34,18 @@ body{background:#f2c8ab;font-family:'Cairo',system-ui,sans-serif;color:#633806;m
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><filter id="gry"><feColorMatrix type="saturate" values="0"/></filter></defs></svg>
 <div class="wrap" id="app"></div>
 <script>
 (function(){
 var U='https://btosiqsrpvrjajwhyrph.supabase.co';
 var K='sb_publishable_KvWWtbu2V6UdQ8GZvH6Kkw_ADUGNX8e';
 var ADMIN='m7k2x9';
-var LAY={
- p:{iw:941,ih:1671,BX:76,BY:383,W:790,H:632,files:{g1:'g1.jpg',g2:'g2.jpg'},mc:[470,1478,82],lc:[470,1576,66],lw:[420,560],lf:38,nf:88},
- l:{iw:1448,ih:1086,BX:400,BY:223,W:639,H:483,files:{g1:'g1l.jpg',g2:'g2l.jpg'},mc:[190,350,92],lc:[190,478,64],lw:[320,340],lf:32,nf:96}
+var IW=941,IH=1671,BX=76,BY=383,W=790,H=632;
+var CFG={
+ g1:{n:32,rows:[6,7,6,7,6],seed:11,img:'g1.jpg'},
+ g2:{n:33,rows:[7,6,7,6,7],seed:23,img:'g2.jpg'}
 };
-var CFG={g1:{n:32,rows:[6,7,6,7,6],seed:11},g2:{n:33,rows:[7,6,7,6,7],seed:23}};
 var state={g1:[],g2:[]};
 var app=document.getElementById('app');
 var qs=new URLSearchParams(location.search),hash=(location.hash||'').replace('#','');
@@ -50,9 +55,9 @@ var group=(qs.get('g')==='2'||hash==='g2')?'g2':'g1';
 function rng(s){return function(){s|=0;s=s+0x6D2B79F5|0;var t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function yAt(p,x){for(var i=0;i<p.length-1;i++){var a=p[i],b=p[i+1];if(x>=a[0]&&x<=b[0]){var t=b[0]===a[0]?0:(x-a[0])/(b[0]-a[0]);return a[1]+(b[1]-a[1])*t}}return p[p.length-1][1]}
 var cache={};
-function build(key,lk){
- var ck=key+lk;if(cache[ck])return cache[ck];
- var cfg=CFG[key],L=LAY[lk],W=L.W,H=L.H,r=rng(cfg.seed),R=cfg.rows.length,rh=H/R,lines=[],i,k,s;
+function build(key){
+ if(cache[key])return cache[key];
+ var cfg=CFG[key],r=rng(cfg.seed),R=cfg.rows.length,rh=H/R,lines=[],i,k,s;
  for(i=0;i<=R;i++){
   var amp=(i===0||i===R)?0:rh*0.15,K2=10,ctrl=[],pts=[],S=40;
   for(k=0;k<=K2;k++)ctrl.push((r()-.5)*2*amp);
@@ -76,55 +81,26 @@ function build(key,lk){
   }
   row.reverse();row.forEach(function(p){pieces.push(p)});
  }
- cache[ck]=pieces;return pieces;
+ cache[key]=pieces;return pieces;
 }
-function core(key,pre,lk){
- var L=LAY[lk],P=build(key,lk),cfg=CFG[key],d=Math.min(state[key].length,P.length),i;
- var o='<svg x="'+L.BX+'" y="'+L.BY+'" width="'+L.W+'" height="'+L.H+'" viewBox="0 0 '+L.W+' '+L.H+'"><g transform="translate(-'+L.BX+' -'+L.BY+')"><use href="#im'+pre+'" filter="url(#gry'+pre+')"/></g><rect width="'+L.W+'" height="'+L.H+'" fill="#fff" opacity=".4"/>';
- for(i=0;i<d;i++)o+='<clipPath id="'+pre+'c'+i+'"><polygon points="'+P[i]+'"/></clipPath><g clip-path="url(#'+pre+'c'+i+')"><g transform="translate(-'+L.BX+' -'+L.BY+')"><use href="#im'+pre+'"/></g></g>';
+function scene(key,pre){
+ var cfg=CFG[key],P=build(key),d=Math.min(state[key].length,P.length);
+ var o='<svg viewBox="0 0 '+IW+' '+IH+'" role="img" aria-label="لوحة غرفة المنجزات"><defs><image id="im'+pre+'" width="'+IW+'" height="'+IH+'" href="'+cfg.img+'"/></defs><use href="#im'+pre+'"/>';
+ o+='<svg x="'+BX+'" y="'+BY+'" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'"><g transform="translate(-'+BX+' -'+BY+')"><use href="#im'+pre+'" filter="url(#gry)"/></g><rect width="'+W+'" height="'+H+'" fill="#fff" opacity=".4"/>';
+ for(var i=0;i<d;i++)o+='<clipPath id="'+pre+'c'+i+'"><polygon points="'+P[i]+'"/></clipPath><g clip-path="url(#'+pre+'c'+i+')"><g transform="translate(-'+BX+' -'+BY+')"><use href="#im'+pre+'"/></g></g>';
  for(i=0;i<P.length;i++)o+='<polygon points="'+P[i]+'" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>';
  o+='</svg>';
- var left=Math.max(0,cfg.n-d),done=left===0,m=L.mc,l=L.lc,lw=done?L.lw[1]:L.lw[0],lt=done?'اكتملت اللوحة، ما شاء الله':'قطعة بانتظار التلوين';
- o+='<circle cx="'+m[0]+'" cy="'+m[1]+'" r="'+m[2]+'" fill="#FAEEDA" stroke="#854F0B" stroke-width="7"/><circle cx="'+m[0]+'" cy="'+m[1]+'" r="'+(m[2]-14)+'" fill="none" stroke="#854F0B" stroke-width="2" opacity=".45"/>';
- o+='<text x="'+m[0]+'" y="'+(m[1]+L.nf*0.34)+'" text-anchor="middle" font-family="Cairo,system-ui,sans-serif" font-size="'+L.nf+'" font-weight="700" fill="#633806">'+left+'</text>';
- o+='<rect x="'+(l[0]-lw/2)+'" y="'+l[1]+'" width="'+lw+'" height="'+l[2]+'" rx="'+(l[2]/2)+'" fill="#FAEEDA" stroke="#854F0B" stroke-width="4"/>';
- o+='<text x="'+l[0]+'" y="'+(l[1]+l[2]*0.68)+'" text-anchor="middle" font-family="Cairo,system-ui,sans-serif" font-size="'+(done?Math.round(L.lf*0.85):L.lf)+'" font-weight="600" fill="#633806">'+lt+'</text>';
- return o;
+ var left=Math.max(0,cfg.n-d),done=left===0;
+ o+='<circle cx="470" cy="1478" r="82" fill="#FAEEDA" stroke="#854F0B" stroke-width="7"/><circle cx="470" cy="1478" r="68" fill="none" stroke="#854F0B" stroke-width="2" opacity=".45"/>';
+ o+='<text x="470" cy="1478" y="1508" text-anchor="middle" font-family="Cairo,system-ui,sans-serif" font-size="88" font-weight="700" fill="#633806">'+left+'</text>';
+ var lw=done?560:420,lt=done?'اكتملت اللوحة، ما شاء الله':'قطعة بانتظار التلوين';
+ o+='<rect x="'+(470-lw/2)+'" y="1576" width="'+lw+'" height="66" rx="33" fill="#FAEEDA" stroke="#854F0B" stroke-width="4"/>';
+ o+='<text x="470" y="1621" text-anchor="middle" font-family="Cairo,system-ui,sans-serif" font-size="38" font-weight="600" fill="#633806">'+lt+'</text>';
+ return o+'</svg>';
 }
-function defs(key,pre,lk){
- var L=LAY[lk];
- return '<defs><filter id="gry'+pre+'"><feColorMatrix type="saturate" values="0"/></filter><image id="im'+pre+'" width="'+L.iw+'" height="'+L.ih+'" href="'+L.files[key]+'"/>'
- +'<filter id="bv'+pre+'" x="0" y="-5%" width="100%" height="110%"><feGaussianBlur stdDeviation="0 22"/></filter>'
- +'<filter id="bh'+pre+'" x="-5%" y="0" width="110%" height="100%"><feGaussianBlur stdDeviation="22 0"/></filter></defs>';
-}
-function adminScene(key){
- var L=LAY.p;
- return '<svg viewBox="0 0 '+L.iw+' '+L.ih+'" role="img" aria-label="لوحة غرفة المنجزات">'+defs(key,'a','p')+'<use href="#ima"/>'+core(key,'a','p')+'</svg>';
-}
-function studentScene(key){
- var vw=window.innerWidth||390,vh=window.innerHeight||800,A=vw/vh,lk=A>=0.95?'l':'p',L=LAY[lk],iw=L.iw,ih=L.ih;
- var VW=iw,VH=ih,vx=0,vy=0,pre='s',e=14;
- if(A>iw/ih){VW=ih*A;vx=-(VW-iw)/2}else if(A<iw/ih){VH=iw/A;vy=-(VH-ih)/2}
- var o='<svg viewBox="'+vx+' '+vy+' '+VW+' '+VH+'" preserveAspectRatio="xMidYMid slice" role="img" aria-label="لوحة غرفة المنجزات">'+defs(key,pre,lk);
- var horiz=VW>iw+1,vert=VH>ih+1,img=function(f){return '<image href="'+L.files[key]+'" width="'+iw+'" height="'+ih+'" '+f+'/>'};
- if(horiz){
-  var bw=-vx+2;
-  o+='<svg x="'+(vx)+'" y="0" width="'+bw+'" height="'+ih+'" viewBox="0 0 '+e+' '+ih+'" preserveAspectRatio="none">'+img('filter="url(#bv'+pre+')"')+'</svg>';
-  o+='<svg x="'+(iw-2)+'" y="0" width="'+bw+'" height="'+ih+'" viewBox="'+(iw-e)+' 0 '+e+' '+ih+'" preserveAspectRatio="none">'+img('filter="url(#bv'+pre+')"')+'</svg>';
- }
- if(vert){
-  var bh=-vy+2;
-  o+='<svg x="0" y="'+vy+'" width="'+iw+'" height="'+bh+'" viewBox="0 0 '+iw+' '+e+'" preserveAspectRatio="none">'+img('filter="url(#bh'+pre+')"')+'</svg>';
-  o+='<svg x="0" y="'+(ih-2)+'" width="'+iw+'" height="'+bh+'" viewBox="0 '+(ih-e)+' '+iw+' '+e+'" preserveAspectRatio="none">'+img('filter="url(#bh'+pre+')"')+'</svg>';
- }
- var fg='<use href="#im'+pre+'"/>';
- if(horiz||vert){
-  var gx=horiz?'x1="0" y1="0" x2="1" y2="0"':'x1="0" y1="0" x2="0" y2="1"';
-  o+='<linearGradient id="gr'+pre+'" '+gx+'><stop offset="0" stop-color="#000"/><stop offset=".03" stop-color="#fff"/><stop offset=".97" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>'
-  +'<mask id="mk'+pre+'" maskUnits="userSpaceOnUse" x="0" y="0" width="'+iw+'" height="'+ih+'"><rect width="'+iw+'" height="'+ih+'" fill="url(#gr'+pre+')"/></mask>';
-  fg='<use href="#im'+pre+'" mask="url(#mk'+pre+')"/>';
- }
- return o+fg+core(key,pre,lk)+'</svg>';
+function medal(key){
+ var left=Math.max(0,CFG[key].n-state[key].length);
+ return '<div class="med"><div class="circle">'+left+'</div><p class="lab">'+(left===0?'اكتملت اللوحة، ما شاء الله':'قطعة بانتظار التلوين')+'</p></div>';
 }
 function api(path,opt){opt=opt||{};opt.headers={apikey:K,Authorization:'Bearer '+K,'Content-Type':'application/json'};return fetch(U+path,opt)}
 async function load(){
@@ -133,17 +109,18 @@ async function load(){
  var a=await r.json();
  a.forEach(function(x){if(state[x.group_key])state[x.group_key]=(x.done||[]).slice()});
 }
-function renderStudent(){app.className='wrap stu';app.innerHTML='<div class="pic">'+studentScene(group)+'</div>'}
+function renderStudent(){
+ app.className='wrap stu';app.innerHTML='<div class="pic">'+scene(group,'s')+'</div>';
+}
 var last='';
 async function pollStudent(){
  try{await load();var sig=JSON.stringify(state[group]);if(sig!==last){last=sig;renderStudent()}}catch(e){if(!last){last='x';renderStudent()}}
 }
 
-var pin='',cur='g1',timer=null;
+var pin='',cur='g1',timer=null,busy=false;
 try{pin=sessionStorage.getItem('p')||'';cur=sessionStorage.getItem('t')||'g1'}catch(e){}
 function setSt(t){var e=document.getElementById('st');if(e)e.textContent=t}
 function gate(msg){
- app.className='wrap';
  app.innerHTML='<div class="pin"><p style="font-weight:600;margin:0 0 12px">أدخلي الرمز</p><input id="pi" type="password" inputmode="numeric" autocomplete="off"><div class="err" id="pe">'+(msg||'')+'</div><button class="btn" id="pb">دخول</button></div>';
  var go=async function(){
   var v=document.getElementById('pi').value.trim();
@@ -157,9 +134,8 @@ function gate(msg){
  document.getElementById('pi').onkeydown=function(e){if(e.key==='Enter')go()};
 }
 function drawAdmin(){
- app.className='wrap';
  var n=CFG[cur].n,h='<div class="tabs"><button data-t="g1" class="'+(cur==='g1'?'on':'')+'">المجموعة 1 (32)</button><button data-t="g2" class="'+(cur==='g2'?'on':'')+'">المجموعة 2 (33)</button></div>';
- h+='<div class="pic">'+adminScene(cur)+'</div>';
+ h+='<div class="pic">'+scene(cur,'a')+'</div>';
  h+='<div class="panel"><div class="grid">';
  for(var i=1;i<=n;i++)h+='<button data-n="'+i+'" class="'+(state[cur].indexOf(i)>-1?'on':'')+'">'+i+'</button>';
  h+='</div><div class="st" id="st"></div><p class="note">اضغطي رقم الطالبة اللي أنجزت فتتلون قطعة جديدة من أعلى اليمين، ويظهر عند الطالبات خلال ثواني. اضغطيه مرة ثانية لو أخطأتِ.</p></div>';
@@ -193,13 +169,7 @@ async function startAdmin(){
  }catch(e){gate('تعذر الاتصال، حاولي مرة ثانية')}
 }
 if(isAdmin){startAdmin()}
-else{
- renderStudent();pollStudent();
- setInterval(pollStudent,8000);
- document.addEventListener('visibilitychange',function(){if(!document.hidden)pollStudent()});
- var rt=null,rs=function(){clearTimeout(rt);rt=setTimeout(renderStudent,150)};
- window.addEventListener('resize',rs);window.addEventListener('orientationchange',rs);
-}
+else{renderStudent();pollStudent();setInterval(pollStudent,8000);document.addEventListener('visibilitychange',function(){if(!document.hidden)pollStudent()})}
 })();
 </script>
 </body>
