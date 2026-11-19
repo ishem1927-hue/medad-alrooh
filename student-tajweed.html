@@ -21,15 +21,16 @@
   .back-link { position: absolute; top: 0.4rem; right: 0; width: 2.4rem; height: 2.4rem; border-radius: 50%; border: 1px solid var(--border); background: var(--bar); color: var(--gold); font-size: 1.3rem; line-height: 2.2rem; text-decoration: none; }
   .brand { display: block; width: auto; height: 120px; margin: 0 auto 1rem; }
   .welcome h1 { font-size: 1.15rem; font-weight: 700; color: var(--ink); margin-bottom: 1.6rem; }
-  .login-box { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 1.1rem; }
+  .login-box { position: relative; z-index: 2; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 1.1rem; }
   .login-box label { display: block; font-size: 0.82rem; font-weight: 700; color: var(--muted); margin-bottom: 0.5rem; text-align: right; }
   .login-box .code-input + label { margin-top: 0.9rem; }
-  .code-input { width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 12px; background: var(--cream); font-family: 'Cairo'; font-size: 1.05rem; text-align: center; direction: ltr; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); }
+  .code-input { -webkit-appearance: none; appearance: none; width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 12px; background: var(--cream); font-family: 'Cairo'; font-size: 1.05rem; text-align: center; direction: ltr; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); }
   .code-input:focus { outline: none; border-color: var(--gold); }
   .btn { width: 100%; margin-top: 0.9rem; padding: 0.7rem; border: none; border-radius: 14px; background: var(--bar); color: var(--gold); font-family: 'Cairo'; font-size: 0.95rem; font-weight: 800; cursor: pointer; }
   .btn:disabled { opacity: 0.55; }
   .msg { margin-top: 0.7rem; font-size: 0.82rem; color: var(--red); min-height: 1.2rem; }
-  .contact { margin-top: 1.3rem; font-size: 0.8rem; color: var(--muted); }
+  .welcome.typing .contact { visibility: hidden; }
+  .contact { position: relative; z-index: 1; margin-top: 1.3rem; font-size: 0.8rem; color: var(--muted); }
   .contact a { color: var(--gold); font-weight: 700; text-decoration: none; }
 
   .topbar { background: var(--bar); border-bottom: 1px solid var(--border); padding: 0.9rem 1.2rem; display: flex; align-items: center; justify-content: space-between; font-weight: 800; font-size: 1.05rem; }
@@ -145,6 +146,10 @@ function logout() {
   $('welcome').classList.remove('hidden');
 }
 
+['userInput', 'codeInput'].forEach(id => {
+  $(id).addEventListener('focus', () => document.querySelector('.welcome').classList.add('typing'));
+  $(id).addEventListener('blur', () => document.querySelector('.welcome').classList.remove('typing'));
+});
 $('loginBtn').addEventListener('click', () => login());
 $('codeInput').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
 $('logoutBtn').addEventListener('click', confirmLogout);
