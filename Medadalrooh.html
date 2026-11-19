@@ -9046,35 +9046,19 @@ function pointsForAttendVal(val) {
   return 0;
 }
 
-// يحسب هل الطالبة مستبعدة من حساب اليوم المطلوب (بسبب غيابين متتاليين تراكمياً عبر كل أسابيع الدورة)
+// يحسب هل الطالبة مستبعدة من حساب اليوم المطلوب (٣ أيام غياب تراكمية عبر أسابيع الدورة، متتالية أو لا — بدون رجوع، حتى لو عوّضت)
 function computeStudentDailyStatus(name, week, uptoDay) {
-  let absenceStreak = 0;
-  let commitStreak  = 0;
-  let excluded = false;
+  let absences = 0;
 
   for (let w = 0; w <= week; w++) {
     const maxD = (w < week) ? 5 : uptoDay;
     for (let d = 1; d <= maxD; d++) {
       const val = getAttendVal(w, d, name);
-      const isAbsence = (val === 'excused' || val === 'absent');
-      const isCommit  = (val !== null && val !== undefined && !isAbsence);
-
-      if (isAbsence) {
-        absenceStreak++;
-        commitStreak = 0;
-        if (absenceStreak >= 2) excluded = true;
-      } else if (isCommit) {
-        commitStreak++;
-        absenceStreak = 0;
-        if (excluded && commitStreak >= 2) {
-          excluded = false;
-          commitStreak = 0;
-        }
-      }
+      if (val === 'excused' || val === 'absent') absences++;
     }
   }
 
-  return { excluded, todayVal: getAttendVal(week, uptoDay, name) };
+  return { excluded: absences >= 3, todayVal: getAttendVal(week, uptoDay, name) };
 }
 
 function buildDailyReportForGroup(groupStudents, week, day) {
