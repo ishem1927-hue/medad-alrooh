@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>لوحة غرفة المنجزات</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:linear-gradient(#f0c4a9,#f4c8a8 60%,#e5baa1);background-attachment:fixed;font-family:'Cairo',system-ui,sans-serif;color:#633806;min-height:100vh}
+.wrap{max-width:560px;margin:0 auto;background:#e5baa1}
+.pic{background:#f0c4a9}
+.pic svg{display:block;width:100%;height:auto}
+.fade{-webkit-mask-image:linear-gradient(to bottom,#000 95%,transparent);mask-image:linear-gradient(to bottom,#000 95%,transparent)}
+.med{display:flex;flex-direction:column;align-items:center;padding:6px 16px 30px;background:#e5baa1}
+.circle{width:112px;height:112px;border-radius:50%;background:#FAEEDA;border:3px solid #854F0B;outline:2px solid #FAEEDA;outline-offset:-9px;display:flex;align-items:center;justify-content:center;font-size:46px;font-weight:700;color:#633806;line-height:1}
+.lab{font-size:18px;font-weight:600;margin:10px 0 0;color:#633806;text-align:center}
+.tabs{display:flex;gap:8px;padding:12px 14px 0;background:#f0c4a9}
+.tabs button,.btn{font-family:inherit;font-size:15px;font-weight:600;border:1.5px solid #854F0B;background:#FAEEDA;color:#633806;border-radius:8px;padding:9px 14px;cursor:pointer}
+.tabs button{flex:1}
+.tabs button.on{background:#854F0B;color:#FAEEDA}
+.panel{padding:0 14px 28px;background:#e5baa1}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:6px 0}
+.grid button{font-family:inherit;font-size:17px;font-weight:700;height:46px;border-radius:8px;border:1.5px solid #D9B496;background:#fff;color:#4A2E14;cursor:pointer}
+.grid button.on{background:#0F6E56;border-color:#085041;color:#fff}
+.st{font-size:13px;text-align:center;margin:8px 0 0;min-height:20px}
+.note{font-size:13px;margin:6px 2px 0;line-height:1.7}
+.pin{margin:80px auto;max-width:300px;text-align:center;padding:0 16px}
+.pin input{font-family:inherit;font-size:22px;text-align:center;width:100%;padding:10px;border:1.5px solid #854F0B;border-radius:8px;background:#fff;letter-spacing:6px;margin:0 0 10px}
+.err{color:#A32D2D;font-size:14px;min-height:20px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><filter id="gry"><feColorMatrix type="saturate" values="0"/></filter></defs></svg>
+<div class="wrap" id="app"></div>
+<script>
+(function(){
+var U='https://btosiqsrpvrjajwhyrph.supabase.co';
+var K='sb_publishable_KvWWtbu2V6UdQ8GZvH6Kkw_ADUGNX8e';
+var ADMIN='m7k2x9';
+var IW=941,IH=1671,BX=76,BY=383,W=790,H=632;
+var CFG={
+ g1:{n:32,rows:[6,7,6,7,6],seed:11,img:'g1.jpg'},
+ g2:{n:33,rows:[7,6,7,6,7],seed:23,img:'g2.jpg'}
+};
+var state={g1:[],g2:[]};
+var app=document.getElementById('app');
+var qs=new URLSearchParams(location.search),hash=(location.hash||'').replace('#','');
+var isAdmin=(qs.get('m')===ADMIN)||hash===ADMIN;
+var group=(qs.get('g')==='2'||hash==='g2')?'g2':'g1';
+
+function rng(s){return function(){s|=0;s=s+0x6D2B79F5|0;var t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function yAt(p,x){for(var i=0;i<p.length-1;i++){var a=p[i],b=p[i+1];if(x>=a[0]&&x<=b[0]){var t=b[0]===a[0]?0:(x-a[0])/(b[0]-a[0]);return a[1]+(b[1]-a[1])*t}}return p[p.length-1][1]}
+var cache={};
+function build(key){
+ if(cache[key])return cache[key];
+ var cfg=CFG[key],r=rng(cfg.seed),R=cfg.rows.length,rh=H/R,lines=[],i,k,s;
+ for(i=0;i<=R;i++){
+  var amp=(i===0||i===R)?0:rh*0.15,K2=10,ctrl=[],pts=[],S=40;
+  for(k=0;k<=K2;k++)ctrl.push((r()-.5)*2*amp);
+  for(s=0;s<=S;s++){var x=W*s/S,f=s/S*K2,a=Math.floor(f),b=Math.min(K2,a+1),t=f-a,tt=t*t*(3-2*t);pts.push([x,i*rh+ctrl[a]*(1-tt)+ctrl[b]*tt])}
+  lines.push(pts);
+ }
+ var pieces=[];
+ for(i=0;i<R;i++){
+  var n=cfg.rows[i],top=lines[i],bot=lines[i+1],xt=[0],xb=[0],row=[];
+  for(k=1;k<n;k++){var c=W*k/n+(r()-.5)*(W/n)*0.35,sh=(r()-.5)*(W/n)*0.35;xt.push(c);xb.push(c+sh)}
+  xt.push(W);xb.push(W);
+  for(k=0;k<n;k++){
+   var p=[];
+   p.push([xt[k],yAt(top,xt[k])]);
+   top.forEach(function(q){if(q[0]>xt[k]&&q[0]<xt[k+1])p.push(q)});
+   p.push([xt[k+1],yAt(top,xt[k+1])]);
+   p.push([xb[k+1],yAt(bot,xb[k+1])]);
+   for(var j=bot.length-1;j>=0;j--){var q=bot[j];if(q[0]>xb[k]&&q[0]<xb[k+1])p.push(q)}
+   p.push([xb[k],yAt(bot,xb[k])]);
+   row.push(p.map(function(z){return z[0].toFixed(1)+','+z[1].toFixed(1)}).join(' '));
+  }
+  row.reverse();row.forEach(function(p){pieces.push(p)});
+ }
+ cache[key]=pieces;return pieces;
+}
+function scene(key,pre){
+ var cfg=CFG[key],P=build(key),d=Math.min(state[key].length,P.length);
+ var o='<svg viewBox="0 0 '+IW+' '+IH+'" role="img" aria-label="لوحة غرفة المنجزات"><defs><image id="im'+pre+'" width="'+IW+'" height="'+IH+'" href="'+cfg.img+'"/></defs><use href="#im'+pre+'"/>';
+ o+='<svg x="'+BX+'" y="'+BY+'" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'"><g transform="translate(-'+BX+' -'+BY+')"><use href="#im'+pre+'" filter="url(#gry)"/></g><rect width="'+W+'" height="'+H+'" fill="#fff" opacity=".4"/>';
+ for(var i=0;i<d;i++)o+='<clipPath id="'+pre+'c'+i+'"><polygon points="'+P[i]+'"/></clipPath><g clip-path="url(#'+pre+'c'+i+')"><g transform="translate(-'+BX+' -'+BY+')"><use href="#im'+pre+'"/></g></g>';
+ for(i=0;i<P.length;i++)o+='<polygon points="'+P[i]+'" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>';
+ return o+'</svg></svg>';
+}
+function medal(key){
+ var left=Math.max(0,CFG[key].n-state[key].length);
+ return '<div class="med"><div class="circle">'+left+'</div><p class="lab">'+(left===0?'اكتملت اللوحة، ما شاء الله':'قطعة بانتظار التلوين')+'</p></div>';
+}
+function api(path,opt){opt=opt||{};opt.headers={apikey:K,Authorization:'Bearer '+K,'Content-Type':'application/json'};return fetch(U+path,opt)}
+async function load(){
+ var r=await api('/rest/v1/ghurfa_board?select=group_key,done');
+ if(!r.ok)throw new Error('load '+r.status);
+ var a=await r.json();
+ a.forEach(function(x){if(state[x.group_key])state[x.group_key]=(x.done||[]).slice()});
+}
+function renderStudent(){
+ app.innerHTML='<div class="pic fade">'+scene(group,'s')+'</div>'+medal(group);
+}
+var last='';
+async function pollStudent(){
+ try{await load();var sig=JSON.stringify(state[group]);if(sig!==last){last=sig;renderStudent()}}catch(e){if(!last){last='x';renderStudent()}}
+}
+
+var pin='',cur='g1',timer=null,busy=false;
+try{pin=sessionStorage.getItem('p')||'';cur=sessionStorage.getItem('t')||'g1'}catch(e){}
+function setSt(t){var e=document.getElementById('st');if(e)e.textContent=t}
+function gate(msg){
+ app.innerHTML='<div class="pin"><p style="font-weight:600;margin:0 0 12px">أدخلي الرمز</p><input id="pi" type="password" inputmode="numeric" autocomplete="off"><div class="err" id="pe">'+(msg||'')+'</div><button class="btn" id="pb">دخول</button></div>';
+ var go=async function(){
+  var v=document.getElementById('pi').value.trim();
+  try{
+   var r=await api('/rest/v1/rpc/ghurfa_check',{method:'POST',body:JSON.stringify({p_pin:v})});
+   var ok=r.ok&&(await r.json())===true;
+   if(ok){pin=v;try{sessionStorage.setItem('p',pin)}catch(e){}await load();drawAdmin()}else{document.getElementById('pe').textContent='الرمز غير صحيح'}
+  }catch(e){document.getElementById('pe').textContent='تعذر الاتصال، حاولي مرة ثانية'}
+ };
+ document.getElementById('pb').onclick=go;
+ document.getElementById('pi').onkeydown=function(e){if(e.key==='Enter')go()};
+}
+function drawAdmin(){
+ var n=CFG[cur].n,h='<div class="tabs"><button data-t="g1" class="'+(cur==='g1'?'on':'')+'">المجموعة 1 (32)</button><button data-t="g2" class="'+(cur==='g2'?'on':'')+'">المجموعة 2 (33)</button></div>';
+ h+='<div class="pic">'+scene(cur,'a')+'</div>'+medal(cur);
+ h+='<div class="panel"><div class="grid">';
+ for(var i=1;i<=n;i++)h+='<button data-n="'+i+'" class="'+(state[cur].indexOf(i)>-1?'on':'')+'">'+i+'</button>';
+ h+='</div><div class="st" id="st"></div><p class="note">اضغطي رقم الطالبة اللي أنجزت فتتلون قطعة جديدة من أعلى اليمين، ويظهر عند الطالبات خلال ثواني. اضغطيه مرة ثانية لو أخطأتِ.</p></div>';
+ app.innerHTML=h;
+ Array.prototype.forEach.call(app.querySelectorAll('.tabs button'),function(b){b.onclick=function(){cur=b.getAttribute('data-t');try{sessionStorage.setItem('t',cur)}catch(e){}drawAdmin()}});
+ Array.prototype.forEach.call(app.querySelectorAll('.grid button'),function(b){b.onclick=function(){toggle(+b.getAttribute('data-n'))}});
+}
+async function toggle(v){
+ var g=cur,a=state[g],ix=a.indexOf(v),before=a.slice();
+ if(ix>-1)a.splice(ix,1);else a.push(v);
+ drawAdmin();setSt('جاري الحفظ…');
+ clearTimeout(timer);
+ timer=setTimeout(async function(){
+  try{
+   var r=await api('/rest/v1/rpc/ghurfa_set',{method:'POST',body:JSON.stringify({p_pin:pin,p_group:g,p_done:state[g]})});
+   if(!r.ok){
+    var t='';try{t=await r.text()}catch(e){}
+    if(/bad pin|28000/.test(t)){pin='';try{sessionStorage.removeItem('p')}catch(e){}gate('انتهت الجلسة، أدخلي الرمز من جديد');return}
+    throw new Error(r.status);
+   }
+   setSt('تم الحفظ، والطالبات يشوفونه الحين');
+  }catch(e){state[g]=before;drawAdmin();setSt('ما انحفظ، جربي مرة ثانية')}
+ },700);
+}
+async function startAdmin(){
+ if(!pin){gate();return}
+ try{
+  var r=await api('/rest/v1/rpc/ghurfa_check',{method:'POST',body:JSON.stringify({p_pin:pin})});
+  if(!(r.ok&&(await r.json())===true)){pin='';gate();return}
+  await load();drawAdmin();
+ }catch(e){gate('تعذر الاتصال، حاولي مرة ثانية')}
+}
+if(isAdmin){startAdmin()}
+else{renderStudent();pollStudent();setInterval(pollStudent,8000);document.addEventListener('visibilitychange',function(){if(!document.hidden)pollStudent()})}
+})();
+</script>
+</body>
+</html>
