@@ -144,6 +144,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .tj-admin-btn { margin-right: auto; width: 34px; height: 34px; border-radius: 50%; border: none; background: rgba(255,255,255,0.6); font-size: 1rem; cursor: pointer; padding: 0; }
   #tajweed .sc-row { color: var(--ink); }
   #tajweed .hasib-student-card .sc-act { flex-shrink: 0; }
+  #tajweed .sc-act.tj-key-off { opacity: 0.45; cursor: default; }
   .tj-empty { text-align: center; color: var(--muted); font-size: 0.85rem; padding: 1.5rem 0; }
   .tj-card-form > * { margin-bottom: 0.5rem; }
   .tj-form-btns { display: flex; gap: 0.5rem; }
@@ -2153,7 +2154,7 @@ const ALL_DATA_KEYS = [
   'madad_talqeen_tasks', 'madad_talqeen_team', 'madad_talqeen_schedule',
   'hasibat_madad', 'hasibat_custom_pay', 'hasibat_obligations',
   'madad_finance_balance', 'madad_finance_total', 'madad_finance_expenses',
-  'madad_tajweed_students', 'madad_tajweed_schedule', 'madad_tajweed_calc', 'madad_tajweed_calc_pay', 'madad_tajweed_calc_oblig',
+  'madad_tajweed_students', 'madad_tajweed_codes', 'madad_tajweed_schedule', 'madad_tajweed_calc', 'madad_tajweed_calc_pay', 'madad_tajweed_calc_oblig',
   'madad_ideas_categories_tajweed', 'madad_ideas_list_tajweed',
   'madad_ideas_categories_tamkeen', 'madad_ideas_list_tamkeen',
   'madad_ideas_categories_tilawah', 'madad_ideas_list_tilawah',
@@ -2378,7 +2379,7 @@ function openPrograms(role) {
   entryRole = role;
   document.getElementById('entryTitle').textContent = ROLE_NAMES[role];
   document.querySelectorAll('#entry .course-card').forEach(c => {
-    const open = role === 'admin' || c.dataset.prog === 'talqeen';
+    const open = role === 'admin' || c.dataset.prog === 'talqeen' || (role === 'student' && c.dataset.prog === 'tajweed');
     c.classList.toggle('soon', !open);
     c.querySelector('.course-arrow').textContent = open ? '‹' : 'قريبًا';
   });
@@ -2387,9 +2388,9 @@ function openPrograms(role) {
 
 function pickProgram(prog) {
   if (!PROGRAM_NAMES[prog]) return;
-  if (entryRole !== 'admin' && prog !== 'talqeen') return;
+  if (entryRole !== 'admin' && prog !== 'talqeen' && !(entryRole === 'student' && prog === 'tajweed')) return;
   entryProgram = prog;
-  if (entryRole === 'student') { location.href = 'student.html'; return; }
+  if (entryRole === 'student') { location.href = prog === 'tajweed' ? 'student-tajweed.html' : 'student.html'; return; }
   enterAs(entryRole);
 }
 
@@ -2475,6 +2476,7 @@ function tjAddStudent() {
   const newId = Date.now();
   tjCalc.push({ id: newId, pay: 'pending' });
   tjcSave();
+  tjMakeCode(newId, nameEl.value.trim());
   tjStudents.push({
     id: newId,
     name,
@@ -2485,6 +2487,7 @@ function tjAddStudent() {
   document.getElementById('tjNewAge').value = '';
   document.getElementById('tjAddForm').style.display = 'none';
   tjSave();
+  tjSchedulePublish();
   renderTajweedStudents();
 }
 
@@ -2500,6 +2503,7 @@ function tjSaveEdit(id) {
   s.level = document.getElementById('tjEditLevel').value;
   tjEditId = null;
   tjSave();
+  tjSchedulePublish();
   renderTajweedStudents();
 }
 function tjDeleteStudent(id) {
@@ -2507,12 +2511,16 @@ function tjDeleteStudent(id) {
   if (!s || !confirm('حذف الطالبة «' + s.name + '»؟')) return;
   tjStudents = tjStudents.filter(x => x.id !== id);
   tjCalc = tjCalc.filter(x => x.id !== id);
+  delete tjCodes.map[id];
+  tjSaveCodes();
   tjSave();
   tjcSave();
+  tjSchedulePublish(true);
   renderTajweedStudents();
 }
 
 function renderTajweedStudents() {
+  tjLoadCodes();
   const el = document.getElementById('tjStudentList');
   if (!tjStudents.length) { el.innerHTML = '<div class="tj-empty">ما فيه طالبات بعد</div>'; return; }
   el.innerHTML = tjStudents.map((s, i) => {
@@ -2532,6 +2540,7 @@ function renderTajweedStudents() {
         <div class="sc-name">${tjEsc(s.name)}</div>
         <div class="sc-acts">
           ${tjCalc.some(c => c.id === s.id) ? '' : `<button class="sc-act" onclick="tjcAddStudent(${s.id})">🧮</button>`}
+          <button class="sc-act${tjCodes.map[s.id] ? '' : ' tj-key-off'}" onclick="tjCopyMessage(${s.id})">🔑</button>
           <button class="sc-act" onclick="tjStartEdit(${s.id})">✏️</button>
           <button class="sc-act" onclick="tjDeleteStudent(${s.id})">🗑</button>
         </div>
@@ -10053,6 +10062,8 @@ async function initAppData() {
   tjLoad();
   tjcLoadAll();
   tjsLoad();
+  tjEnsureCodes();
+  tjSchedulePublish();
   await loadIdeas('tajweed');
   renderIdeas('tajweed');
   await loadIdeas('tamkeen');
@@ -10809,6 +10820,137 @@ supabaseClient
     localStorage.setItem(TJS_KEY, JSON.stringify(v));
     tjSchedule = v;
     if (tajweedView === 'schedule' && !document.activeElement.matches('#tjsList input, #tjsList select')) tjsRender();
+  })
+  .subscribe();
+
+// ===================== دخول طالبات التجويد: الرموز والنشر (منفصلة تمامًا عن بوابة التلقين) =====================
+const TJ_CODES_KEY = 'madad_tajweed_codes';
+const TJ_LATIN = { 'ا':'A','أ':'A','إ':'A','آ':'A','ء':'A','ع':'A','ب':'B','ت':'T','ط':'T','ث':'S','س':'S','ص':'S','ج':'J','ح':'H','ه':'H','ة':'H','خ':'K','ك':'K','د':'D','ض':'D','ذ':'Z','ز':'Z','ظ':'Z','ر':'R','ش':'X','غ':'G','ف':'F','ق':'Q','ل':'L','م':'M','ن':'N','و':'W','ؤ':'W','ي':'Y','ى':'Y','ئ':'Y' };
+const TJ_CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+let tjCodes = { next: 1, map: {} };   // map: { رقم الطالبة: { seq, ini, code } } — الرمز ثابت بعد توليده
+let tjPublishTimer = null;
+let tjLastPushed = '';
+
+function tjLoadCodes() {
+  try {
+    const v = JSON.parse(localStorage.getItem(TJ_CODES_KEY));
+    tjCodes = (v && v.map) ? v : { next: 1, map: {} };
+  } catch (e) { tjCodes = { next: 1, map: {} }; }
+}
+function tjSaveCodes() {
+  localStorage.setItem(TJ_CODES_KEY, JSON.stringify(tjCodes));
+  syncPush(TJ_CODES_KEY);
+}
+function tjRandomChars(n) {
+  const limit = 256 - (256 % TJ_CODE_CHARS.length);
+  let out = '';
+  while (out.length < n) {
+    const buf = new Uint8Array(n * 2);
+    crypto.getRandomValues(buf);
+    for (let i = 0; i < buf.length && out.length < n; i++) {
+      if (buf[i] < limit) out += TJ_CODE_CHARS[buf[i] % TJ_CODE_CHARS.length];
+    }
+  }
+  return out;
+}
+// أول حرف من كل اسم (٣ كحد أقصى) بعد حذف "ال"، و"عبد الله" وأخواتها اسم واحد
+function tjInitials(name) {
+  const words = String(name || '').replace(/[ً-ٟـ]/g, '').trim().split(/\s+/).filter(Boolean);
+  const names = [];
+  for (let i = 0; i < words.length; i++) {
+    let w = words[i];
+    if (w === 'عبد' && i + 1 < words.length) { i++; w += words[i]; }
+    names.push(w);
+  }
+  return names.slice(0, 3).map(w => {
+    if (w.length > 3 && w.startsWith('ال')) w = w.slice(2);
+    return TJ_LATIN[w[0]] || '';
+  }).join('') || 'X';
+}
+function tjFirstName(name) {
+  const w = String(name || '').trim().split(/\s+/);
+  return (w[0] === 'عبد' && w[1]) ? w[0] + ' ' + w[1] : (w[0] || '');
+}
+// يوم وساعة إضافة الطالبة (مثل 1908)
+function tjStamp() {
+  const d = new Date();
+  return String(d.getDate()).padStart(2, '0') + String(d.getHours()).padStart(2, '0');
+}
+function tjMakeCode(id, name) {
+  tjLoadCodes();
+  if (tjCodes.map[id]) return;
+  const used = new Set(Object.values(tjCodes.map).map(v => v.code));
+  const seq = tjCodes.next++;
+  const ini = tjInitials(name);
+  let code;
+  do { code = 'MS' + tjStamp() + ini + String(seq).padStart(3, '0') + tjRandomChars(4); } while (used.has(code));
+  tjCodes.map[id] = { seq, ini, code };
+  tjSaveCodes();
+}
+// طالبات سبق إضافتهن بدون رمز
+function tjEnsureCodes() {
+  tjLoadCodes();
+  const missing = tjStudents.filter(s => !tjCodes.map[s.id]);
+  missing.forEach(s => tjMakeCode(s.id, s.name));
+  return missing.length > 0;
+}
+function tjCodeParts(e) {
+  const seqStr = String(e.seq).padStart(3, '0');
+  const head = e.code.slice(0, e.code.length - 4 - seqStr.length);
+  return { user: head.slice(0, 6) + '-' + head.slice(6), pass: seqStr + '-' + e.code.slice(-4) };
+}
+
+function tjBuildPages() {
+  const pages = [];
+  tjStudents.forEach(s => {
+    const e = tjCodes.map[s.id];
+    if (!e || !s.name) return;
+    pages.push({ code: e.code, payload: {
+      v: 1, ready: true, name: s.name, display: firstTwoWords(s.name), first: tjFirstName(s.name), level: s.level || ''
+    } });
+  });
+  return pages;
+}
+// النشر لقاعدة البيانات (بعد ٤ ثواني من آخر تعديل). القائمة الفاضية ما تنشر إلا لما تنحذف آخر طالبة بالفعل
+function tjSchedulePublish(allowEmpty) {
+  if (TEACHER_HALQA) return;
+  clearTimeout(tjPublishTimer);
+  tjPublishTimer = setTimeout(() => tjPublishNow(allowEmpty), 4000);
+}
+async function tjPublishNow(allowEmpty) {
+  if (TEACHER_HALQA) return;
+  try {
+    const pages = tjBuildPages();
+    if (!pages.length && !allowEmpty) return;
+    const sig = JSON.stringify(pages);
+    if (sig === tjLastPushed) return;
+    const { error } = await supabaseClient.rpc('publish_tajweed_pages', { p_pages: pages });
+    if (!error) tjLastPushed = sig;
+  } catch (e) {}
+}
+function tjCopyMessage(id) {
+  const e = tjCodes.map[id];
+  const s = tjStudents.find(x => x.id === id);
+  if (!e || !s) return;
+  const parts = tjCodeParts(e);
+  const msg = `السلام عليكم ورحمة الله وبركاته 🤍\n\nأهلًا ${tjFirstName(s.name)}، صفحتكِ في بوابة طالبات مداد التجويد أصبحت جاهزة 🌿\n\n🔗 رابط البوابة: ${PORTAL_URL}\n\nطريقة الدخول:\nاختاري (بوابة الطالبات) ثم (مداد التجويد).\n\n👤 اسم المستخدم: ${parts.user}\n🔑 كلمة المرور: ${parts.pass}\n\nاحتفظي ببيانات الدخول، واحتفظي برابط البوابة للرجوع إليه خلال الدورة 🤍`;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(msg).then(() => showToast('✅ تم نسخ رسالة ' + firstTwoWords(s.name))).catch(() => { prompt('انسخي الرسالة:', msg); });
+  } else {
+    prompt('انسخي الرسالة:', msg);
+  }
+}
+
+// تحديث لحظي لرموز التجويد
+supabaseClient
+  .channel('madad_tajweed_codes_channel')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'madad_sync', filter: 'key=eq.' + TJ_CODES_KEY }, (payload) => {
+    if (isOwnEcho(TJ_CODES_KEY, payload.new && payload.new.updated_at)) return;
+    const v = payload.new && payload.new.value;
+    if (!v || !v.map) return;
+    localStorage.setItem(TJ_CODES_KEY, JSON.stringify(v));
+    tjCodes = v;
+    if (tajweedView === 'students' && tjEditId === null) renderTajweedStudents();
   })
   .subscribe();
 
