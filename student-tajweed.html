@@ -167,7 +167,7 @@ const HOMEWORK = {
   ]
 };
 const MAX_FILE = 4 * 1024 * 1024;
-const MAX_REC_SEC = 300;
+const MAX_REC_SEC = 900;   // ١٥ دقيقة، تحت حد القاعدة بأمان
 const HW_MAX = 5;
 
 function $(id) { return document.getElementById(id); }
@@ -188,7 +188,7 @@ async function rpc(fn, args) {
 }
 
 /* ============ حالة الصفحة ============ */
-const S = { code: '', payload: null, week: 1, wk: null, off: 0, answers: {}, editing: false, local: {}, rec: null, up: null, stream: null, open: null, timer: null, saveT: null, page: 0, busy: false };
+const S = { code: '', payload: null, week: 1, wk: null, off: 0, answers: {}, editing: false, local: {}, rec: null, up: null, stream: null, open: null, timer: null, saveT: null, page: 0, busy: false, note: '' };
 
 function fmt(sec) {
   const t = Math.max(0, Math.round(sec || 0));
@@ -355,7 +355,8 @@ function homeworkCard() {
     else if (!S.wk.sub.edit_used && !S.editing) h += '<button type="button" class="btn" data-act="edit">تعديل الإجابات</button>';
     else if (S.editing) h += '<button type="button" class="btn" data-act="submit">تسليم التعديل</button><div class="fine">هذا التعديل الأخير، لا يمكنك تعديل الإجابات مرة أخرى.</div>';
   }
-  h += '<div class="msg" id="hwMsg"></div></div>';
+  h += `<div class="msg" id="hwMsg">${S.note || ''}</div></div>`;
+  S.note = '';
   return h;
 }
 
@@ -458,7 +459,8 @@ async function startMic(slot) {
   S.timer = setInterval(() => {
     const t = (Date.now() - info.t0) / 1000;
     const el = $('recTimer'); if (el) el.textContent = fmt(t);
-    if (t >= MAX_REC_SEC && mr.state !== 'inactive') mr.stop();
+    if (t >= MAX_REC_SEC - 300 && t < MAX_REC_SEC - 295) hwMsg('باقي ٥ دقائق على نهاية التسجيل.');
+    if (t >= MAX_REC_SEC && mr.state !== 'inactive') { S.note = 'وصلتِ الحد الأقصى للتسجيل (١٥ دقيقة)، وتم حفظ ما سجلتِه.'; mr.stop(); }
   }, 250);
 }
 function guessType(f) {
@@ -481,7 +483,7 @@ async function pickFile(slot, f) {
   hwMsg('');
   const type = guessType(f);
   if (!type) { hwMsg('الملف لازم يكون تسجيلًا صوتيًا.'); return; }
-  if (f.size > MAX_FILE) { hwMsg('حجم الملف كبير، لازم يكون أقل من ٤ ميجا.'); return; }
+  if (f.size > MAX_FILE) { hwMsg('حجم الملف كبير (الحد ٤ ميجا)، سجّلي مباشرة بالمايك 🎙'); return; }
   const url = URL.createObjectURL(f);
   const dur = await audioDuration(url);
   URL.revokeObjectURL(url);
