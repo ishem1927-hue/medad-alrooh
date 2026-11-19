@@ -145,6 +145,20 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   #tajweed .sc-row { color: var(--ink); }
   #tajweed .hasib-student-card .sc-act { flex-shrink: 0; }
   #tajweed .sc-act.tj-key-off { opacity: 0.45; cursor: default; }
+  #tajweed .tjf-card { background: #fff; border: 1px solid #F5EAC0; border-radius: 16px; padding: 0.8rem; margin-bottom: 0.6rem; }
+  #tajweed .tjf-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.55rem; font-weight: 800; color: #4A3F1E; }
+  #tajweed .tjf-chip { font-size: 0.72rem; font-weight: 800; padding: 0.1rem 0.65rem; border-radius: 9px; background: #F5EAC0; color: #8F8157; }
+  #tajweed .tjf-chip.ok { background: #FBEBB5; color: #9A7B1F; }
+  #tajweed .tjf-row { display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.5rem; font-size: 0.8rem; color: #4A3F1E; }
+  #tajweed .tjf-b { border: 1px solid #F5EAC0; background: #FFF8E1; border-radius: 10px; padding: 0.3rem 0.65rem; font-family: inherit; font-size: 0.78rem; color: #4A3F1E; cursor: pointer; }
+  #tajweed .tjf-b.on { background: #FBEBB5; border-color: #E8CD7A; color: #9A7B1F; font-weight: 800; }
+  #tajweed .tjf-grade { width: 4.2rem; padding: 0.3rem; border: 1px solid #F5EAC0; border-radius: 10px; background: #FFF8E1; font-family: inherit; text-align: center; color: #4A3F1E; }
+  #tajweed .tjf-ans { border-top: 1px dashed #F5EAC0; margin-top: 0.4rem; padding-top: 0.5rem; }
+  #tajweed .tjf-q { font-size: 0.74rem; font-weight: 800; color: #8F8157; }
+  #tajweed .tjf-a { font-size: 0.84rem; line-height: 1.8; margin-bottom: 0.5rem; white-space: pre-wrap; word-break: break-word; }
+  #tajweed .tjf-rec { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.4rem; font-size: 0.82rem; }
+  #tajweed .tjf-rec b { min-width: 3.5rem; }
+  #tajweed .tjf-rec audio { width: 100%; height: 34px; }
   .tj-empty { text-align: center; color: var(--muted); font-size: 0.85rem; padding: 1.5rem 0; }
   .tj-card-form > * { margin-bottom: 0.5rem; }
   .tj-form-btns { display: flex; gap: 0.5rem; }
@@ -2154,7 +2168,7 @@ const ALL_DATA_KEYS = [
   'madad_talqeen_tasks', 'madad_talqeen_team', 'madad_talqeen_schedule',
   'hasibat_madad', 'hasibat_custom_pay', 'hasibat_obligations',
   'madad_finance_balance', 'madad_finance_total', 'madad_finance_expenses',
-  'madad_tajweed_students', 'madad_tajweed_codes', 'madad_tajweed_schedule', 'madad_tajweed_calc', 'madad_tajweed_calc_pay', 'madad_tajweed_calc_oblig',
+  'madad_tajweed_students', 'madad_tajweed_codes', 'madad_tajweed_follow', 'madad_tajweed_schedule', 'madad_tajweed_calc', 'madad_tajweed_calc_pay', 'madad_tajweed_calc_oblig',
   'madad_ideas_categories_tajweed', 'madad_ideas_list_tajweed',
   'madad_ideas_categories_tamkeen', 'madad_ideas_list_tamkeen',
   'madad_ideas_categories_tilawah', 'madad_ideas_list_tilawah',
@@ -2443,6 +2457,7 @@ function tajweedShowView(view) {
   document.getElementById('tajweedTitle').textContent = view === 'admin' ? '🗃️ الإدارة' : '📝 مداد التجويد';
   if (view === 'home') renderTajweedHome();
   if (view === 'students') renderTajweedStudents();
+  if (view === 'follow') tjfShow();
   if (view === 'calc') tjcRender();
   if (view === 'schedule') tjsRender();
   window.scrollTo(0, 0);
@@ -2511,6 +2526,7 @@ function tjDeleteStudent(id) {
   if (!s || !confirm('حذف الطالبة «' + s.name + '»؟')) return;
   tjStudents = tjStudents.filter(x => x.id !== id);
   tjCalc = tjCalc.filter(x => x.id !== id);
+  tjfForget(id);
   delete tjCodes.map[id];
   tjCodes.next = Object.values(tjCodes.map).reduce((m, e) => Math.max(m, e.seq), 0) + 1;
   tjSaveCodes();
@@ -10063,6 +10079,7 @@ async function initAppData() {
   tjLoad();
   tjcLoadAll();
   tjsLoad();
+  tjfLoad();
   tjEnsureCodes();
   tjSchedulePublish();
   await loadIdeas('tajweed');
@@ -10615,6 +10632,7 @@ function tjsLoad() {
 function tjsSave() {
   localStorage.setItem(TJS_KEY, JSON.stringify(tjSchedule));
   syncPush(TJS_KEY);
+  tjSchedulePublish();
 }
 function tjsSetView(v) { tjsView = v; tjsRender(); }
 
@@ -10906,9 +10924,10 @@ function tjBuildPages() {
   tjStudents.forEach(s => {
     const e = tjCodes.map[s.id];
     if (!e || !s.name) return;
-    pages.push({ code: e.code, payload: {
-      v: 1, ready: true, name: s.name, display: firstTwoWords(s.name), first: tjFirstName(s.name), level: s.level || ''
-    } });
+    const payload = { v: 1, ready: true, name: s.name, display: firstTwoWords(s.name), first: tjFirstName(s.name), level: s.level || '', start: tjStartFor(s.level) };
+    const g = tjGradesFor(s.id);
+    if (g) payload.grades = { 1: g };
+    pages.push({ code: e.code, payload });
   });
   return pages;
 }
@@ -10952,6 +10971,146 @@ supabaseClient
     localStorage.setItem(TJ_CODES_KEY, JSON.stringify(v));
     tjCodes = v;
     if (tajweedView === 'students' && tjEditId === null) renderTajweedStudents();
+  })
+  .subscribe();
+
+// ===================== المتابعة (الأسبوع ١): الحضور والمشاركة وإجابات الواجب ودرجته =====================
+const TJF_KEY = 'madad_tajweed_follow';
+const TJF_WEEK = 1;
+const TJF_ATT = [['live', 'حاضرة'], ['rec', 'تسجيل'], ['excused', 'بعذر'], ['absent', 'بدون عذر']];
+const TJF_ATT_PTS = { live: 1, rec: 0.5, excused: 0, absent: 0 };
+const TJF_QS = [['q1', '١. آداب التلاوة'], ['q2', '٢. أركان القراءة'], ['q3', '٣. مرتبة التعليم'], ['q4', '٤. الفرق بين المراتب'], ['a1', 'نشاط الدرس']];
+const TJF_SLOTS = ['التحقيق', 'التدوير', 'الحدر'];
+let tjFollow = {};   // { "1": { "رقم الطالبة": { att, part, hw } } }
+let tjfSubs = {};    // الرمز -> التسليم
+let tjfRecs = {};    // الرمز -> التسجيلات (بدون الصوت نفسه)
+
+function tjfLoad() {
+  try { const v = JSON.parse(localStorage.getItem(TJF_KEY)); tjFollow = (v && typeof v === 'object') ? v : {}; }
+  catch (e) { tjFollow = {}; }
+}
+function tjfSave() {
+  localStorage.setItem(TJF_KEY, JSON.stringify(tjFollow));
+  syncPush(TJF_KEY);
+  tjSchedulePublish();
+}
+function tjfRow(id) {
+  const w = tjFollow[TJF_WEEK] || (tjFollow[TJF_WEEK] = {});
+  return w[id] || (w[id] = {});
+}
+function tjfForget(id) {
+  const code = tjCodes.map[id] && tjCodes.map[id].code;
+  Object.values(tjFollow).forEach(w => { delete w[id]; });
+  localStorage.setItem(TJF_KEY, JSON.stringify(tjFollow));
+  syncPush(TJF_KEY);
+  if (code) {
+    supabaseClient.from('tajweed_submissions').delete().eq('code', code).then(() => {});
+    supabaseClient.from('tajweed_recordings').delete().eq('code', code).then(() => {});
+  }
+}
+// المستوى في المواعيد والطالبات يتطابق بالاسم (مع تجاهل كلمة "المستوى")
+function tjLevelKey(v) {
+  return String(v || '').replace(/[ً-ٟـ]/g, '').replace(/[أإآ]/g, 'ا').replace(/(ال)?مستوى/g, '').replace(/\s+/g, '');
+}
+function tjStartFor(level) {
+  const k = tjLevelKey(level);
+  if (!k) return '';
+  const rows = tjSchedule.filter(r => r.startDate && tjLevelKey(r.level) === k);
+  const r = rows.find(x => !x.done) || rows[0];
+  return r ? r.startDate : '';
+}
+function tjGradesFor(id) {
+  const r = (tjFollow[TJF_WEEK] || {})[id];
+  if (!r) return null;
+  const g = {};
+  if (r.att) { g.att = TJF_ATT_PTS[r.att]; g.part = (r.att === 'live' && r.part) ? 1 : 0; }
+  if (r.hw !== undefined && r.hw !== '') g.hw = Number(r.hw);
+  return Object.keys(g).length ? g : null;
+}
+
+function tjfShow() {
+  tjfLoad(); tjLoadCodes();
+  tjfRender();
+  tjfLoadRemote();
+}
+async function tjfLoadRemote() {
+  try {
+    const [a, b] = await Promise.all([
+      supabaseClient.from('tajweed_submissions').select('code,status,final,edit_used').eq('week', TJF_WEEK),
+      supabaseClient.from('tajweed_recordings').select('code,slot,duration').eq('week', TJF_WEEK)
+    ]);
+    tjfSubs = {}; (a.data || []).forEach(x => { tjfSubs[x.code] = x; });
+    tjfRecs = {}; (b.data || []).forEach(x => { (tjfRecs[x.code] = tjfRecs[x.code] || []).push(x); });
+  } catch (e) {}
+  if (tajweedView === 'follow') tjfRender();
+}
+let tjfOpenId = null;
+function tjfRender() {
+  const el = document.getElementById('tjPanel_follow');
+  if (!el) return;
+  const fmt = sec => { const t = Math.round(sec || 0); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
+  let h = `<div class="sched-view-toggle"><button class="filter-btn" onclick="tjfLoadRemote()" style="font-weight:700;padding:0.3rem 0.6rem;">⟳</button><button class="sched-view-btn active">الأسبوع ${toAr(TJF_WEEK)}</button></div>`;
+  if (!tjStudents.length) { el.innerHTML = h + '<div class="tj-empty">ما فيه طالبات بعد</div>'; return; }
+  h += tjStudents.map(s => {
+    const r = ((tjFollow[TJF_WEEK] || {})[s.id]) || {};
+    const code = tjCodes.map[s.id] && tjCodes.map[s.id].code;
+    const sub = code && tjfSubs[code];
+    const done = sub && sub.status === 'submitted';
+    const open = tjfOpenId === s.id && done;
+    let c = `<div class="tjf-card"><div class="tjf-top"><span>${tjEsc(s.name)}</span><span class="tjf-chip${done ? ' ok' : ''}">${done ? (sub.edit_used ? 'تم التسليم (معدّل)' : 'تم التسليم') : 'لم تسلّم'}</span></div>`;
+    c += '<div class="tjf-row">' + TJF_ATT.map(([k, l]) => `<button class="tjf-b${r.att === k ? ' on' : ''}" onclick="tjfSetAtt(${s.id},'${k}')">${l}</button>`).join('') + '</div>';
+    c += `<div class="tjf-row">${r.att === 'live' ? `<button class="tjf-b${r.part ? ' on' : ''}" onclick="tjfTogglePart(${s.id})">مشاركة ✓</button>` : ''}<span style="margin-inline-start:auto">الواجب</span><input class="tjf-grade" type="number" min="0" max="2" step="0.5" inputmode="decimal" value="${r.hw === undefined ? '' : r.hw}" onchange="tjfSetHw(${s.id}, this)"><span>/ ٢</span></div>`;
+    if (done) {
+      c += `<button class="tjf-b${open ? ' on' : ''}" onclick="tjfToggle(${s.id})">${open ? 'إخفاء الإجابات' : 'عرض الإجابات'}</button>`;
+      if (open) {
+        const f = sub.final || {};
+        c += '<div class="tjf-ans">' + TJF_QS.map(([q, l]) => `<div class="tjf-q">${l}</div><div class="tjf-a">${f[q] ? tjEsc(f[q]) : '—'}</div>`).join('');
+        c += '<div class="tjf-q">التطبيق العملي</div>' + TJF_SLOTS.map((l, i) => {
+          const rec = (tjfRecs[code] || []).find(x => x.slot === i + 1);
+          return rec ? `<div class="tjf-rec"><b>${l}</b><span>${rec.duration ? fmt(rec.duration) : ''}</span><button class="tjf-b" onclick="tjfPlay('${code}',${i + 1},this)">▶️</button><div id="tjfA_${code}_${i + 1}" style="flex-basis:100%"></div></div>` : `<div class="tjf-rec"><b>${l}</b><span>—</span></div>`;
+        }).join('') + '</div>';
+      }
+    }
+    return c + '</div>';
+  }).join('');
+  el.innerHTML = h;
+}
+function tjfSetAtt(id, k) {
+  const r = tjfRow(id);
+  r.att = r.att === k ? '' : k;
+  if (r.att !== 'live') delete r.part;
+  tjfSave(); tjfRender();
+}
+function tjfTogglePart(id) { const r = tjfRow(id); r.part = r.part ? 0 : 1; tjfSave(); tjfRender(); }
+function tjfSetHw(id, inp) {
+  const r = tjfRow(id);
+  if (inp.value === '') { delete r.hw; }
+  else { r.hw = Math.min(2, Math.max(0, Math.round(parseFloat(inp.value) * 2) / 2 || 0)); }
+  tjfSave(); tjfRender();
+}
+function tjfToggle(id) { tjfOpenId = tjfOpenId === id ? null : id; tjfRender(); }
+async function tjfPlay(code, slot, btn) {
+  btn.disabled = true;
+  const { data, error } = await supabaseClient.from('tajweed_recordings').select('mime,data').eq('code', code).eq('week', TJF_WEEK).eq('slot', slot).single();
+  btn.disabled = false;
+  const box = document.getElementById('tjfA_' + code + '_' + slot);
+  if (error || !data || !box) return;
+  const a = document.createElement('audio');
+  a.controls = true; a.autoplay = true;
+  a.src = 'data:' + data.mime + ';base64,' + data.data;
+  box.innerHTML = ''; box.appendChild(a);
+}
+
+// تحديث لحظي للمتابعة
+supabaseClient
+  .channel('madad_tajweed_follow_channel')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'madad_sync', filter: 'key=eq.' + TJF_KEY }, (payload) => {
+    if (isOwnEcho(TJF_KEY, payload.new && payload.new.updated_at)) return;
+    const v = payload.new && payload.new.value;
+    if (!v || typeof v !== 'object') return;
+    localStorage.setItem(TJF_KEY, JSON.stringify(v));
+    tjFollow = v;
+    if (tajweedView === 'follow') tjfRender();
   })
   .subscribe();
 

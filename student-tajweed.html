@@ -17,6 +17,7 @@
   .strip { height: 8px; background: linear-gradient(90deg, #FBEBB5, #E8CD7A, #FBEBB5); }
   .wrap { max-width: 460px; margin: 0 auto; padding: 1.2rem 1.2rem 2.5rem; }
 
+  /* الدخول */
   .welcome { text-align: center; padding-top: 2rem; position: relative; }
   .back-link { position: absolute; top: 0.4rem; right: 0; width: 2.4rem; height: 2.4rem; border-radius: 50%; border: 1px solid var(--border); background: var(--bar); color: var(--gold); font-size: 1.3rem; line-height: 2.2rem; text-decoration: none; }
   .brand { display: block; width: auto; height: 120px; margin: 0 auto 1rem; }
@@ -26,17 +27,66 @@
   .login-box .code-input + label { margin-top: 0.9rem; }
   .code-input { -webkit-appearance: none; appearance: none; width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 12px; background: var(--cream); font-family: 'Cairo'; font-size: 1.05rem; text-align: center; direction: ltr; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); }
   .code-input:focus { outline: none; border-color: var(--gold); }
-  .btn { width: 100%; margin-top: 0.9rem; padding: 0.7rem; border: none; border-radius: 14px; background: var(--bar); color: var(--gold); font-family: 'Cairo'; font-size: 0.95rem; font-weight: 800; cursor: pointer; }
+  .btn { display: block; width: 100%; margin-top: 0.9rem; padding: 0.7rem; border: none; border-radius: 14px; background: var(--bar); color: var(--gold); font-family: 'Cairo'; font-size: 0.95rem; font-weight: 800; cursor: pointer; text-align: center; text-decoration: none; }
   .btn:disabled { opacity: 0.55; }
   .msg { margin-top: 0.7rem; font-size: 0.82rem; color: var(--red); min-height: 1.2rem; }
   .contact { margin-top: 1.3rem; font-size: 0.8rem; color: var(--muted); }
   .contact a { color: var(--gold); font-weight: 700; text-decoration: none; }
 
+  /* الصفحة بعد الدخول */
   .topbar { background: var(--bar); border-bottom: 1px solid var(--border); padding: 0.9rem 1.2rem; display: flex; align-items: center; justify-content: space-between; font-weight: 800; font-size: 1.05rem; }
   .logout { background: rgba(255,255,255,0.6); border: 1px solid #F0DE9E; border-radius: 9px; padding: 0.2rem 0.7rem; font-family: 'Cairo'; font-size: 0.72rem; font-weight: 700; color: var(--gold); cursor: pointer; }
-  .hello { text-align: center; padding: 2.2rem 0 1rem; }
-  .hello .name { font-size: 1.2rem; font-weight: 800; display: block; }
-  .hello .level { display: inline-block; margin-top: 0.5rem; background: var(--bar); color: var(--gold); font-size: 0.8rem; font-weight: 800; padding: 0.25rem 0.9rem; border-radius: 10px; }
+  .hdr { display: flex; align-items: center; gap: 0.8rem; margin: 0.4rem 0 1.1rem; }
+  .av { flex: none; width: 52px; height: 52px; border-radius: 50%; background: var(--bar); color: var(--gold); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 800; }
+  .name { font-size: 1.05rem; font-weight: 800; }
+  .level { display: inline-block; margin-top: 0.2rem; background: var(--bar); color: var(--gold); font-size: 0.74rem; font-weight: 800; padding: 0.15rem 0.7rem; border-radius: 9px; }
+
+  .tabs { display: flex; gap: 0.35rem; overflow-x: auto; margin-bottom: 0.9rem; padding-bottom: 0.2rem; }
+  .tab { flex: none; border: 1px solid var(--border); background: #fff; border-radius: 11px; padding: 0.35rem 0.7rem; font-family: 'Cairo'; font-size: 0.78rem; color: var(--muted); cursor: pointer; }
+  .tab.on { background: var(--bar); border-color: #E8CD7A; color: var(--gold); font-weight: 800; }
+  .tab.lk { opacity: 0.55; cursor: default; }
+
+  .rect { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0.1rem; width: 100%; height: 5.4rem; margin-bottom: 0.7rem; padding: 0.6rem; border-radius: 18px; border: 1px solid #F0DE9E; background: var(--bar); color: var(--ink); font-family: 'Cairo'; cursor: pointer; }
+  .rect .ri { font-size: 1.5rem; line-height: 1.2; }
+  .rect .rt { font-size: 0.95rem; font-weight: 800; }
+  .rect .rs { font-size: 0.72rem; color: var(--muted); }
+  .rect.lk { opacity: 0.55; cursor: default; }
+  .rect.open { height: 4.2rem; margin-bottom: 0; border-radius: 18px 18px 0 0; background: var(--gold); border-color: var(--gold); color: #fff; }
+  .rect.open .rs { display: none; }
+  .rect.open + .card { border-top: none; border-radius: 0 0 18px 18px; margin-bottom: 0.7rem; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 0.9rem 1rem; margin-bottom: 0.7rem; }
+
+  .book { position: relative; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: #fff; }
+  .book img { display: block; width: 100%; }
+  .nav { position: absolute; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border: none; border-radius: 50%; background: rgba(251,235,181,0.92); color: var(--gold); font-size: 1.3rem; font-weight: 800; cursor: pointer; }
+  .nav.r { right: 8px; } .nav.l { left: 8px; }
+  .dots { display: flex; justify-content: center; gap: 0.35rem; margin-top: 0.6rem; }
+  .dots i { width: 7px; height: 7px; border-radius: 50%; background: #F0DE9E; }
+  .dots i.on { background: var(--gold); }
+  .zoom { position: fixed; inset: 0; z-index: 60; background: rgba(74,63,30,0.85); overflow: auto; }
+  .zoom img { display: block; width: 230%; max-width: none; }
+  .zoom button { position: fixed; top: 0.8rem; left: 0.8rem; width: 40px; height: 40px; border: none; border-radius: 50%; background: var(--bar); color: var(--gold); font-size: 1.2rem; font-weight: 800; cursor: pointer; z-index: 61; }
+
+  .sec { font-size: 0.9rem; font-weight: 800; color: var(--gold); margin: 0.9rem 0 0.5rem; }
+  .sec:first-child { margin-top: 0; }
+  .q { font-size: 0.86rem; font-weight: 700; line-height: 1.8; margin-bottom: 0.45rem; }
+  .opts { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+  .o { border: 1px solid var(--border); background: var(--cream); border-radius: 11px; padding: 0.35rem 0.8rem; font-family: 'Cairo'; font-size: 0.82rem; color: var(--ink); cursor: pointer; }
+  .o.on { background: var(--bar); border-color: #E8CD7A; color: var(--gold); font-weight: 800; }
+  .o:disabled { cursor: default; }
+  .ta { display: block; width: 100%; border: 1px solid var(--border); border-radius: 12px; background: var(--cream); padding: 0.6rem; font-family: 'Cairo'; font-size: 0.86rem; line-height: 1.9; color: var(--ink); resize: vertical; margin-bottom: 0.9rem; }
+  .ta:focus { outline: none; border-color: var(--gold); }
+  .rec { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 0.6rem; border: 1px solid var(--border); border-radius: 12px; background: var(--cream); padding: 0.5rem 0.7rem; margin-bottom: 0.45rem; font-size: 0.85rem; }
+  .rec b { flex: 1; }
+  .rec audio { width: 100%; height: 36px; }
+  .tm { font-size: 0.8rem; color: var(--gold); font-weight: 800; direction: ltr; }
+  .ic { width: 36px; height: 36px; border: none; border-radius: 50%; background: var(--bar); font-size: 1rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+  .sm { border: none; border-radius: 10px; background: var(--bar); color: var(--gold); font-family: 'Cairo'; font-weight: 800; font-size: 0.8rem; padding: 0.35rem 0.9rem; cursor: pointer; }
+  .sm.alt { background: #fff; border: 1px solid var(--border); color: var(--muted); }
+  .done { display: inline-block; background: var(--bar); color: var(--gold); font-weight: 800; font-size: 0.78rem; padding: 0.15rem 0.8rem; border-radius: 10px; margin-bottom: 0.8rem; }
+  .gr { display: flex; gap: 0.5rem; }
+  .gr div { flex: 1; text-align: center; background: var(--cream); border-radius: 12px; padding: 0.55rem 0.2rem; font-size: 0.76rem; color: var(--muted); font-weight: 700; }
+  .gr b { display: block; font-size: 1.05rem; color: var(--gold); font-weight: 800; }
 
   .dov { position: fixed; inset: 0; background: rgba(74,63,30,0.35); display: flex; align-items: center; justify-content: center; padding: 1.2rem; z-index: 50; }
   .dbox { background: #fff; border-radius: 18px; padding: 1.4rem 1.2rem 1.2rem; width: 100%; max-width: 320px; text-align: center; }
@@ -69,7 +119,9 @@
 <div id="portal" class="hidden">
   <div class="topbar"><span>📝 مداد التجويد</span><button id="logoutBtn" class="logout" type="button">خروج</button></div>
   <div class="wrap">
-    <div class="hello"><span class="name" id="pName"></span><span class="level" id="pLevel"></span></div>
+    <div class="hdr"><div class="av" id="pAv"></div><div><div class="name" id="pName"></div><span class="level" id="pLevel"></span></div></div>
+    <div class="tabs" id="tabs"></div>
+    <div id="weekBody"></div>
   </div>
 </div>
 
@@ -79,8 +131,35 @@ const SUPABASE_KEY = 'sb_publishable_-YU0y8Hdj6N_sPKRRtYYoA_PdJ2q7Po';
 const WA_URL = 'https://wa.me/96876727387';
 const SAVED_KEY = 'madad_tj_code';
 
+// الأسابيع الجاهزة حاليًا (الباقي مقفل لين يتجهّز)
+const WEEKS_READY = 1;
+const TAB_LABELS = ['الأسبوع ١', 'الأسبوع ٢', 'الأسبوع ٣', 'الأسبوع ٤', 'الأسبوع ٥', 'الاختبار'];
+const LESSONS = {
+  1: { title: 'الدرس الأول', sub: 'مدخل إلى علم التجويد', pages: ['tajweed/lesson1.jpg'] }
+};
+const HOMEWORK = {
+  1: [
+    { title: 'تطبيقات ومسائل', items: [
+      { id: 'q1', type: 'choice', text: 'آداب تلاوة القرآن الكريم:', opts: ['الخشوع والتدبر', 'السرعة في القراءة', 'ترك الطهارة'] },
+      { id: 'q2', type: 'choice', text: 'أركان القراءة الصحيحة عددها:', opts: ['٢', '٣', '٤'] },
+      { id: 'q3', type: 'choice', text: 'مرتبة القراءة التي تكون بقصد التعليم هي:', opts: ['التدوير', 'التحقيق', 'الحدر'] },
+      { id: 'q4', type: 'text', text: 'اذكري الفرق بين مراتب القراءة الثلاث (التحقيق، التدوير، الحدر).', rows: 5 }
+    ] },
+    { title: 'التطبيق العملي', items: [
+      { id: 'rec', type: 'record', text: 'اقرئي آية الكرسي بثلاث مراتب: التحقيق، التدوير، الحدر، مع حساب الزمن المستغرق في كل قراءة.', slots: ['التحقيق', 'التدوير', 'الحدر'] }
+    ] },
+    { title: 'نشاط الدرس', items: [
+      { id: 'a1', type: 'text', text: 'تخيّلي أنكِ ستقدمين نصيحة لطالبة بدأت رحلتها مع تلاوة القرآن الكريم، اكتبي لها ثلاث وصايا تعينها على حسن التلاوة والتأدب مع كتاب الله.', rows: 6 }
+    ] }
+  ]
+};
+const MAX_FILE = 4 * 1024 * 1024;
+const MAX_REC_SEC = 300;
+
 function $(id) { return document.getElementById(id); }
 $('waLink').href = WA_URL;
+const toAr = n => String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+const clone = o => JSON.parse(JSON.stringify(o || {}));
 
 async function rpc(fn, args) {
   const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + fn, {
@@ -92,13 +171,52 @@ async function rpc(fn, args) {
   return res.json();
 }
 
+/* ============ حالة الصفحة ============ */
+const S = { code: '', payload: null, week: 1, wk: null, off: 0, answers: {}, editing: false, pend: {}, rec: null, open: null, timer: null, saveT: null };
+
+function fmt(sec) {
+  const t = Math.max(0, Math.round(sec || 0));
+  return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+}
+const nowMs = () => Date.now() + S.off;
+function isoAdd(iso, days) { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0, 10); }
+function weekStart(n) { return S.payload && S.payload.start ? isoAdd(S.payload.start, 7 * (n - 1)) : null; }
+function weekOpen(n) { const ws = weekStart(n); return !!ws && !!S.wk && S.wk.today >= ws; }
+function hwState() {
+  const w = S.wk && S.wk.window;
+  if (!w) return 'locked';
+  const t = nowMs();
+  if (t < Date.parse(w.hw_open)) return 'locked';
+  if (t >= Date.parse(w.hw_close)) return 'closed';
+  return 'active';
+}
+function subStatus() { return S.wk ? S.wk.sub.status : 'none'; }
+// هل تقدر الطالبة تكتب وتسجّل الحين؟
+function canEdit() {
+  if (hwState() !== 'active') return false;
+  const st = subStatus();
+  if (st === 'submitted') return S.editing && !S.wk.sub.edit_used;
+  return true;
+}
+
+/* ============ الدخول والخروج ============ */
 function showPortal(p) {
-  $('pName').textContent = p.name || '';
+  const name = p.name || '';
+  $('pAv').textContent = name.trim().charAt(0);
+  $('pName').textContent = name;
   $('pLevel').textContent = p.level ? '📊 ' + p.level : '';
   $('pLevel').classList.toggle('hidden', !p.level);
   $('welcome').classList.add('hidden');
   $('portal').classList.remove('hidden');
   window.scrollTo(0, 0);
+}
+
+async function loadWeek() {
+  const r = await rpc('get_tajweed_week', { p_code: S.code, p_week: S.week });
+  if (r.status !== 'ok') throw new Error(r.status);
+  S.wk = r;
+  S.off = Date.parse(r.now) - Date.now();
+  S.answers = r.sub.status === 'submitted' ? clone(r.sub.final) : clone(r.sub.draft);
 }
 
 async function login(saved) {
@@ -113,8 +231,11 @@ async function login(saved) {
   try {
     const r = await rpc('get_tajweed_page', { p_code: raw });
     if (r.status === 'ok') {
+      S.code = raw; S.payload = r.payload || {}; S.week = 1; S.editing = false; S.pend = {}; S.open = null;
       try { localStorage.setItem(SAVED_KEY, raw); } catch (e) {}
-      showPortal(r.payload || {});
+      await loadWeek();
+      showPortal(S.payload);
+      renderAll();
       $('userInput').value = '';
       $('codeInput').value = '';
     } else if (r.status === 'locked') {
@@ -129,25 +250,267 @@ async function login(saved) {
   btn.disabled = false; btn.textContent = 'دخول';
 }
 
-function confirmLogout() {
+function askConfirm(text, onYes) {
   const ov = document.createElement('div');
   ov.className = 'dov';
-  ov.innerHTML = '<div class="dbox"><p><b>تسجيل الخروج</b></p><div class="dbtns"><button type="button" class="go" id="outYes">تأكيد</button><button type="button" class="go alt" id="outNo">إلغاء</button></div></div>';
+  ov.innerHTML = '<div class="dbox"><p><b></b></p><div class="dbtns"><button type="button" class="go" id="cYes">تأكيد</button><button type="button" class="go alt" id="cNo">إلغاء</button></div></div>';
+  ov.querySelector('b').textContent = text;
   document.body.appendChild(ov);
   ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
-  ov.querySelector('#outNo').addEventListener('click', () => ov.remove());
-  ov.querySelector('#outYes').addEventListener('click', () => { ov.remove(); logout(); });
+  ov.querySelector('#cNo').addEventListener('click', () => ov.remove());
+  ov.querySelector('#cYes').addEventListener('click', () => { ov.remove(); onYes(); });
 }
 function logout() {
   try { localStorage.removeItem(SAVED_KEY); } catch (e) {}
-  $('pName').textContent = ''; $('pLevel').textContent = '';
+  stopMic();
+  S.code = ''; S.payload = null; S.wk = null; S.pend = {};
+  $('pName').textContent = ''; $('pLevel').textContent = ''; $('pAv').textContent = '';
+  $('tabs').innerHTML = ''; $('weekBody').innerHTML = '';
   $('portal').classList.add('hidden');
   $('welcome').classList.remove('hidden');
 }
 
+/* ============ العرض ============ */
+function renderAll() { renderTabs(); renderWeek(); }
+
+function renderTabs() {
+  $('tabs').innerHTML = TAB_LABELS.map((l, i) => {
+    const n = i + 1;
+    const ok = n <= WEEKS_READY && weekOpen(n);
+    return ok ? `<button class="tab${n === S.week ? ' on' : ''}" data-act="tab" data-n="${n}">${l}</button>` : `<span class="tab lk">🔒 ${l}</span>`;
+  }).join('');
+}
+
+function rect(id, icon, title, sub, locked) {
+  const open = !locked && S.open === id;
+  return `<button type="button" class="rect${open ? ' open' : ''}${locked ? ' lk' : ''}" ${locked ? '' : `data-act="fold" data-id="${id}"`}><span class="ri">${locked ? '🔒' : icon}</span><span class="rt">${title}</span>${sub ? `<span class="rs">${sub}</span>` : ''}</button>`;
+}
+
+function lessonCard(l, idx) {
+  const multi = l.pages.length > 1;
+  return `<div class="card hidden" id="c_lesson"><div class="book" id="book"><img id="bookImg" src="${l.pages[idx]}" alt="" data-act="zoom">${multi ? '<button class="nav r" data-act="prev" type="button">›</button><button class="nav l" data-act="next" type="button">‹</button>' : ''}</div>${multi ? `<div class="dots">${l.pages.map((_, i) => `<i class="${i === idx ? 'on' : ''}"></i>`).join('')}</div>` : ''}</div>`;
+}
+
+function itemHtml(it, num, ro) {
+  let h = `<div class="q">${it.type === 'record' ? '' : toAr(num) + '. '}${it.text}</div>`;
+  if (it.type === 'choice') {
+    h += `<div class="opts">${it.opts.map(o => `<button type="button" class="o${S.answers[it.id] === o ? ' on' : ''}" data-act="pick" data-q="${it.id}" data-v="${o}" ${ro ? 'disabled' : ''}>${o}</button>`).join('')}</div>`;
+  } else if (it.type === 'text') {
+    h += `<textarea class="ta" rows="${it.rows}" data-q="${it.id}" ${ro ? 'disabled' : ''}></textarea>`;
+  } else {
+    h += it.slots.map((lb, i) => slotHtml(i + 1, lb, ro)).join('');
+  }
+  return h;
+}
+
+function slotHtml(slot, label, ro) {
+  const saved = S.wk.recs.find(r => r.slot === slot);
+  if (saved) return `<div class="rec"><b>${label}</b><span class="tm">${saved.duration ? fmt(saved.duration) + ' ' : ''}✓</span></div>`;
+  if (ro) return `<div class="rec"><b>${label}</b><span class="tm">—</span></div>`;
+  if (S.rec && S.rec.slot === slot) return `<div class="rec"><b>${label}</b><span class="tm" id="recTimer">0:00</span><button type="button" class="ic" data-act="stop">⏹</button></div>`;
+  const p = S.pend[slot];
+  if (p) return `<div class="rec"><b>${label}</b><span class="tm">${p.dur ? fmt(p.dur) : ''}</span><audio controls src="${p.url}"></audio><button type="button" class="sm" data-act="send" data-slot="${slot}">إرسال</button><button type="button" class="sm alt" data-act="drop" data-slot="${slot}">إلغاء</button></div>`;
+  const busy = !!S.rec;
+  return `<div class="rec"><b>${label}</b><span><button type="button" class="ic" data-act="mic" data-slot="${slot}" ${busy ? 'disabled' : ''}>🎙</button> <label class="ic" style="cursor:pointer">📎<input type="file" accept="audio/*" hidden data-slot="${slot}" ${busy ? 'disabled' : ''}></label></span></div>`;
+}
+
+function homeworkCard() {
+  const st = hwState();
+  const sub = subStatus();
+  const ro = !canEdit();
+  let h = '<div class="card hidden" id="c_hw">';
+  if (sub === 'submitted') h += '<span class="done">✅ تم التسليم</span>';
+  HOMEWORK[S.week].forEach(sec => {
+    h += `<div class="sec">${sec.title}</div>`;
+    sec.items.forEach((it, i) => { h += itemHtml(it, i + 1, ro); });
+  });
+  if (st === 'active') {
+    if (sub !== 'submitted') h += '<button type="button" class="btn" data-act="submit">تسليم الواجب</button>';
+    else if (!S.wk.sub.edit_used && !S.editing) h += '<button type="button" class="btn" data-act="edit">تعديل الإجابات</button>';
+    else if (S.editing) h += '<button type="button" class="btn" data-act="submit">تسليم التعديل</button>';
+  }
+  h += '<div class="msg" id="hwMsg"></div></div>';
+  return h;
+}
+
+function gradesCard() {
+  const g = (S.payload.grades && S.payload.grades[S.week]) || {};
+  const v = (x, max) => (x === undefined || x === null || x === '') ? '—' : toAr(x) + ' / ' + toAr(max);
+  return `<div class="card hidden" id="c_gr"><div class="gr"><div>الحضور<b>${v(g.att, 1)}</b></div><div>المشاركة<b>${v(g.part, 1)}</b></div><div>الواجب<b>${v(g.hw, 2)}</b></div></div></div>`;
+}
+
+function renderWeek() {
+  const body = $('weekBody');
+  if (!weekOpen(S.week) || S.week > WEEKS_READY) { body.innerHTML = ''; return; }
+  const l = LESSONS[S.week];
+  const locked = hwState() === 'locked';
+  body.innerHTML =
+    rect('lesson', '📖', l.title, l.sub) + lessonCard(l, S.page || 0) +
+    rect('hw', '✍️', 'الواجب', '', locked) + (locked ? '' : homeworkCard()) +
+    rect('gr', '📊', 'الدرجات', '') + gradesCard() +
+    `<a class="btn" href="tajweed/booklet.pdf" download="مداد التجويد - المذكرة.pdf">⬇️ تحميل المذكرة</a>`;
+  // القيم النصية
+  body.querySelectorAll('textarea[data-q]').forEach(t => { t.value = S.answers[t.dataset.q] || ''; });
+  ['lesson', 'hw', 'gr'].forEach(id => { const c = $('c_' + id); if (c) c.classList.toggle('hidden', S.open !== id); });
+}
+
+/* ============ تفاعلات الصفحة ============ */
+function scheduleSave() {
+  clearTimeout(S.saveT);
+  S.saveT = setTimeout(async () => {
+    try {
+      const r = await rpc('tajweed_save_draft', { p_code: S.code, p_week: S.week, p_answers: S.answers });
+      if (r.status === 'closed') { await loadWeek(); renderAll(); }
+    } catch (e) {}
+  }, 800);
+}
+function hwMsg(t) { const m = $('hwMsg'); if (m) m.textContent = t || ''; }
+
+async function submitHw() {
+  hwMsg('');
+  try {
+    clearTimeout(S.saveT);
+    const r = await rpc('tajweed_submit', { p_code: S.code, p_week: S.week, p_answers: S.answers });
+    if (r.status === 'ok') { S.editing = false; await loadWeek(); renderAll(); return; }
+    await loadWeek(); S.editing = false; renderAll();
+    hwMsg(r.status === 'closed' ? 'انتهت مهلة الواجب.' : 'تعذّر التسليم، حاولي مرة ثانية.');
+  } catch (e) { hwMsg('تعذّر الاتصال، حاولي مرة ثانية.'); }
+}
+
+/* التسجيل الصوتي */
+function stopMic() {
+  if (S.rec && S.rec.mr && S.rec.mr.state !== 'inactive') { S.rec.cancel = true; try { S.rec.mr.stop(); } catch (e) {} }
+  clearInterval(S.timer);
+  S.rec = null;
+}
+async function startMic(slot) {
+  hwMsg('');
+  if (!window.MediaRecorder || !navigator.mediaDevices) { hwMsg('التسجيل المباشر غير متاح، استخدمي رفع ملف 📎'); return; }
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch (e) { hwMsg('تعذّر تشغيل المايك، استخدمي رفع ملف 📎'); return; }
+  const mt = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg'].find(t => MediaRecorder.isTypeSupported(t));
+  const mr = new MediaRecorder(stream, Object.assign({ audioBitsPerSecond: 32000 }, mt ? { mimeType: mt } : {}));
+  const chunks = [];
+  const info = { slot, mr, t0: Date.now(), cancel: false };
+  mr.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+  mr.onstop = () => {
+    stream.getTracks().forEach(t => t.stop());
+    clearInterval(S.timer);
+    if (info.cancel) return;
+    const type = mr.mimeType || mt || 'audio/webm';
+    const blob = new Blob(chunks, { type });
+    S.pend[slot] = { blob, type, dur: Math.min((Date.now() - info.t0) / 1000, MAX_REC_SEC), url: URL.createObjectURL(blob) };
+    S.rec = null;
+    renderWeek();
+  };
+  S.rec = info;
+  mr.start();
+  renderWeek();
+  S.timer = setInterval(() => {
+    const s = (Date.now() - info.t0) / 1000;
+    const el = $('recTimer'); if (el) el.textContent = fmt(s);
+    if (s >= MAX_REC_SEC) mr.stop();
+  }, 250);
+}
+function guessType(f) {
+  if (/^audio\//.test(f.type)) return f.type;
+  const m = (f.name.match(/\.([a-z0-9]+)$/i) || [])[1];
+  return ({ m4a: 'audio/mp4', mp3: 'audio/mpeg', wav: 'audio/wav', aac: 'audio/aac', ogg: 'audio/ogg', webm: 'audio/webm', mp4: 'audio/mp4' })[(m || '').toLowerCase()] || '';
+}
+function audioDuration(url) {
+  return new Promise(res => {
+    const a = new Audio();
+    const done = v => res(isFinite(v) ? v : 0);
+    a.preload = 'metadata';
+    a.onloadedmetadata = () => done(a.duration);
+    a.onerror = () => done(0);
+    setTimeout(() => done(0), 4000);
+    a.src = url;
+  });
+}
+async function pickFile(slot, f) {
+  hwMsg('');
+  const type = guessType(f);
+  if (!type) { hwMsg('الملف لازم يكون تسجيلًا صوتيًا.'); return; }
+  if (f.size > MAX_FILE) { hwMsg('حجم الملف كبير، لازم يكون أقل من ٤ ميجا.'); return; }
+  const url = URL.createObjectURL(f);
+  S.pend[slot] = { blob: f, type, dur: await audioDuration(url), url };
+  renderWeek();
+}
+function readB64(blob) {
+  return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = rej; r.readAsDataURL(blob); });
+}
+async function sendRec(slot) {
+  const p = S.pend[slot];
+  if (!p) return;
+  hwMsg('');
+  try {
+    const data = await readB64(p.blob);
+    const r = await rpc('tajweed_put_recording', { p_code: S.code, p_week: S.week, p_slot: slot, p_mime: p.type, p_duration: Math.round(p.dur * 10) / 10, p_data: data });
+    if (r.status === 'ok' || r.status === 'exists' || r.status === 'closed') {
+      URL.revokeObjectURL(p.url); delete S.pend[slot];
+      await loadWeek(); renderAll();
+      if (r.status === 'closed') hwMsg('انتهت مهلة الواجب.');
+    } else hwMsg('تعذّر إرسال التسجيل، حاولي مرة ثانية.');
+  } catch (e) { hwMsg('تعذّر الاتصال، حاولي مرة ثانية.'); }
+}
+
+/* الأحداث (تفويض واحد) */
+$('weekBody').addEventListener('click', e => {
+  const t = e.target.closest('[data-act]');
+  if (!t) return;
+  const act = t.dataset.act;
+  if (act === 'fold') { S.open = S.open === t.dataset.id ? null : t.dataset.id; renderWeek(); }
+  else if (act === 'pick') { S.answers[t.dataset.q] = t.dataset.v; scheduleSave(); renderWeek(); }
+  else if (act === 'zoom') {
+    const ov = document.createElement('div');
+    ov.className = 'zoom';
+    ov.innerHTML = '<button type="button">✕</button><img alt="">';
+    ov.querySelector('img').src = t.src;
+    ov.querySelector('button').addEventListener('click', () => ov.remove());
+    document.body.appendChild(ov);
+  }
+  else if (act === 'prev' || act === 'next') {
+    const n = LESSONS[S.week].pages.length;
+    S.page = ((S.page || 0) + (act === 'next' ? 1 : n - 1)) % n;
+    renderWeek();
+  }
+  else if (act === 'edit') { S.editing = true; S.answers = clone(S.wk.sub.final); renderWeek(); }
+  else if (act === 'submit') askConfirm(subStatus() === 'submitted' ? 'تسليم التعديل؟' : 'تسليم الواجب؟', submitHw);
+  else if (act === 'mic') startMic(+t.dataset.slot);
+  else if (act === 'stop') { if (S.rec) S.rec.mr.stop(); }
+  else if (act === 'send') sendRec(+t.dataset.slot);
+  else if (act === 'drop') { const p = S.pend[+t.dataset.slot]; if (p) URL.revokeObjectURL(p.url); delete S.pend[+t.dataset.slot]; renderWeek(); }
+});
+$('weekBody').addEventListener('input', e => {
+  if (e.target.matches('textarea[data-q]')) { S.answers[e.target.dataset.q] = e.target.value; scheduleSave(); }
+});
+$('weekBody').addEventListener('change', e => {
+  if (e.target.matches('input[type=file]')) { const f = e.target.files[0]; if (f) pickFile(+e.target.dataset.slot, f); }
+});
+// تقليب الصفحات بالسحب
+let tx = null;
+$('weekBody').addEventListener('touchstart', e => { tx = e.target.closest('#book') ? e.touches[0].clientX : null; }, { passive: true });
+$('weekBody').addEventListener('touchend', e => {
+  if (tx === null) return;
+  const dx = e.changedTouches[0].clientX - tx; tx = null;
+  const n = LESSONS[S.week].pages.length;
+  if (n < 2 || Math.abs(dx) < 50) return;
+  S.page = ((S.page || 0) + (dx < 0 ? 1 : n - 1)) % n;
+  renderWeek();
+}, { passive: true });
+$('tabs').addEventListener('click', async e => {
+  const t = e.target.closest('[data-act=tab]');
+  if (!t) return;
+  S.week = +t.dataset.n; S.editing = false; S.open = null; S.page = 0;
+  try { await loadWeek(); } catch (er) {}
+  renderAll();
+});
+
 $('loginBtn').addEventListener('click', () => login());
 $('codeInput').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
-$('logoutBtn').addEventListener('click', confirmLogout);
+$('logoutBtn').addEventListener('click', () => askConfirm('تسجيل الخروج', logout));
 // اللصق: نكتب الرمز نفسه فقط (حروف إنجليزية وأرقام وشرطة) ونتجاهل أي كلام يجي معه
 ['userInput', 'codeInput'].forEach(id => {
   $(id).addEventListener('paste', e => {
