@@ -10992,7 +10992,7 @@ const TJF_SLOTS = ['التحقيق', 'التدوير', 'الحدر'];
 const TJF_MARKS = [['ok', 'صحيحة'], ['half', 'ناقصة'], ['bad', 'خاطئة']];
 const TJF_CHOICE = ['q1', 'q2', 'q3'];   // أسئلة الاختيار: صحيحة أو خاطئة فقط
 const TJF_MARK_PTS = { ok: 1, half: 0.5, bad: 0 };
-const TJF_ITEMS = ['q1', 'q2', 'q3', 'q4', 'rec', 'a1'];   // درجة الواجب من ٥ موزعة على هذه البنود
+const TJF_ITEMS = ['q1', 'q2', 'q3', 'q4', 'a1'];   // بنود الواجب، ويُضاف لها التطبيق العملي كجزء واحد (متوسط تقييم المقاطع الموجودة)
 const TJF_HW_MAX = 5;
 let tjfDraft = {};   // الرمز -> رصد قيد الكتابة { marks, note, grade }
 let tjFollow = {};   // { "1": { "رقم الطالبة": { att, part, hw } } }
@@ -11065,9 +11065,18 @@ function tjfParseNum(v) {
   const n = parseFloat(t);
   return isNaN(n) ? null : n;
 }
-function tjfSuggest(marks) {
-  const sum = TJF_ITEMS.reduce((a, k) => a + (TJF_MARK_PTS[marks[k]] || 0), 0);
-  return Math.round(TJF_HW_MAX * sum / TJF_ITEMS.length * 2) / 2;
+// مفاتيح التقييم المطلوبة: البنود + كل مقطع تسجيل موجود
+function tjfKeys(code) {
+  return TJF_ITEMS.concat((tjfRecs[code] || []).map(r => 'rec' + r.slot));
+}
+// الدرجة المقترحة: تظهر فقط لما كل البنود مقيّمة
+function tjfSuggest(marks, code) {
+  const clips = (tjfRecs[code] || []).map(r => 'rec' + r.slot);
+  if (!tjfKeys(code).every(k => marks[k])) return null;
+  const pts = k => TJF_MARK_PTS[marks[k]] || 0;
+  const parts = TJF_ITEMS.map(pts);
+  if (clips.length) parts.push(clips.reduce((a, k) => a + pts(k), 0) / clips.length);
+  return Math.round(TJF_HW_MAX * parts.reduce((a, b) => a + b, 0) / parts.length * 2) / 2;
 }
 function tjfStatus(sub) {
   if (!sub || sub.status !== 'submitted') return ['', 'لم تسلّم'];
@@ -11076,9 +11085,12 @@ function tjfStatus(sub) {
   return sub.edited_at ? ['orange', 'تم تعديل الإجابات'] : ['red', 'تم التسليم'];
 }
 function tjfDraftFor(code, sub) {
-  if (!tjfDraft[code]) {
-    const g = (sub && sub.graded) || {};
-    tjfDraft[code] = { marks: Object.assign({}, g.marks), note: g.note || '', grade: g.grade === undefined ? '' : g.grade };
+  const sig = (sub && sub.edited_at || '') + '|' + (sub && sub.graded_at || '');
+  if (!tjfDraft[code] || tjfDraft[code].sig !== sig) {
+    // لو الطالبة عدّلت بعد الرصد: الرصد القديم يُفرَّغ لين ترصدين من جديد
+    const stale = sub && sub.edited_at && sub.graded_at && sub.graded_at < sub.edited_at;
+    const g = (!stale && sub && sub.graded) || {};
+    tjfDraft[code] = { sig, marks: Object.assign({}, g.marks), note: g.note || '', grade: g.grade === undefined ? '' : g.grade };
   }
   return tjfDraft[code];
 }
@@ -11107,11 +11119,11 @@ function tjfRender() {
         c += '<div class="tjf-ans">' + TJF_QS.map(([q, l]) => `<div class="tjf-q">${l}</div><div class="tjf-a">${f[q] ? tjEsc(f[q]) : '—'}</div>${mk(q)}`).join('');
         c += '<div class="tjf-q">التطبيق العملي</div>' + TJF_SLOTS.map((l, i) => {
           const rec = (tjfRecs[code] || []).find(x => x.slot === i + 1);
-          return rec ? `<div class="tjf-rec"><b>${l}</b><span>${rec.duration ? fmt(rec.duration) : ''}</span><button class="tjf-b" onclick="tjfPlay('${code}',${i + 1},this)">▶️</button><div id="tjfA_${code}_${i + 1}" style="flex-basis:100%"></div></div>` : `<div class="tjf-rec"><b>${l}</b><span>—</span></div>`;
-        }).join('') + mk('rec');
-        const sg = tjfSuggest(d.marks);
+          return rec ? `<div class="tjf-rec"><b>${l}</b><span>${rec.duration ? fmt(rec.duration) : ''}</span><button class="tjf-b" onclick="tjfPlay('${code}',${i + 1},this)">▶️</button><div id="tjfA_${code}_${i + 1}" style="flex-basis:100%"></div></div>${mk('rec' + (i + 1))}` : `<div class="tjf-rec"><b>${l}</b><span>—</span></div>`;
+        }).join('');
+        const sg = tjfSuggest(d.marks, code);
         c += `<textarea class="tjf-note" placeholder="ملاحظات للطالبة" oninput="tjfDraft['${code}'].note=this.value">${tjEsc(d.note)}</textarea>`;
-        c += `<div class="tjf-row"><span>درجة الواجب</span><input class="tjf-grade" type="text" inputmode="decimal" placeholder="${toAr(sg).replace('.', '٫')}" value="${d.grade === '' ? '' : tjEsc(toAr(d.grade).replace('.', '٫'))}" onchange="tjfSetGrade('${code}', this.value)"><span>/ ${toAr(TJF_HW_MAX)}</span><button class="tjf-b on" style="margin-inline-start:auto" onclick="tjfRasd(${s.id})">رصد</button></div>`;
+        c += `<div class="tjf-row"><span>درجة الواجب</span><input class="tjf-grade" type="text" inputmode="decimal" placeholder="${sg === null ? '' : toAr(sg).replace('.', '٫')}" value="${d.grade === '' ? '' : tjEsc(toAr(d.grade).replace('.', '٫'))}" onchange="tjfSetGrade('${code}', this.value)"><span>/ ${toAr(TJF_HW_MAX)}</span><button class="tjf-b on" style="margin-inline-start:auto" onclick="tjfRasd(${s.id})">رصد</button></div>`;
         c += '</div>';
       }
     }
@@ -11135,7 +11147,9 @@ async function tjfRasd(id) {
   const d = code && tjfDraft[code];
   if (!d) return;
   const g = { marks: d.marks, note: d.note.trim() };
+  const auto = tjfSuggest(d.marks, code);
   if (d.grade !== '') g.grade = d.grade;
+  else if (auto !== null) g.grade = auto;
   const { data, error } = await supabaseClient.rpc('tajweed_grade', { p_code: code, p_week: TJF_WEEK, p_graded: g });
   if (error || !data || data.status !== 'ok') { showToast('⚠️ تعذّر الرصد، حاولي مرة ثانية'); return; }
   showToast('✅ تم الرصد');

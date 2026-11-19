@@ -91,7 +91,7 @@
   .note { background: var(--cream); border: 1px solid var(--border); border-radius: 12px; padding: 0.6rem 0.8rem; margin-bottom: 0.9rem; font-size: 0.86rem; line-height: 1.9; white-space: pre-wrap; word-break: break-word; }
   .note b { display: block; font-size: 0.78rem; color: var(--gold); margin-bottom: 0.15rem; }
   .mk { font-size: 0.74rem; font-weight: 700; margin: -0.3rem 0 0.8rem; }
-  .mks { display: flex; flex-wrap: wrap; gap: 0.2rem 0.8rem; margin-bottom: 0.4rem; }
+  .mks { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.6rem; }
   .mks .mk { margin: 0; }
   .mk.ok { color: #3F7A34; }
   .mk.half { color: #B5651D; }
@@ -104,6 +104,7 @@
   .dov { position: fixed; inset: 0; background: rgba(74,63,30,0.35); display: flex; align-items: center; justify-content: center; padding: 1.2rem; z-index: 50; }
   .dbox { background: #fff; border-radius: 18px; padding: 1.4rem 1.2rem 1.2rem; width: 100%; max-width: 320px; text-align: center; }
   .dbox p { font-size: 0.95rem; margin: 0.2rem 0 1rem; }
+  .dbox p.dsub { font-size: 0.82rem; color: var(--muted); line-height: 1.8; margin: -0.4rem 0 1rem; }
   .dbtns { display: flex; gap: 0.6rem; }
   .go { flex: 1; padding: 0.6rem; border: none; border-radius: 12px; background: var(--bar); color: var(--gold); font-family: 'Cairo'; font-weight: 800; cursor: pointer; }
   .go.alt { background: var(--cream); color: var(--muted); }
@@ -271,11 +272,12 @@ async function login(saved) {
   btn.disabled = false; btn.textContent = 'دخول';
 }
 
-function askConfirm(text, onYes) {
+function askConfirm(text, onYes, sub) {
   const ov = document.createElement('div');
   ov.className = 'dov';
   ov.innerHTML = '<div class="dbox"><p><b></b></p><div class="dbtns"><button type="button" class="go" id="cYes">تأكيد</button><button type="button" class="go alt" id="cNo">إلغاء</button></div></div>';
   ov.querySelector('b').textContent = text;
+  if (sub) { const q = document.createElement('p'); q.className = 'dsub'; q.textContent = sub; ov.querySelector('p').after(q); }
   document.body.appendChild(ov);
   ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
   ov.querySelector('#cNo').addEventListener('click', () => ov.remove());
@@ -321,9 +323,12 @@ function itemHtml(it, num, ro) {
   } else if (it.type === 'text') {
     h += `<textarea class="ta" rows="${it.rows}" data-q="${it.id}" ${ro ? 'disabled' : ''}></textarea>`;
   } else {
-    h += it.slots.map((lb, i) => slotHtml(i + 1, lb, ro)).join('');
+    h += it.slots.map((lb, i) => {
+      const m = fb && fb.marks && fb.marks[it.id + (i + 1)];
+      return slotHtml(i + 1, lb, ro) + (m && MARK[m] ? `<div class="mk ${m}">${MARK[m]}</div>` : '');
+    }).join('');
   }
-  if (mv && MARK[mv]) h += `<div class="mk ${mv}">${MARK[mv]}</div>`;
+  if (it.type !== 'record' && mv && MARK[mv]) h += `<div class="mk ${mv}">${MARK[mv]}</div>`;
   return h;
 }
 
@@ -332,7 +337,7 @@ function slotHtml(slot, label, ro) {
   if (S.up === slot) return `<div class="rec"><b>${label}</b><span class="tm">...</span></div>`;
   if (saved) {
     const loc = S.local[slot];
-    return `<div class="rec"><b>${label}</b><span class="tm">${saved.duration ? fmt(saved.duration) + ' ' : ''}✓</span>${ro ? '' : `<button type="button" class="ic" data-act="del" data-slot="${slot}">🗑</button>`}${loc ? `<audio controls src="${loc}"></audio>` : ''}</div>`;
+    return `<div class="rec"><b>${label}</b><span class="tm">${saved.duration ? fmt(saved.duration) + ' ' : ''}✓</span>${ro ? '' : `<button type="button" class="ic" data-act="del" data-slot="${slot}">🗑</button>`}${loc ? `<button type="button" class="ic" data-act="play" data-slot="${slot}">▶</button>` : ''}</div>`;
   }
   if (ro) return `<div class="rec"><b>${label}</b><span class="tm">—</span></div>`;
   if (S.rec && S.rec.slot === slot) return `<div class="rec"><b>${label}</b><span class="tm" id="recTimer">0:00</span><button type="button" class="ic" data-act="stop">⏹</button></div>`;
@@ -353,7 +358,7 @@ function homeworkCard() {
   if (st === 'active') {
     if (sub !== 'submitted') h += '<button type="button" class="btn" data-act="submit">تسليم الواجب</button>';
     else if (!S.wk.sub.edit_used && !S.editing) h += '<button type="button" class="btn" data-act="edit">تعديل الإجابات</button>';
-    else if (S.editing) h += '<button type="button" class="btn" data-act="submit">تسليم التعديل</button><div class="fine">هذا التعديل الأخير، لا يمكنك تعديل الإجابات مرة أخرى.</div>';
+    else if (S.editing) h += '<button type="button" class="btn" data-act="submit">تسليم التعديل</button>';
   }
   h += `<div class="msg" id="hwMsg">${S.note || ''}</div></div>`;
   S.note = '';
@@ -375,7 +380,13 @@ function feedbackCard() {
   if (!fb || (!fb.note && !Object.keys(fb.marks || {}).length)) return '';
   let h = '<div class="note"><b>ملاحظات المعلمة</b>';
   const rows = [];
-  HOMEWORK[S.week].forEach(sec => sec.items.forEach(it => { const m = fb.marks && fb.marks[it.id]; if (m && MARK[m]) rows.push(`<span class="mk ${m}">${feedbackLabel(it)}: ${MARK[m]}</span>`); }));
+  HOMEWORK[S.week].forEach(sec => sec.items.forEach(it => {
+    if (it.type === 'record') {
+      it.slots.forEach((lb, i) => { const m = fb.marks && fb.marks[it.id + (i + 1)]; if (m && MARK[m]) rows.push(`<span class="mk ${m}">${feedbackLabel(it)} (${lb}): ${MARK[m]}</span>`); });
+      return;
+    }
+    const m = fb.marks && fb.marks[it.id]; if (m && MARK[m]) rows.push(`<span class="mk ${m}">${feedbackLabel(it)}: ${MARK[m]}</span>`);
+  }));
   if (rows.length) h += `<div class="mks">${rows.join('')}</div>`;
   if (fb.note) h += `<div>${esc(fb.note)}</div>`;
   return h + '</div>';
@@ -433,8 +444,21 @@ function stopMic() {
   if (S.rec && S.rec.mr && S.rec.mr.state !== 'inactive') { S.rec.cancel = true; try { S.rec.mr.stop(); } catch (e) {} }
   S.rec = null;
 }
+// المشغّل يُنشأ عند الضغط على ▶ فقط ويُزال بعد الانتهاء، لأنه لو بقي بالصفحة يقطع التسجيل التالي في الآيفون
+function dropPlayers() {
+  document.querySelectorAll('audio').forEach(a => { try { a.pause(); a.removeAttribute('src'); a.load(); } catch (e) {} a.remove(); });
+}
+function playClip(slot, btn) {
+  if (btn.textContent === '⏹') { btn.textContent = '▶'; dropPlayers(); return; }
+  dropPlayers();
+  if (!S.local[slot]) return;
+  const a = new Audio(S.local[slot]);
+  a.onended = () => { btn.textContent = '▶'; dropPlayers(); };
+  a.play().then(() => { btn.textContent = '⏹'; }).catch(() => {});
+}
 async function startMic(slot) {
   hwMsg('');
+  dropPlayers();
   if (!window.MediaRecorder || !navigator.mediaDevices) { hwMsg('التسجيل المباشر غير متاح، استخدمي رفع ملف 📎'); return; }
   let stream;
   try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
@@ -448,6 +472,7 @@ async function startMic(slot) {
     stream.getTracks().forEach(t => t.stop());
     clearInterval(S.timer);
     if (info.cancel) return;
+    if (!info.user && (Date.now() - info.t0) / 1000 < MAX_REC_SEC - 1 && !S.note) S.note = 'انقطع التسجيل قبل ما تضغطين إيقاف، تم حفظ ما سُجّل منه.';
     const type = mr.mimeType || mt || 'audio/webm';
     const dur = Math.min((Date.now() - info.t0) / 1000, MAX_REC_SEC);
     S.rec = null;
@@ -601,9 +626,10 @@ $('weekBody').addEventListener('click', e => {
     renderWeek();
   }
   else if (act === 'edit') { S.editing = true; S.answers = clone(S.wk.sub.final); renderWeek(); }
-  else if (act === 'submit') askConfirm(subStatus() === 'submitted' ? 'تسليم التعديل؟' : 'تسليم الواجب؟', submitHw);
+  else if (act === 'submit') (subStatus() === 'submitted' ? askConfirm('تسليم التعديل؟', submitHw, 'هذا التعديل الأخير، ولا يمكنك تعديل إجاباتك بعد ذلك.') : askConfirm('تسليم الواجب؟', submitHw));
+  else if (act === 'play') playClip(+t.dataset.slot, t);
   else if (act === 'mic') startMic(+t.dataset.slot);
-  else if (act === 'stop') { if (S.rec) S.rec.mr.stop(); }
+  else if (act === 'stop') { if (S.rec) { S.rec.user = true; S.rec.mr.stop(); } }
   else if (act === 'del') deleteClip(+t.dataset.slot);
 });
 $('weekBody').addEventListener('input', e => {
