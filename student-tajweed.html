@@ -63,8 +63,8 @@
   .dots { display: flex; justify-content: center; gap: 0.35rem; margin-top: 0.6rem; }
   .dots i { width: 7px; height: 7px; border-radius: 50%; background: #F0DE9E; }
   .dots i.on { background: var(--gold); }
-  .zoom { position: fixed; inset: 0; z-index: 60; background: rgba(74,63,30,0.85); overflow: auto; }
-  .zoom img { display: block; width: 230%; max-width: none; }
+  .zoom { position: fixed; inset: 0; z-index: 60; background: rgba(74,63,30,0.92); display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; }
+  .zoom img { max-width: 100%; max-height: 100%; object-fit: contain; transform-origin: center; user-select: none; -webkit-user-select: none; -webkit-user-drag: none; }
   .zoom button { position: fixed; top: 0.8rem; left: 0.8rem; width: 40px; height: 40px; border: none; border-radius: 50%; background: var(--bar); color: var(--gold); font-size: 1.2rem; font-weight: 800; cursor: pointer; z-index: 61; }
 
   .sec { font-size: 0.9rem; font-weight: 800; color: var(--gold); margin: 0.9rem 0 0.5rem; }
@@ -82,8 +82,10 @@
   .tm { font-size: 0.8rem; color: var(--gold); font-weight: 800; direction: ltr; }
   .ic { width: 36px; height: 36px; border: none; border-radius: 50%; background: var(--bar); font-size: 1rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
   .sm { border: none; border-radius: 10px; background: var(--bar); color: var(--gold); font-family: 'Cairo'; font-weight: 800; font-size: 0.8rem; padding: 0.35rem 0.9rem; cursor: pointer; }
-  .sm.alt { background: #fff; border: 1px solid var(--border); color: var(--muted); }
   .done { display: inline-block; background: var(--bar); color: var(--gold); font-weight: 800; font-size: 0.78rem; padding: 0.15rem 0.8rem; border-radius: 10px; margin-bottom: 0.8rem; }
+  .note { background: var(--cream); border: 1px solid var(--border); border-radius: 12px; padding: 0.6rem 0.8rem; margin-bottom: 0.9rem; font-size: 0.86rem; line-height: 1.9; white-space: pre-wrap; word-break: break-word; }
+  .note b { display: block; font-size: 0.78rem; color: var(--gold); margin-bottom: 0.15rem; }
+  .fine { margin-top: 0.5rem; font-size: 0.74rem; color: var(--muted); text-align: center; }
   .gr { display: flex; gap: 0.5rem; }
   .gr div { flex: 1; text-align: center; background: var(--cream); border-radius: 12px; padding: 0.55rem 0.2rem; font-size: 0.76rem; color: var(--muted); font-weight: 700; }
   .gr b { display: block; font-size: 1.05rem; color: var(--gold); font-weight: 800; }
@@ -155,11 +157,15 @@ const HOMEWORK = {
 };
 const MAX_FILE = 4 * 1024 * 1024;
 const MAX_REC_SEC = 300;
+const MIN_BYTES_PER_SEC = 1500;   // أقل من هذا يعني التسجيل ناقص
+const HW_MAX = 5;
 
 function $(id) { return document.getElementById(id); }
 $('waLink').href = WA_URL;
 const toAr = n => String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
 const clone = o => JSON.parse(JSON.stringify(o || {}));
+const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const MARK = { ok: '✅', half: '◐', bad: '❌' };
 
 async function rpc(fn, args) {
   const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + fn, {
@@ -172,7 +178,7 @@ async function rpc(fn, args) {
 }
 
 /* ============ حالة الصفحة ============ */
-const S = { code: '', payload: null, week: 1, wk: null, off: 0, answers: {}, editing: false, pend: {}, rec: null, open: null, timer: null, saveT: null };
+const S = { code: '', payload: null, week: 1, wk: null, off: 0, answers: {}, editing: false, local: {}, rec: null, up: null, stream: null, open: null, timer: null, saveT: null, page: 0, busy: false };
 
 function fmt(sec) {
   const t = Math.max(0, Math.round(sec || 0));
@@ -200,23 +206,28 @@ function canEdit() {
 }
 
 /* ============ الدخول والخروج ============ */
-function showPortal(p) {
+function renderHeader() {
+  const p = S.payload || {};
   const name = p.name || '';
   $('pAv').textContent = name.trim().charAt(0);
   $('pName').textContent = name;
   $('pLevel').textContent = p.level ? '📊 ' + p.level : '';
   $('pLevel').classList.toggle('hidden', !p.level);
+}
+function showPortal() {
+  renderHeader();
   $('welcome').classList.add('hidden');
   $('portal').classList.remove('hidden');
   window.scrollTo(0, 0);
 }
 
-async function loadWeek() {
+// keep=true: نحدّث حالة الأسبوع بدون ما نمسح اللي كتبته الطالبة ولسه ما انحفظ
+async function loadWeek(keep) {
   const r = await rpc('get_tajweed_week', { p_code: S.code, p_week: S.week });
   if (r.status !== 'ok') throw new Error(r.status);
   S.wk = r;
   S.off = Date.parse(r.now) - Date.now();
-  S.answers = r.sub.status === 'submitted' ? clone(r.sub.final) : clone(r.sub.draft);
+  if (!keep) S.answers = r.sub.status === 'submitted' ? clone(r.sub.final) : clone(r.sub.draft);
 }
 
 async function login(saved) {
@@ -231,10 +242,10 @@ async function login(saved) {
   try {
     const r = await rpc('get_tajweed_page', { p_code: raw });
     if (r.status === 'ok') {
-      S.code = raw; S.payload = r.payload || {}; S.week = 1; S.editing = false; S.pend = {}; S.open = null;
+      S.code = raw; S.payload = r.payload || {}; S.week = 1; S.editing = false; S.local = {}; S.open = null; S.page = 0;
       try { localStorage.setItem(SAVED_KEY, raw); } catch (e) {}
       await loadWeek();
-      showPortal(S.payload);
+      showPortal();
       renderAll();
       $('userInput').value = '';
       $('codeInput').value = '';
@@ -262,8 +273,8 @@ function askConfirm(text, onYes) {
 }
 function logout() {
   try { localStorage.removeItem(SAVED_KEY); } catch (e) {}
-  stopMic();
-  S.code = ''; S.payload = null; S.wk = null; S.pend = {};
+  stopMic(); releaseMic();
+  S.code = ''; S.payload = null; S.wk = null; S.local = {};
   $('pName').textContent = ''; $('pLevel').textContent = ''; $('pAv').textContent = '';
   $('tabs').innerHTML = ''; $('weekBody').innerHTML = '';
   $('portal').classList.add('hidden');
@@ -271,7 +282,7 @@ function logout() {
 }
 
 /* ============ العرض ============ */
-function renderAll() { renderTabs(); renderWeek(); }
+function renderAll() { renderHeader(); renderTabs(); renderWeek(); }
 
 function renderTabs() {
   $('tabs').innerHTML = TAB_LABELS.map((l, i) => {
@@ -292,7 +303,9 @@ function lessonCard(l, idx) {
 }
 
 function itemHtml(it, num, ro) {
-  let h = `<div class="q">${it.type === 'record' ? '' : toAr(num) + '. '}${it.text}</div>`;
+  const fb = S.wk.feedback;
+  const mk = fb && fb.marks && fb.marks[it.id] ? MARK[fb.marks[it.id]] + ' ' : '';
+  let h = `<div class="q">${mk}${it.type === 'record' ? '' : toAr(num) + '. '}${it.text}</div>`;
   if (it.type === 'choice') {
     h += `<div class="opts">${it.opts.map(o => `<button type="button" class="o${S.answers[it.id] === o ? ' on' : ''}" data-act="pick" data-q="${it.id}" data-v="${o}" ${ro ? 'disabled' : ''}>${o}</button>`).join('')}</div>`;
   } else if (it.type === 'text') {
@@ -305,12 +318,14 @@ function itemHtml(it, num, ro) {
 
 function slotHtml(slot, label, ro) {
   const saved = S.wk.recs.find(r => r.slot === slot);
-  if (saved) return `<div class="rec"><b>${label}</b><span class="tm">${saved.duration ? fmt(saved.duration) + ' ' : ''}✓</span></div>`;
+  if (S.up === slot) return `<div class="rec"><b>${label}</b><span class="tm">...</span></div>`;
+  if (saved) {
+    const loc = S.local[slot];
+    return `<div class="rec"><b>${label}</b><span class="tm">${saved.duration ? fmt(saved.duration) + ' ' : ''}✓</span>${ro ? '' : `<button type="button" class="ic" data-act="del" data-slot="${slot}">🗑</button>`}${loc ? `<audio controls src="${loc}"></audio>` : ''}</div>`;
+  }
   if (ro) return `<div class="rec"><b>${label}</b><span class="tm">—</span></div>`;
   if (S.rec && S.rec.slot === slot) return `<div class="rec"><b>${label}</b><span class="tm" id="recTimer">0:00</span><button type="button" class="ic" data-act="stop">⏹</button></div>`;
-  const p = S.pend[slot];
-  if (p) return `<div class="rec"><b>${label}</b><span class="tm">${p.dur ? fmt(p.dur) : ''}</span><audio controls src="${p.url}"></audio><button type="button" class="sm" data-act="send" data-slot="${slot}">إرسال</button><button type="button" class="sm alt" data-act="drop" data-slot="${slot}">إلغاء</button></div>`;
-  const busy = !!S.rec;
+  const busy = !!S.rec || S.up !== null;
   return `<div class="rec"><b>${label}</b><span><button type="button" class="ic" data-act="mic" data-slot="${slot}" ${busy ? 'disabled' : ''}>🎙</button> <label class="ic" style="cursor:pointer">📎<input type="file" accept="audio/*" hidden data-slot="${slot}" ${busy ? 'disabled' : ''}></label></span></div>`;
 }
 
@@ -320,6 +335,8 @@ function homeworkCard() {
   const ro = !canEdit();
   let h = '<div class="card hidden" id="c_hw">';
   if (sub === 'submitted') h += '<span class="done">✅ تم التسليم</span>';
+  const fb = S.wk.feedback;
+  if (fb && fb.note) h += `<div class="note"><b>ملاحظات المعلمة</b>${esc(fb.note)}</div>`;
   HOMEWORK[S.week].forEach(sec => {
     h += `<div class="sec">${sec.title}</div>`;
     sec.items.forEach((it, i) => { h += itemHtml(it, i + 1, ro); });
@@ -327,7 +344,7 @@ function homeworkCard() {
   if (st === 'active') {
     if (sub !== 'submitted') h += '<button type="button" class="btn" data-act="submit">تسليم الواجب</button>';
     else if (!S.wk.sub.edit_used && !S.editing) h += '<button type="button" class="btn" data-act="edit">تعديل الإجابات</button>';
-    else if (S.editing) h += '<button type="button" class="btn" data-act="submit">تسليم التعديل</button>';
+    else if (S.editing) h += '<button type="button" class="btn" data-act="submit">تسليم التعديل</button><div class="fine">هذا التعديل الأخير، لا يمكنك تعديل الإجابات مرة أخرى.</div>';
   }
   h += '<div class="msg" id="hwMsg"></div></div>';
   return h;
@@ -335,8 +352,10 @@ function homeworkCard() {
 
 function gradesCard() {
   const g = (S.payload.grades && S.payload.grades[S.week]) || {};
-  const v = (x, max) => (x === undefined || x === null || x === '') ? '—' : toAr(x) + ' / ' + toAr(max);
-  return `<div class="card hidden" id="c_gr"><div class="gr"><div>الحضور<b>${v(g.att, 1)}</b></div><div>المشاركة<b>${v(g.part, 1)}</b></div><div>الواجب<b>${v(g.hw, 2)}</b></div></div></div>`;
+  const fb = S.wk.feedback;
+  const hw = fb && fb.grade !== undefined ? fb.grade : null;
+  const v = (x, max) => (x === undefined || x === null || x === '') ? '—' : toAr(x).replace('.', '٫') + ' / ' + toAr(max);
+  return `<div class="card hidden" id="c_gr"><div class="gr"><div>الحضور<b>${v(g.att, 1)}</b></div><div>المشاركة<b>${v(g.part, 1)}</b></div><div>الواجب<b>${v(hw, HW_MAX)}</b></div></div></div>`;
 }
 
 function renderWeek() {
@@ -371,46 +390,52 @@ async function submitHw() {
   try {
     clearTimeout(S.saveT);
     const r = await rpc('tajweed_submit', { p_code: S.code, p_week: S.week, p_answers: S.answers });
-    if (r.status === 'ok') { S.editing = false; await loadWeek(); renderAll(); return; }
+    if (r.status === 'ok') { S.editing = false; releaseMic(); await loadWeek(); renderAll(); return; }
     await loadWeek(); S.editing = false; renderAll();
     hwMsg(r.status === 'closed' ? 'انتهت مهلة الواجب.' : 'تعذّر التسليم، حاولي مرة ثانية.');
   } catch (e) { hwMsg('تعذّر الاتصال، حاولي مرة ثانية.'); }
 }
 
-/* التسجيل الصوتي */
+/* التسجيل الصوتي: يُرفع مباشرة كمسودة مخفية عن المعلمة لين التسليم */
+async function getStream() {
+  if (S.stream && S.stream.getAudioTracks().some(t => t.readyState === 'live')) return S.stream;
+  S.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  return S.stream;
+}
+function releaseMic() {
+  if (S.stream) { S.stream.getTracks().forEach(t => t.stop()); S.stream = null; }
+}
 function stopMic() {
-  if (S.rec && S.rec.mr && S.rec.mr.state !== 'inactive') { S.rec.cancel = true; try { S.rec.mr.stop(); } catch (e) {} }
   clearInterval(S.timer);
+  if (S.rec && S.rec.mr && S.rec.mr.state !== 'inactive') { S.rec.cancel = true; try { S.rec.mr.stop(); } catch (e) {} }
   S.rec = null;
 }
 async function startMic(slot) {
   hwMsg('');
   if (!window.MediaRecorder || !navigator.mediaDevices) { hwMsg('التسجيل المباشر غير متاح، استخدمي رفع ملف 📎'); return; }
   let stream;
-  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  try { stream = await getStream(); }
   catch (e) { hwMsg('تعذّر تشغيل المايك، استخدمي رفع ملف 📎'); return; }
   const mt = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg'].find(t => MediaRecorder.isTypeSupported(t));
   const mr = new MediaRecorder(stream, Object.assign({ audioBitsPerSecond: 32000 }, mt ? { mimeType: mt } : {}));
   const chunks = [];
   const info = { slot, mr, t0: Date.now(), cancel: false };
   mr.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
-  mr.onstop = () => {
-    stream.getTracks().forEach(t => t.stop());
+  mr.onstop = () => setTimeout(() => {
     clearInterval(S.timer);
     if (info.cancel) return;
     const type = mr.mimeType || mt || 'audio/webm';
-    const blob = new Blob(chunks, { type });
-    S.pend[slot] = { blob, type, dur: Math.min((Date.now() - info.t0) / 1000, MAX_REC_SEC), url: URL.createObjectURL(blob) };
+    const dur = Math.min((Date.now() - info.t0) / 1000, MAX_REC_SEC);
     S.rec = null;
-    renderWeek();
-  };
+    uploadClip(slot, new Blob(chunks, { type }), type, dur, true);
+  }, 120);
   S.rec = info;
-  mr.start();
+  mr.start(1000);
   renderWeek();
   S.timer = setInterval(() => {
-    const s = (Date.now() - info.t0) / 1000;
-    const el = $('recTimer'); if (el) el.textContent = fmt(s);
-    if (s >= MAX_REC_SEC) mr.stop();
+    const t = (Date.now() - info.t0) / 1000;
+    const el = $('recTimer'); if (el) el.textContent = fmt(t);
+    if (t >= MAX_REC_SEC && mr.state !== 'inactive') mr.stop();
   }, 250);
 }
 function guessType(f) {
@@ -435,42 +460,121 @@ async function pickFile(slot, f) {
   if (!type) { hwMsg('الملف لازم يكون تسجيلًا صوتيًا.'); return; }
   if (f.size > MAX_FILE) { hwMsg('حجم الملف كبير، لازم يكون أقل من ٤ ميجا.'); return; }
   const url = URL.createObjectURL(f);
-  S.pend[slot] = { blob: f, type, dur: await audioDuration(url), url };
-  renderWeek();
+  const dur = await audioDuration(url);
+  URL.revokeObjectURL(url);
+  uploadClip(slot, f, type, dur, false);
 }
 function readB64(blob) {
   return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = rej; r.readAsDataURL(blob); });
 }
-async function sendRec(slot) {
-  const p = S.pend[slot];
-  if (!p) return;
+async function uploadClip(slot, blob, type, dur, fromMic) {
+  hwMsg('');
+  if (fromMic && (blob.size < 1000 || blob.size / Math.max(dur, 1) < MIN_BYTES_PER_SEC)) {
+    hwMsg('التسجيل ما انحفظ كامل، أعيدي التسجيل أو ارفعي ملف 📎');
+    renderWeek(); return;
+  }
+  S.up = slot; renderWeek();
+  try {
+    const data = await readB64(blob);
+    const r = await rpc('tajweed_put_recording', { p_code: S.code, p_week: S.week, p_slot: slot, p_mime: type, p_duration: Math.round(dur * 10) / 10, p_data: data });
+    if (r.status === 'ok') {
+      if (S.local[slot]) URL.revokeObjectURL(S.local[slot]);
+      S.local[slot] = URL.createObjectURL(blob);
+    } else hwMsg(r.status === 'closed' ? 'انتهت مهلة الواجب.' : 'تعذّر حفظ التسجيل، حاولي مرة ثانية.');
+  } catch (e) { hwMsg('تعذّر الاتصال، حاولي مرة ثانية.'); }
+  S.up = null;
+  try { await loadWeek(true); } catch (e) {}
+  renderAll();
+}
+async function deleteClip(slot) {
   hwMsg('');
   try {
-    const data = await readB64(p.blob);
-    const r = await rpc('tajweed_put_recording', { p_code: S.code, p_week: S.week, p_slot: slot, p_mime: p.type, p_duration: Math.round(p.dur * 10) / 10, p_data: data });
-    if (r.status === 'ok' || r.status === 'exists' || r.status === 'closed') {
-      URL.revokeObjectURL(p.url); delete S.pend[slot];
-      await loadWeek(); renderAll();
-      if (r.status === 'closed') hwMsg('انتهت مهلة الواجب.');
-    } else hwMsg('تعذّر إرسال التسجيل، حاولي مرة ثانية.');
+    const r = await rpc('tajweed_delete_recording', { p_code: S.code, p_week: S.week, p_slot: slot });
+    if (r.status === 'ok') { if (S.local[slot]) URL.revokeObjectURL(S.local[slot]); delete S.local[slot]; }
+    else if (r.status === 'closed') hwMsg('انتهت مهلة الواجب.');
   } catch (e) { hwMsg('تعذّر الاتصال، حاولي مرة ثانية.'); }
+  try { await loadWeek(true); } catch (e) {}
+  renderAll();
 }
+
+/* عرض صفحة الدرس كاملة، والطالبة تكبّر بإصبعين أو بالضغط مرتين */
+function openZoom(src) {
+  const ov = document.createElement('div');
+  ov.className = 'zoom';
+  ov.innerHTML = '<button type="button">✕</button><img alt="" draggable="false">';
+  const img = ov.querySelector('img');
+  img.src = src;
+  document.body.appendChild(ov);
+  let sc = 1, tx = 0, ty = 0, d0 = 0, s0 = 1, lastTap = 0, moved = false;
+  const ptrs = new Map();
+  const fit = () => {
+    const mx = Math.max(0, (img.offsetWidth * sc - ov.clientWidth) / 2);
+    const my = Math.max(0, (img.offsetHeight * sc - ov.clientHeight) / 2);
+    tx = Math.min(mx, Math.max(-mx, tx)); ty = Math.min(my, Math.max(-my, ty));
+    img.style.transform = `translate(${tx}px, ${ty}px) scale(${sc})`;
+  };
+  const dist = () => { const [a, b] = [...ptrs.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+  ov.querySelector('button').addEventListener('click', () => ov.remove());
+  ov.addEventListener('pointerdown', e => {
+    if (e.target.tagName === 'BUTTON') return;
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); moved = false;
+    try { ov.setPointerCapture(e.pointerId); } catch (er) {}
+    if (ptrs.size === 2) { d0 = dist(); s0 = sc; }
+  });
+  ov.addEventListener('pointermove', e => {
+    const p = ptrs.get(e.pointerId); if (!p) return;
+    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    if (Math.abs(dx) + Math.abs(dy) > 2) moved = true;
+    p.x = e.clientX; p.y = e.clientY;
+    if (ptrs.size === 2 && d0) { sc = Math.min(5, Math.max(1, s0 * dist() / d0)); }
+    else if (ptrs.size === 1 && sc > 1) { tx += dx; ty += dy; }
+    fit();
+  });
+  const up = e => {
+    if (!ptrs.has(e.pointerId)) return;
+    ptrs.delete(e.pointerId);
+    if (ptrs.size === 0 && !moved && e.type === 'pointerup') {
+      const t = Date.now();
+      if (t - lastTap < 320) { sc = sc > 1 ? 1 : 2.5; tx = 0; ty = 0; fit(); lastTap = 0; } else lastTap = t;
+    }
+    if (ptrs.size < 2) d0 = 0;
+  };
+  ov.addEventListener('pointerup', up); ov.addEventListener('pointercancel', up);
+  ov.addEventListener('wheel', e => { e.preventDefault(); sc = Math.min(5, Math.max(1, sc * (e.deltaY < 0 ? 1.15 : 0.87))); fit(); }, { passive: false });
+}
+
+/* تحديث البيانات تلقائيًا: فتح الواجب، الدرجات، الملاحظات */
+function stateSig() {
+  const w = S.wk || {}, p = S.payload || {};
+  return JSON.stringify([p.start, p.grades, p.level, p.name, w.window, w.sub && w.sub.status, w.sub && w.sub.edit_used, w.feedback, w.recs, w.today, S.wk ? hwState() : '']);
+}
+async function refreshState() {
+  if (!S.code || S.busy || document.hidden || S.rec || S.up !== null) return;
+  S.busy = true;
+  try {
+    const p = await rpc('get_tajweed_page', { p_code: S.code });
+    if (p.status === 'invalid') { logout(); return; }
+    if (p.status !== 'ok') return;
+    const w = await rpc('get_tajweed_week', { p_code: S.code, p_week: S.week });
+    if (w.status !== 'ok') return;
+    const before = stateSig();
+    S.payload = p.payload || {}; S.wk = w; S.off = Date.parse(w.now) - Date.now();
+    if (stateSig() !== before) renderAll();
+  } catch (e) {}
+  finally { S.busy = false; }
+}
+setInterval(refreshState, 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshState(); });
+window.addEventListener('pagehide', releaseMic);
 
 /* الأحداث (تفويض واحد) */
 $('weekBody').addEventListener('click', e => {
   const t = e.target.closest('[data-act]');
   if (!t) return;
   const act = t.dataset.act;
-  if (act === 'fold') { S.open = S.open === t.dataset.id ? null : t.dataset.id; renderWeek(); }
+  if (act === 'fold') { S.open = S.open === t.dataset.id ? null : t.dataset.id; if (S.open !== 'hw' && !S.rec) releaseMic(); renderWeek(); }
   else if (act === 'pick') { S.answers[t.dataset.q] = t.dataset.v; scheduleSave(); renderWeek(); }
-  else if (act === 'zoom') {
-    const ov = document.createElement('div');
-    ov.className = 'zoom';
-    ov.innerHTML = '<button type="button">✕</button><img alt="">';
-    ov.querySelector('img').src = t.src;
-    ov.querySelector('button').addEventListener('click', () => ov.remove());
-    document.body.appendChild(ov);
-  }
+  else if (act === 'zoom') openZoom(t.src);
   else if (act === 'prev' || act === 'next') {
     const n = LESSONS[S.week].pages.length;
     S.page = ((S.page || 0) + (act === 'next' ? 1 : n - 1)) % n;
@@ -480,8 +584,7 @@ $('weekBody').addEventListener('click', e => {
   else if (act === 'submit') askConfirm(subStatus() === 'submitted' ? 'تسليم التعديل؟' : 'تسليم الواجب؟', submitHw);
   else if (act === 'mic') startMic(+t.dataset.slot);
   else if (act === 'stop') { if (S.rec) S.rec.mr.stop(); }
-  else if (act === 'send') sendRec(+t.dataset.slot);
-  else if (act === 'drop') { const p = S.pend[+t.dataset.slot]; if (p) URL.revokeObjectURL(p.url); delete S.pend[+t.dataset.slot]; renderWeek(); }
+  else if (act === 'del') deleteClip(+t.dataset.slot);
 });
 $('weekBody').addEventListener('input', e => {
   if (e.target.matches('textarea[data-q]')) { S.answers[e.target.dataset.q] = e.target.value; scheduleSave(); }
