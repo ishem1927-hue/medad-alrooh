@@ -2512,6 +2512,7 @@ function tjDeleteStudent(id) {
   tjStudents = tjStudents.filter(x => x.id !== id);
   tjCalc = tjCalc.filter(x => x.id !== id);
   delete tjCodes.map[id];
+  tjCodes.next = Object.values(tjCodes.map).reduce((m, e) => Math.max(m, e.seq), 0) + 1;
   tjSaveCodes();
   tjSave();
   tjcSave();
