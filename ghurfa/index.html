@@ -10,18 +10,19 @@
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:linear-gradient(#f0c4a9,#f4c8a8 60%,#e5baa1);background-attachment:fixed;font-family:'Cairo',system-ui,sans-serif;color:#633806;min-height:100vh}
-.wrap{max-width:560px;margin:0 auto;background:#e5baa1}
-.pic{background:#f0c4a9}
+.wrap{max-width:560px;margin:0 auto}
+.wrap.stu{max-width:none}
+.pic{-webkit-mask-image:linear-gradient(to right,transparent,#000 3%,#000 97%,transparent),linear-gradient(to bottom,#000 96%,transparent);-webkit-mask-composite:source-in;mask-image:linear-gradient(to right,transparent,#000 3%,#000 97%,transparent),linear-gradient(to bottom,#000 96%,transparent);mask-composite:intersect}
 .pic svg{display:block;width:100%;height:auto}
-.fade{-webkit-mask-image:linear-gradient(to bottom,#000 95%,transparent);mask-image:linear-gradient(to bottom,#000 95%,transparent)}
+.stu .pic svg{height:auto;max-height:100vh;max-height:100dvh}
 .med{display:flex;flex-direction:column;align-items:center;padding:6px 16px 30px;background:#e5baa1}
 .circle{width:112px;height:112px;border-radius:50%;background:#FAEEDA;border:3px solid #854F0B;outline:2px solid #FAEEDA;outline-offset:-9px;display:flex;align-items:center;justify-content:center;font-size:46px;font-weight:700;color:#633806;line-height:1}
 .lab{font-size:18px;font-weight:600;margin:10px 0 0;color:#633806;text-align:center}
-.tabs{display:flex;gap:8px;padding:12px 14px 0;background:#f0c4a9}
+.tabs{display:flex;gap:8px;padding:12px 14px 0}
 .tabs button,.btn{font-family:inherit;font-size:15px;font-weight:600;border:1.5px solid #854F0B;background:#FAEEDA;color:#633806;border-radius:8px;padding:9px 14px;cursor:pointer}
 .tabs button{flex:1}
 .tabs button.on{background:#854F0B;color:#FAEEDA}
-.panel{padding:0 14px 28px;background:#e5baa1}
+.panel{padding:0 14px 28px}
 .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:6px 0}
 .grid button{font-family:inherit;font-size:17px;font-weight:700;height:46px;border-radius:8px;border:1.5px solid #D9B496;background:#fff;color:#4A2E14;cursor:pointer}
 .grid button.on{background:#0F6E56;border-color:#085041;color:#fff}
@@ -88,7 +89,14 @@ function scene(key,pre){
  o+='<svg x="'+BX+'" y="'+BY+'" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'"><g transform="translate(-'+BX+' -'+BY+')"><use href="#im'+pre+'" filter="url(#gry)"/></g><rect width="'+W+'" height="'+H+'" fill="#fff" opacity=".4"/>';
  for(var i=0;i<d;i++)o+='<clipPath id="'+pre+'c'+i+'"><polygon points="'+P[i]+'"/></clipPath><g clip-path="url(#'+pre+'c'+i+')"><g transform="translate(-'+BX+' -'+BY+')"><use href="#im'+pre+'"/></g></g>';
  for(i=0;i<P.length;i++)o+='<polygon points="'+P[i]+'" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>';
- return o+'</svg></svg>';
+ o+='</svg>';
+ var left=Math.max(0,cfg.n-d),done=left===0;
+ o+='<circle cx="470" cy="1478" r="82" fill="#FAEEDA" stroke="#854F0B" stroke-width="7"/><circle cx="470" cy="1478" r="68" fill="none" stroke="#854F0B" stroke-width="2" opacity=".45"/>';
+ o+='<text x="470" cy="1478" y="1508" text-anchor="middle" font-family="Cairo,system-ui,sans-serif" font-size="88" font-weight="700" fill="#633806">'+left+'</text>';
+ var lw=done?560:420,lt=done?'اكتملت اللوحة، ما شاء الله':'قطعة بانتظار التلوين';
+ o+='<rect x="'+(470-lw/2)+'" y="1576" width="'+lw+'" height="66" rx="33" fill="#FAEEDA" stroke="#854F0B" stroke-width="4"/>';
+ o+='<text x="470" y="1621" text-anchor="middle" font-family="Cairo,system-ui,sans-serif" font-size="38" font-weight="600" fill="#633806">'+lt+'</text>';
+ return o+'</svg>';
 }
 function medal(key){
  var left=Math.max(0,CFG[key].n-state[key].length);
@@ -102,7 +110,7 @@ async function load(){
  a.forEach(function(x){if(state[x.group_key])state[x.group_key]=(x.done||[]).slice()});
 }
 function renderStudent(){
- app.innerHTML='<div class="pic fade">'+scene(group,'s')+'</div>'+medal(group);
+ app.className='wrap stu';app.innerHTML='<div class="pic">'+scene(group,'s')+'</div>';
 }
 var last='';
 async function pollStudent(){
@@ -127,7 +135,7 @@ function gate(msg){
 }
 function drawAdmin(){
  var n=CFG[cur].n,h='<div class="tabs"><button data-t="g1" class="'+(cur==='g1'?'on':'')+'">المجموعة 1 (32)</button><button data-t="g2" class="'+(cur==='g2'?'on':'')+'">المجموعة 2 (33)</button></div>';
- h+='<div class="pic">'+scene(cur,'a')+'</div>'+medal(cur);
+ h+='<div class="pic">'+scene(cur,'a')+'</div>';
  h+='<div class="panel"><div class="grid">';
  for(var i=1;i<=n;i++)h+='<button data-n="'+i+'" class="'+(state[cur].indexOf(i)>-1?'on':'')+'">'+i+'</button>';
  h+='</div><div class="st" id="st"></div><p class="note">اضغطي رقم الطالبة اللي أنجزت فتتلون قطعة جديدة من أعلى اليمين، ويظهر عند الطالبات خلال ثواني. اضغطيه مرة ثانية لو أخطأتِ.</p></div>';
