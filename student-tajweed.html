@@ -85,6 +85,10 @@
   .done { display: inline-block; background: var(--bar); color: var(--gold); font-weight: 800; font-size: 0.78rem; padding: 0.15rem 0.8rem; border-radius: 10px; margin-bottom: 0.8rem; }
   .note { background: var(--cream); border: 1px solid var(--border); border-radius: 12px; padding: 0.6rem 0.8rem; margin-bottom: 0.9rem; font-size: 0.86rem; line-height: 1.9; white-space: pre-wrap; word-break: break-word; }
   .note b { display: block; font-size: 0.78rem; color: var(--gold); margin-bottom: 0.15rem; }
+  .mk { font-size: 0.74rem; font-weight: 700; margin: -0.3rem 0 0.8rem; }
+  .mk.ok { color: #3F7A34; }
+  .mk.half { color: #B5651D; }
+  .mk.bad { color: #B3402F; }
   .fine { margin-top: 0.5rem; font-size: 0.74rem; color: var(--muted); text-align: center; }
   .gr { display: flex; gap: 0.5rem; }
   .gr div { flex: 1; text-align: center; background: var(--cream); border-radius: 12px; padding: 0.55rem 0.2rem; font-size: 0.76rem; color: var(--muted); font-weight: 700; }
@@ -165,7 +169,7 @@ $('waLink').href = WA_URL;
 const toAr = n => String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
 const clone = o => JSON.parse(JSON.stringify(o || {}));
 const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-const MARK = { ok: '✅', half: '◐', bad: '❌' };
+const MARK = { ok: 'إجابة صحيحة', half: 'إجابة ناقصة', bad: 'إجابة خاطئة' };
 
 async function rpc(fn, args) {
   const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + fn, {
@@ -304,8 +308,8 @@ function lessonCard(l, idx) {
 
 function itemHtml(it, num, ro) {
   const fb = S.wk.feedback;
-  const mk = fb && fb.marks && fb.marks[it.id] ? MARK[fb.marks[it.id]] + ' ' : '';
-  let h = `<div class="q">${mk}${it.type === 'record' ? '' : toAr(num) + '. '}${it.text}</div>`;
+  const mv = fb && fb.marks && fb.marks[it.id];
+  let h = `<div class="q">${it.type === 'record' ? '' : toAr(num) + '. '}${it.text}</div>`;
   if (it.type === 'choice') {
     h += `<div class="opts">${it.opts.map(o => `<button type="button" class="o${S.answers[it.id] === o ? ' on' : ''}" data-act="pick" data-q="${it.id}" data-v="${o}" ${ro ? 'disabled' : ''}>${o}</button>`).join('')}</div>`;
   } else if (it.type === 'text') {
@@ -313,6 +317,7 @@ function itemHtml(it, num, ro) {
   } else {
     h += it.slots.map((lb, i) => slotHtml(i + 1, lb, ro)).join('');
   }
+  if (mv && MARK[mv]) h += `<div class="mk ${mv}">${MARK[mv]}</div>`;
   return h;
 }
 

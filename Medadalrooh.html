@@ -152,8 +152,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   #tajweed .tjf-chip.orange { background: #FDE8CC; color: #B5651D; }
   #tajweed .tjf-chip.green { background: #DDF0D8; color: #3F7A34; }
   #tajweed .tjf-marks { display: flex; gap: 0.25rem; margin-bottom: 0.5rem; }
-  #tajweed .tjf-mk { border: 1px solid #F5EAC0; background: #FFF8E1; border-radius: 9px; padding: 0.15rem 0.5rem; font-size: 0.9rem; cursor: pointer; opacity: 0.55; }
-  #tajweed .tjf-mk.on { opacity: 1; background: #FBEBB5; border-color: #E8CD7A; }
+  #tajweed .tjf-mk { border: 1px solid #F5EAC0; background: #FFF8E1; border-radius: 9px; padding: 0.15rem 0.6rem; font-family: inherit; font-size: 0.74rem; color: #8F8157; cursor: pointer; }
+  #tajweed .tjf-mk.ok.on { background: #DDF0D8; border-color: #8FC283; color: #3F7A34; font-weight: 800; }
+  #tajweed .tjf-mk.half.on { background: #FDE8CC; border-color: #E5B173; color: #B5651D; font-weight: 800; }
+  #tajweed .tjf-mk.bad.on { background: #FBE0DC; border-color: #E49A8F; color: #B3402F; font-weight: 800; }
   #tajweed .tjf-note { width: 100%; box-sizing: border-box; min-height: 4rem; padding: 0.5rem; border: 1px solid #F5EAC0; border-radius: 10px; background: #FFF8E1; font-family: inherit; font-size: 0.84rem; color: #4A3F1E; resize: vertical; margin-bottom: 0.5rem; }
   #tajweed .tjf-row { display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.5rem; font-size: 0.8rem; color: #4A3F1E; }
   #tajweed .tjf-b { border: 1px solid #F5EAC0; background: #FFF8E1; border-radius: 10px; padding: 0.3rem 0.65rem; font-family: inherit; font-size: 0.78rem; color: #4A3F1E; cursor: pointer; }
@@ -10987,7 +10989,8 @@ const TJF_ATT = [['live', 'حاضرة'], ['rec', 'تسجيل'], ['excused', 'ب�
 const TJF_ATT_PTS = { live: 1, rec: 0.5, excused: 0, absent: 0 };
 const TJF_QS = [['q1', '١. آداب التلاوة'], ['q2', '٢. أركان القراءة'], ['q3', '٣. مرتبة التعليم'], ['q4', '٤. الفرق بين المراتب'], ['a1', 'نشاط الدرس']];
 const TJF_SLOTS = ['التحقيق', 'التدوير', 'الحدر'];
-const TJF_MARKS = [['ok', '✅'], ['half', '◐'], ['bad', '❌']];
+const TJF_MARKS = [['ok', 'صحيحة'], ['half', 'ناقصة'], ['bad', 'خاطئة']];
+const TJF_CHOICE = ['q1', 'q2', 'q3'];   // أسئلة الاختيار: صحيحة أو خاطئة فقط
 const TJF_MARK_PTS = { ok: 1, half: 0.5, bad: 0 };
 const TJF_ITEMS = ['q1', 'q2', 'q3', 'q4', 'rec', 'a1'];   // درجة الواجب من ٥ موزعة على هذه البنود
 const TJF_HW_MAX = 5;
@@ -11100,7 +11103,7 @@ function tjfRender() {
       if (open) {
         const f = sub.final || {};
         const d = tjfDraftFor(code, sub);
-        const mk = k => `<div class="tjf-marks">${TJF_MARKS.map(([v, ic]) => `<button class="tjf-mk${d.marks[k] === v ? ' on' : ''}" onclick="tjfMark('${code}','${k}','${v}')">${ic}</button>`).join('')}</div>`;
+        const mk = k => `<div class="tjf-marks">${TJF_MARKS.filter(([v]) => v !== 'half' || !TJF_CHOICE.includes(k)).map(([v, l]) => `<button class="tjf-mk ${v}${d.marks[k] === v ? ' on' : ''}" onclick="tjfMark('${code}','${k}','${v}')">${l}</button>`).join('')}</div>`;
         c += '<div class="tjf-ans">' + TJF_QS.map(([q, l]) => `<div class="tjf-q">${l}</div><div class="tjf-a">${f[q] ? tjEsc(f[q]) : '—'}</div>${mk(q)}`).join('');
         c += '<div class="tjf-q">التطبيق العملي</div>' + TJF_SLOTS.map((l, i) => {
           const rec = (tjfRecs[code] || []).find(x => x.slot === i + 1);
