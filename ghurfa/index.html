@@ -9,10 +9,9 @@
 <style>
 *{box-sizing:border-box}
 html,body{margin:0}
-body{background:linear-gradient(#f0c4a9,#f4c8a8 60%,#e5baa1);background-attachment:fixed;font-family:'Cairo',system-ui,sans-serif;color:#633806;min-height:100vh}
+body{background:linear-gradient(#f0c4a9,#f2c7ac 10%,#f8d3b8 20%,#f0c5a6 30%,#f1c9aa 40%,#f1c9aa 50%,#f4c8a8 60%,#f7cdaf 70%,#f2c9ad 80%,#e9c0a5 90%,#e5baa1);font-family:'Cairo',system-ui,sans-serif;color:#633806;min-height:100vh}
 .wrap{max-width:560px;margin:0 auto}
 .wrap.stu{max-width:none}
-.pic{-webkit-mask-image:linear-gradient(to right,transparent,#000 3%,#000 97%,transparent),linear-gradient(to bottom,#000 96%,transparent);-webkit-mask-composite:source-in;mask-image:linear-gradient(to right,transparent,#000 3%,#000 97%,transparent),linear-gradient(to bottom,#000 96%,transparent);mask-composite:intersect}
 .pic svg{display:block;width:100%;height:auto}
 .stu .pic svg{height:auto;max-height:100vh;max-height:100dvh}
 .med{display:flex;flex-direction:column;align-items:center;padding:6px 16px 30px;background:#e5baa1}
@@ -86,7 +85,7 @@ function build(key){
 function scene(key,pre){
  var cfg=CFG[key],P=build(key),d=Math.min(state[key].length,P.length);
  var o='<svg viewBox="0 0 '+IW+' '+IH+'" role="img" aria-label="لوحة غرفة المنجزات"><defs><image id="im'+pre+'" width="'+IW+'" height="'+IH+'" href="'+cfg.img+'"/></defs><use href="#im'+pre+'"/>';
- o+='<svg x="'+BX+'" y="'+BY+'" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'"><g transform="translate(-'+BX+' -'+BY+')"><use href="#im'+pre+'" filter="url(#gry)"/></g><rect width="'+W+'" height="'+H+'" fill="#fff" opacity=".4"/>';
+ o+='<svg x="'+BX+'" y="'+BY+'" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'"><g transform="translate(-'+BX+' -'+BY+')"><image href="'+cfg.img.replace('.jpg','g.jpg')+'" width="'+IW+'" height="'+IH+'"/></g>';
  for(var i=0;i<d;i++)o+='<clipPath id="'+pre+'c'+i+'"><polygon points="'+P[i]+'"/></clipPath><g clip-path="url(#'+pre+'c'+i+')"><g transform="translate(-'+BX+' -'+BY+')"><use href="#im'+pre+'"/></g></g>';
  for(i=0;i<P.length;i++)o+='<polygon points="'+P[i]+'" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>';
  o+='</svg>';
