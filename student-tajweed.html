@@ -29,8 +29,7 @@
   .btn { width: 100%; margin-top: 0.9rem; padding: 0.7rem; border: none; border-radius: 14px; background: var(--bar); color: var(--gold); font-family: 'Cairo'; font-size: 0.95rem; font-weight: 800; cursor: pointer; }
   .btn:disabled { opacity: 0.55; }
   .msg { margin-top: 0.7rem; font-size: 0.82rem; color: var(--red); min-height: 1.2rem; }
-  .welcome.typing .contact { visibility: hidden; }
-  .contact { position: relative; z-index: 1; margin-top: 1.3rem; font-size: 0.8rem; color: var(--muted); }
+  .contact { margin-top: 1.3rem; font-size: 0.8rem; color: var(--muted); }
   .contact a { color: var(--gold); font-weight: 700; text-decoration: none; }
 
   .topbar { background: var(--bar); border-bottom: 1px solid var(--border); padding: 0.9rem 1.2rem; display: flex; align-items: center; justify-content: space-between; font-weight: 800; font-size: 1.05rem; }
@@ -146,14 +145,18 @@ function logout() {
   $('welcome').classList.remove('hidden');
 }
 
-['userInput', 'codeInput'].forEach(id => {
-  $(id).addEventListener('focus', () => document.querySelector('.welcome').classList.add('typing'));
-  $(id).addEventListener('blur', () => document.querySelector('.welcome').classList.remove('typing'));
-});
 $('loginBtn').addEventListener('click', () => login());
 $('codeInput').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
 $('logoutBtn').addEventListener('click', confirmLogout);
-['userInput', 'codeInput'].forEach(id => $(id).addEventListener('paste', () => setTimeout(() => { $(id).value = $(id).value.trim(); }, 0)));
+// اللصق: نكتب الرمز نفسه فقط (حروف إنجليزية وأرقام وشرطة) ونتجاهل أي كلام يجي معه
+['userInput', 'codeInput'].forEach(id => {
+  $(id).addEventListener('paste', e => {
+    e.preventDefault();
+    const t = (e.clipboardData || window.clipboardData).getData('text');
+    const m = t.match(/[A-Za-z0-9][A-Za-z0-9-]*/);
+    e.target.value = m ? m[0].toUpperCase() : '';
+  });
+});
 
 try { const sc = localStorage.getItem(SAVED_KEY); if (sc) login(sc); } catch (e) {}
 </script>
