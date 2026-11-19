@@ -147,6 +147,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   #tajweed .sc-act.tj-key-off { opacity: 0.45; cursor: default; }
   #tajweed .tjf-card { background: #fff; border: 1px solid #F5EAC0; border-radius: 16px; padding: 0.8rem; margin-bottom: 0.6rem; }
   #tajweed .tjf-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.55rem; font-weight: 800; color: #4A3F1E; }
+  #tajweed .tjf-tap { cursor: pointer; }
   #tajweed .tjf-chip { font-size: 0.72rem; font-weight: 800; padding: 0.1rem 0.65rem; border-radius: 9px; background: #F5EAC0; color: #8F8157; }
   #tajweed .tjf-chip.red { background: #FBE0DC; color: #B3402F; }
   #tajweed .tjf-chip.orange { background: #FDE8CC; color: #B5651D; }
@@ -11107,11 +11108,9 @@ function tjfRender() {
     const done = sub && sub.status === 'submitted';
     const open = tjfOpenId === s.id && done;
     const [cls, label] = tjfStatus(sub);
-    let c = `<div class="tjf-card"><div class="tjf-top"><span>${tjEsc(s.name)}</span><span class="tjf-chip${cls ? ' ' + cls : ''}">${label}</span></div>`;
-    c += '<div class="tjf-row">' + TJF_ATT.map(([k, l]) => `<button class="tjf-b${r.att === k ? ' on' : ''}" onclick="tjfSetAtt(${s.id},'${k}')">${l}</button>`).join('') + '</div>';
-    if (r.att === 'live') c += `<div class="tjf-row"><button class="tjf-b${r.part ? ' on' : ''}" onclick="tjfTogglePart(${s.id})">مشاركة ✓</button></div>`;
+    let c = `<div class="tjf-card"><div class="tjf-top${done ? ' tjf-tap' : ''}"${done ? ` onclick="tjfToggle(${s.id})"` : ''}><span>${tjEsc(s.name)}</span><span class="tjf-chip${cls ? ' ' + cls : ''}">${label}</span></div>`;
+    c += '<div class="tjf-row">' + TJF_ATT.map(([k, l]) => `<button class="tjf-b${r.att === k ? ' on' : ''}" onclick="tjfSetAtt(${s.id},'${k}')">${l}</button>`).join('') + (r.att === 'live' ? `<button class="tjf-b${r.part ? ' on' : ''}" onclick="tjfTogglePart(${s.id})">✋</button>` : '') + '</div>';
     if (done) {
-      c += `<button class="tjf-b${open ? ' on' : ''}" onclick="tjfToggle(${s.id})">${open ? 'إخفاء الإجابات' : 'عرض الإجابات والرصد'}</button>`;
       if (open) {
         const f = sub.final || {};
         const d = tjfDraftFor(code, sub);
