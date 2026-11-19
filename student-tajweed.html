@@ -41,8 +41,11 @@
   .name { font-size: 1.05rem; font-weight: 800; }
   .level { display: inline-block; margin-top: 0.2rem; background: var(--bar); color: var(--gold); font-size: 0.74rem; font-weight: 800; padding: 0.15rem 0.7rem; border-radius: 9px; }
 
-  .tabs { display: flex; gap: 0.35rem; overflow-x: auto; margin-bottom: 0.9rem; padding-bottom: 0.2rem; }
-  .tab { flex: none; border: 1px solid var(--border); background: #fff; border-radius: 11px; padding: 0.35rem 0.7rem; font-family: 'Cairo'; font-size: 0.78rem; color: var(--muted); cursor: pointer; }
+  .tabs { margin-bottom: 0.9rem; }
+  .tabsT { font-weight: 800; font-size: 0.95rem; margin-bottom: 0.4rem; }
+  .tabsR { display: flex; gap: 0.25rem; }
+  .tab { flex: 1; min-width: 0; text-align: center; border: 1px solid var(--border); background: #fff; border-radius: 9px; padding: 0.25rem 0; font-family: 'Cairo'; font-size: 0.7rem; font-weight: 400; color: var(--muted); cursor: pointer; white-space: nowrap; }
+  .tab i { display: block; font-style: normal; font-size: 0.55rem; line-height: 1; }
   .tab.on { background: var(--bar); border-color: #E8CD7A; color: var(--gold); font-weight: 800; }
   .tab.lk { opacity: 0.55; cursor: default; }
 
@@ -145,9 +148,9 @@ const SUPABASE_KEY = 'sb_publishable_-YU0y8Hdj6N_sPKRRtYYoA_PdJ2q7Po';
 const WA_URL = 'https://wa.me/96876727387';
 const SAVED_KEY = 'madad_tj_code';
 
-// الأسابيع الجاهزة حاليًا (الباقي مقفل لين يتجهّز)
-const WEEKS_READY = 1;
-const TAB_LABELS = ['الأسبوع ١', 'الأسبوع ٢', 'الأسبوع ٣', 'الأسبوع ٤', 'الأسبوع ٥', 'الاختبار'];
+// الأسابيع اللي فيها محتوى حاليًا (السادس للاختبار، يتجهّز لاحقًا)
+const WEEKS_READY = 5;
+const ORD = ['الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس', 'السادس'];
 const LESSONS = {
   1: { title: 'الدرس الأول', sub: 'مدخل إلى علم التجويد', pages: ['tajweed/lesson1.jpg'] }
 };
@@ -167,6 +170,11 @@ const HOMEWORK = {
     ] }
   ]
 };
+// محتوى تجريبي للأسابيع ٢ إلى ٥: نفس درس وواجب الأسبوع الأول لين تجهز المذكرة
+for (let n = 2; n <= 5; n++) {
+  LESSONS[n] = Object.assign({}, LESSONS[1], { title: 'الدرس ' + ORD[n - 1] });
+  HOMEWORK[n] = HOMEWORK[1];
+}
 const MAX_FILE = 4 * 1024 * 1024;
 const MAX_REC_SEC = 900;   // ١٥ دقيقة، تحت حد القاعدة بأمان
 const HW_MAX = 5;
@@ -297,11 +305,10 @@ function logout() {
 function renderAll() { renderHeader(); renderTabs(); renderWeek(); }
 
 function renderTabs() {
-  $('tabs').innerHTML = TAB_LABELS.map((l, i) => {
+  $('tabs').innerHTML = '<div class="tabsT">الأسبوع</div><div class="tabsR">' + ORD.map((l, i) => {
     const n = i + 1;
-    const ok = n <= WEEKS_READY && weekOpen(n);
-    return ok ? `<button class="tab${n === S.week ? ' on' : ''}" data-act="tab" data-n="${n}">${l}</button>` : `<span class="tab lk">🔒 ${l}</span>`;
-  }).join('');
+    return weekOpen(n) ? `<button class="tab${n === S.week ? ' on' : ''}" data-act="tab" data-n="${n}">${l}</button>` : `<span class="tab lk">${l}<i>🔒</i></span>`;
+  }).join('') + '</div>';
 }
 
 function rect(id, icon, title, sub, locked, dot) {
@@ -652,7 +659,9 @@ $('weekBody').addEventListener('touchend', e => {
 $('tabs').addEventListener('click', async e => {
   const t = e.target.closest('[data-act=tab]');
   if (!t) return;
-  S.week = +t.dataset.n; S.editing = false; S.open = null; S.page = 0;
+  stopMic(); dropPlayers();
+  Object.values(S.local).forEach(u => URL.revokeObjectURL(u));
+  S.local = {}; S.week = +t.dataset.n; S.editing = false; S.open = null; S.page = 0;
   try { await loadWeek(); } catch (er) {}
   renderAll();
 });

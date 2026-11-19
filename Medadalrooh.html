@@ -148,6 +148,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   #tajweed .tjf-card { background: #fff; border: 1px solid #F5EAC0; border-radius: 16px; padding: 0.8rem; margin-bottom: 0.6rem; }
   #tajweed .tjf-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.55rem; font-weight: 800; color: #4A3F1E; }
   #tajweed .tjf-tap { cursor: pointer; }
+  #tajweed .tjf-wkT { font-weight: 800; font-size: 1rem; color: #4A3F1E; margin-bottom: 0.4rem; }
+  #tajweed .tjf-wkR { display: flex; gap: 0.25rem; margin-bottom: 0.9rem; }
+  #tajweed .tjf-wk { flex: 1; min-width: 0; padding: 0.25rem 0; border: 1px solid #F5EAC0; background: #FFF8E1; border-radius: 9px; font-family: inherit; font-size: 0.7rem; font-weight: 400; color: #8F8157; cursor: pointer; white-space: nowrap; }
+  #tajweed .tjf-wk.on { background: #FBEBB5; border-color: #E8CD7A; color: #4A3F1E; font-weight: 800; }
   #tajweed .tjf-chip { font-size: 0.72rem; font-weight: 800; padding: 0.1rem 0.65rem; border-radius: 9px; background: #F5EAC0; color: #8F8157; }
   #tajweed .tjf-chip.red { background: #FBE0DC; color: #B3402F; }
   #tajweed .tjf-chip.orange { background: #FDE8CC; color: #B5651D; }
@@ -10918,8 +10922,10 @@ function tjBuildPages() {
     const e = tjCodes.map[s.id];
     if (!e || !s.name) return;
     const payload = { v: 1, ready: true, name: s.name, display: firstTwoWords(s.name), first: tjFirstName(s.name), level: s.level || '', start: tjStartFor(s.level) };
-    const g = tjGradesFor(s.id);
-    if (g) payload.grades = { 1: g };
+    for (let w = 1; w <= TJF_ORD.length; w++) {
+      const g = tjGradesFor(s.id, w);
+      if (g) (payload.grades = payload.grades || {})[w] = g;
+    }
     pages.push({ code: e.code, payload });
   });
   return pages;
@@ -10967,9 +10973,10 @@ supabaseClient
   })
   .subscribe();
 
-// ===================== المتابعة (الأسبوع ١): الحضور والمشاركة وإجابات الواجب ودرجته =====================
+// ===================== المتابعة: الحضور والمشاركة وإجابات الواجب ودرجته =====================
 const TJF_KEY = 'madad_tajweed_follow';
-const TJF_WEEK = 1;
+let TJF_WEEK = 1;
+const TJF_ORD = ['الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس', 'السادس'];
 const TJF_ATT = [['live', 'حاضرة'], ['rec', 'تسجيل'], ['excused', 'بعذر'], ['absent', 'بدون عذر']];
 const TJF_ATT_PTS = { live: 1, rec: 0.5, excused: 0, absent: 0 };
 const TJF_QS = [['q1', '١. آداب التلاوة'], ['q2', '٢. أركان القراءة'], ['q3', '٣. مرتبة التعليم'], ['q4', '٤. الفرق بين المراتب'], ['a1', 'نشاط الدرس']];
@@ -11019,25 +11026,41 @@ function tjStartFor(level) {
   const r = rows.find(x => !x.done) || rows[0];
   return r ? r.startDate : '';
 }
-function tjGradesFor(id) {
-  const r = (tjFollow[TJF_WEEK] || {})[id];
+function tjGradesFor(id, week) {
+  const r = (tjFollow[week] || {})[id];
   if (!r) return null;
   const g = {};
   if (r.att) { g.att = TJF_ATT_PTS[r.att]; g.part = (r.att === 'live' && r.part) ? 1 : 0; }
   return Object.keys(g).length ? g : null;
 }
 
+function tjfSetWeek(n) {
+  TJF_WEEK = n; tjfOpenId = null; tjfDraft = {}; tjfSubs = {}; tjfRecs = {};
+  tjfRender();
+  if (n <= 5) tjfLoadRemote();
+}
+// تحديث تلقائي للتسليمات بدون ما نخرّب الكتابة الجارية
+function tjfAutoRefresh() {
+  if (tajweedView !== 'follow' || document.hidden || TJF_WEEK > 5) return;
+  const a = document.activeElement;
+  if (a && /^(TEXTAREA|INPUT)$/.test(a.tagName) && a.closest('#tjPanel_follow')) return;
+  tjfLoadRemote();
+}
+setInterval(tjfAutoRefresh, 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) tjfAutoRefresh(); });
 function tjfShow() {
   tjfLoad(); tjLoadCodes();
   tjfRender();
   tjfLoadRemote();
 }
 async function tjfLoadRemote() {
+  const wk = TJF_WEEK;
   try {
     const [a, b] = await Promise.all([
-      supabaseClient.from('tajweed_submissions').select('code,status,final,edit_used,edited_at,graded,graded_at').eq('week', TJF_WEEK),
-      supabaseClient.from('tajweed_recordings').select('code,slot,duration').eq('week', TJF_WEEK).eq('state', 'final')
+      supabaseClient.from('tajweed_submissions').select('code,status,final,edit_used,edited_at,graded,graded_at').eq('week', wk),
+      supabaseClient.from('tajweed_recordings').select('code,slot,duration').eq('week', wk).eq('state', 'final')
     ]);
+    if (wk !== TJF_WEEK) return;   // تبدّل الأسبوع أثناء التحميل
     tjfSubs = {}; (a.data || []).forEach(x => { tjfSubs[x.code] = x; });
     tjfRecs = {}; (b.data || []).forEach(x => { (tjfRecs[x.code] = tjfRecs[x.code] || []).push(x); });
   } catch (e) {}
@@ -11083,7 +11106,8 @@ function tjfRender() {
   const el = document.getElementById('tjPanel_follow');
   if (!el) return;
   const fmt = sec => { const t = Math.round(sec || 0); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
-  let h = `<div class="sched-view-toggle"><button class="filter-btn" onclick="tjfLoadRemote()" style="font-weight:700;padding:0.3rem 0.6rem;">⟳</button><button class="sched-view-btn active">الأسبوع ${toAr(TJF_WEEK)}</button></div>`;
+  let h = '<div class="tjf-wkT">الأسبوع</div><div class="tjf-wkR">' + TJF_ORD.map((l, i) => `<button class="tjf-wk${TJF_WEEK === i + 1 ? ' on' : ''}" onclick="tjfSetWeek(${i + 1})">${l}</button>`).join('') + '</div>';
+  if (TJF_WEEK > 5) { el.innerHTML = h; return; }
   if (!tjStudents.length) { el.innerHTML = h + '<div class="tj-empty">ما فيه طالبات بعد</div>'; return; }
   h += tjStudents.map(s => {
     const r = ((tjFollow[TJF_WEEK] || {})[s.id]) || {};
