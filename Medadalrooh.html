@@ -811,6 +811,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .sched-date-select.sched-month-select { flex: 1.3; }
   .sched-date-select.sched-year-select { flex: 1.4; }
   .sched-hijri-display { font-size: 0.68rem; color: var(--wine); padding: 0 0.5rem 0.4rem; line-height: 1.4; }
+  .sched-span-info { font-size: 0.72rem; color: var(--muted); margin: 0.3rem 0.2rem 0.5rem; }
+  .sched-span-warn { font-size: 0.72rem; color: #c0392b; font-weight: 700; margin: 0 0.2rem 0.5rem; }
 
   .sched-done-btn {
     width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid rgba(46,125,90,0.3);
@@ -9421,6 +9423,79 @@ function onSchedDatePartChange(rowId, field) {
   editSchedDate(rowId, field, iso);
 }
 
+// ===================== مدة الدورة / الإجازة بالأسابيع (المواعيد) =====================
+function schedDateObj(iso) {
+  if (!iso) return null;
+  const d = new Date(iso + 'T00:00:00');
+  return isNaN(d.getTime()) ? null : d;
+}
+
+// عدد الأيام شاملًا يوم البداية والنهاية (null لو ناقص أو النهاية قبل البداية)
+function schedSpanDays(startIso, endIso) {
+  const a = schedDateObj(startIso), b = schedDateObj(endIso);
+  if (!a || !b || b < a) return null;
+  return Math.round((b - a) / 86400000) + 1;
+}
+
+const SCHED_DAY_NAMES = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+
+function arCountWord(n, one, two, few, many) {
+  if (n === 1) return one;
+  if (n === 2) return two;
+  return toAr(n) + ' ' + (n <= 10 ? few : many);
+}
+
+function schedInfoLine(text) { return `<div class="sched-span-info">⏱ المدة: ${text}</div>`; }
+function schedWarnLine(text) { return `<div class="sched-span-warn">⚠️ ${text}</div>`; }
+
+// مدة الدورة: أسابيع كاملة (٧ أيام لكل أسبوع) + الأيام الزيادة
+function schedCourseSpanText(days) {
+  const w = Math.floor(days / 7), r = days % 7;
+  const parts = [];
+  if (w) parts.push(arCountWord(w, 'أسبوع', 'أسبوعين', 'أسابيع', 'أسبوعًا'));
+  if (r) parts.push(arCountWord(r, 'يوم', 'يومين', 'أيام', 'يومًا'));
+  return parts.join(' + ');
+}
+
+// مدة الإجازة: أسابيع بالتقريب لفوق (الأسبوع الناقص يحسب أسبوع)
+function schedVacSpanText(days) {
+  return arCountWord(Math.ceil(days / 7), 'أسبوع', 'أسبوعين', 'أسابيع', 'أسبوعًا');
+}
+
+// التلقين — الدورة تبدأ جمعة أو سبت وتنتهي سبت
+function schedTalqeenCourseInfoHtml(startIso, endIso, withWarn) {
+  let html = '';
+  const days = schedSpanDays(startIso, endIso);
+  if (days) html += schedInfoLine(schedCourseSpanText(days));
+  if (withWarn) {
+    const a = schedDateObj(startIso), b = schedDateObj(endIso);
+    if (a && a.getDay() !== 5 && a.getDay() !== 6) html += schedWarnLine('البداية مو جمعة أو سبت (' + SCHED_DAY_NAMES[a.getDay()] + ')');
+    if (b && b.getDay() !== 6) html += schedWarnLine('النهاية مو سبت (' + SCHED_DAY_NAMES[b.getDay()] + ')');
+  }
+  return html;
+}
+
+// التلقين — الإجازة غالبًا تبدأ أحد
+function schedVacInfoHtml(startIso, endIso, withWarn) {
+  let html = '';
+  const days = schedSpanDays(startIso, endIso);
+  if (days) html += schedInfoLine(schedVacSpanText(days));
+  if (withWarn) {
+    const a = schedDateObj(startIso);
+    if (a && a.getDay() !== 0) html += schedWarnLine('بداية الإجازة مو أحد (' + SCHED_DAY_NAMES[a.getDay()] + ')');
+  }
+  return html;
+}
+
+// التجويد — المستوى لازم يكون ٦ أسابيع بالضبط (٤٢ يوم)
+function tjsCourseInfoHtml(startIso, endIso, withWarn) {
+  const days = schedSpanDays(startIso, endIso);
+  if (!days) return '';
+  let html = schedInfoLine(schedCourseSpanText(days));
+  if (withWarn && days !== 42) html += schedWarnLine('المدة ' + toAr(days) + ' يوم، المفروض ٤٢ يوم (٦ أسابيع)');
+  return html;
+}
+
 function formatHijriGregorian(isoDate) {
   if (!isoDate) return '';
   const d = new Date(isoDate + 'T00:00:00');
@@ -9492,6 +9567,7 @@ function renderUpcomingRow(row, idx, upcomingList) {
           <div class="sched-hijri-display">${formatHijriGregorian(row.endDate)}</div>
         </div>
       </div>
+      ${schedTalqeenCourseInfoHtml(row.startDate, row.endDate, true)}
 
       ${row.hasVacation ? `
         <div class="sched-vac-box">
@@ -9511,6 +9587,7 @@ function renderUpcomingRow(row, idx, upcomingList) {
               <div class="sched-hijri-display">${formatHijriGregorian(row.vacEndDate)}</div>
             </div>
           </div>
+          ${schedVacInfoHtml(row.vacStartDate, row.vacEndDate, true)}
         </div>
       ` : `<button class="sched-add-vac-btn" onclick="toggleVacation(${row.id})">🪫 + إضافة إجازة بعدها</button>`}
 
@@ -9768,9 +9845,11 @@ function renderFinishedRow(row, idx, finishedList) {
       </div>
       <div class="sched-finished-dates">📅 ${formatGregorianArabic(row.startDate)} ← ${formatGregorianArabic(row.endDate)}</div>
       <div class="sched-finished-dates">${formatHijriGregorian(row.startDate)} ← ${formatHijriGregorian(row.endDate)}</div>
+      ${schedTalqeenCourseInfoHtml(row.startDate, row.endDate, false)}
       ${row.hasVacation ? `
       <div class="sched-finished-dates" style="color:var(--muted);margin-top:0.5rem;">🪫 إجازة: ${formatGregorianArabic(row.vacStartDate)} ← ${formatGregorianArabic(row.vacEndDate)}</div>
       <div class="sched-finished-dates" style="color:var(--muted);">${formatHijriGregorian(row.vacStartDate)} ← ${formatHijriGregorian(row.vacEndDate)}</div>
+      ${schedVacInfoHtml(row.vacStartDate, row.vacEndDate, false)}
       ` : ''}
       ${editingFinishedCounts.has(row.id) ? `
       <div class="sched-finished-count">
@@ -10764,6 +10843,7 @@ function tjsUpcomingCard(r, idx, list) {
         ${tjsDateField('تاريخ البداية', r.id, 'startDate', r.startDate)}
         ${tjsDateField('تاريخ النهاية', r.id, 'endDate', r.endDate)}
       </div>
+      ${tjsCourseInfoHtml(r.startDate, r.endDate, true)}
       ${r.hasVacation ? `
         <div class="sched-vac-box">
           <div class="sched-vac-head">
@@ -10794,6 +10874,7 @@ function tjsFinishedCard(r, idx, list) {
       </div>
       <div class="sched-finished-dates">📅 ${formatGregorianArabic(r.startDate)} ← ${formatGregorianArabic(r.endDate)}</div>
       <div class="sched-finished-dates">${formatHijriGregorian(r.startDate)} ← ${formatHijriGregorian(r.endDate)}</div>
+      ${tjsCourseInfoHtml(r.startDate, r.endDate, false)}
       ${r.hasVacation ? `
         <div class="sched-finished-dates" style="color:var(--muted);margin-top:0.5rem;">🪫 إجازة: ${formatGregorianArabic(r.vacStartDate)} ← ${formatGregorianArabic(r.vacEndDate)}</div>
         <div class="sched-finished-dates" style="color:var(--muted);">${formatHijriGregorian(r.vacStartDate)} ← ${formatHijriGregorian(r.vacEndDate)}</div>
