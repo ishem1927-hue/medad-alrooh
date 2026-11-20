@@ -812,6 +812,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .sched-date-select.sched-year-select { flex: 1.4; }
   .sched-hijri-display { font-size: 0.68rem; color: var(--wine); padding: 0 0.5rem 0.4rem; line-height: 1.4; }
   .sched-span-info { font-size: 0.72rem; color: var(--muted); margin: 0.3rem 0.2rem 0.5rem; }
+  .sched-day-name { font-size: 0.85em; color: var(--muted); }
   .sched-span-warn { font-size: 0.72rem; color: #c0392b; font-weight: 700; margin: 0 0.2rem 0.5rem; }
 
   .sched-done-btn {
@@ -9496,6 +9497,27 @@ function tjsCourseInfoHtml(startIso, endIso, withWarn) {
   return html;
 }
 
+// اسم اليوم بالعربي (الأحد ... السبت) من تاريخ ISO
+function schedDayName(iso) {
+  const d = schedDateObj(iso);
+  return d ? SCHED_DAY_NAMES[d.getDay()] : '';
+}
+
+// التاريخ الميلادي مع اسم اليوم بخط صغير قبله
+function formatGregorianWithDay(iso) {
+  const g = formatGregorianArabic(iso);
+  if (!g) return '';
+  return `<span class="sched-day-name">${schedDayName(iso)}</span> ${g}`;
+}
+
+// تحت حقل التاريخ: اسم اليوم + التاريخ الهجري
+function formatDayHijri(iso) {
+  const day = schedDayName(iso);
+  if (!day) return '';
+  const h = formatHijriGregorian(iso);
+  return `<b>${day}</b>` + (h ? ' · ' + h : '');
+}
+
 function formatHijriGregorian(isoDate) {
   if (!isoDate) return '';
   const d = new Date(isoDate + 'T00:00:00');
@@ -9559,12 +9581,12 @@ function renderUpcomingRow(row, idx, upcomingList) {
         <div class="sched-date-field">
           <span class="sched-date-label">تاريخ البداية</span>
           ${buildDateSelects(row.id, 'startDate', row.startDate)}
-          <div class="sched-hijri-display">${formatHijriGregorian(row.startDate)}</div>
+          <div class="sched-hijri-display">${formatDayHijri(row.startDate)}</div>
         </div>
         <div class="sched-date-field">
           <span class="sched-date-label">تاريخ النهاية</span>
           ${buildDateSelects(row.id, 'endDate', row.endDate)}
-          <div class="sched-hijri-display">${formatHijriGregorian(row.endDate)}</div>
+          <div class="sched-hijri-display">${formatDayHijri(row.endDate)}</div>
         </div>
       </div>
       ${schedTalqeenCourseInfoHtml(row.startDate, row.endDate, true)}
@@ -9579,12 +9601,12 @@ function renderUpcomingRow(row, idx, upcomingList) {
             <div class="sched-date-field">
               <span class="sched-date-label">بداية الإجازة</span>
               ${buildDateSelects(row.id, 'vacStartDate', row.vacStartDate)}
-              <div class="sched-hijri-display">${formatHijriGregorian(row.vacStartDate)}</div>
+              <div class="sched-hijri-display">${formatDayHijri(row.vacStartDate)}</div>
             </div>
             <div class="sched-date-field">
               <span class="sched-date-label">نهاية الإجازة</span>
               ${buildDateSelects(row.id, 'vacEndDate', row.vacEndDate)}
-              <div class="sched-hijri-display">${formatHijriGregorian(row.vacEndDate)}</div>
+              <div class="sched-hijri-display">${formatDayHijri(row.vacEndDate)}</div>
             </div>
           </div>
           ${schedVacInfoHtml(row.vacStartDate, row.vacEndDate, true)}
@@ -9843,11 +9865,11 @@ function renderFinishedRow(row, idx, finishedList) {
         <span class="sched-badge" style="background:var(--surface2);color:var(--muted);margin-right:auto;">✓ منتهية</span>
         <button class="sched-del" onclick="deleteSchedRow(${row.id})">✕</button>
       </div>
-      <div class="sched-finished-dates">📅 ${formatGregorianArabic(row.startDate)} ← ${formatGregorianArabic(row.endDate)}</div>
+      <div class="sched-finished-dates">📅 ${formatGregorianWithDay(row.startDate)} ← ${formatGregorianWithDay(row.endDate)}</div>
       <div class="sched-finished-dates">${formatHijriGregorian(row.startDate)} ← ${formatHijriGregorian(row.endDate)}</div>
       ${schedTalqeenCourseInfoHtml(row.startDate, row.endDate, false)}
       ${row.hasVacation ? `
-      <div class="sched-finished-dates" style="color:var(--muted);margin-top:0.5rem;">🪫 إجازة: ${formatGregorianArabic(row.vacStartDate)} ← ${formatGregorianArabic(row.vacEndDate)}</div>
+      <div class="sched-finished-dates" style="color:var(--muted);margin-top:0.5rem;">🪫 إجازة: ${formatGregorianWithDay(row.vacStartDate)} ← ${formatGregorianWithDay(row.vacEndDate)}</div>
       <div class="sched-finished-dates" style="color:var(--muted);">${formatHijriGregorian(row.vacStartDate)} ← ${formatHijriGregorian(row.vacEndDate)}</div>
       ${schedVacInfoHtml(row.vacStartDate, row.vacEndDate, false)}
       ` : ''}
@@ -9939,9 +9961,9 @@ function renderScheduleTable() {
         <td style="text-align:center;padding:0.6rem 0.4rem;">${r.type === 'course' ? '💡 دورة' : '🪫 إجازة'}</td>
         <td style="text-align:center;padding:0.6rem 0.4rem;">${r.num ? toAr(r.num) : '—'}</td>
         <td style="position:relative;text-align:center;padding:0.6rem 0.4rem;">${formatHijriGregorian(r.start)}${stampHTML}</td>
-        <td style="text-align:center;padding:0.6rem 0.4rem;">${formatGregorianArabic(r.start)}</td>
+        <td style="text-align:center;padding:0.6rem 0.4rem;">${formatGregorianWithDay(r.start)}</td>
         <td style="text-align:center;padding:0.6rem 0.4rem;">${formatHijriGregorian(r.end)}</td>
-        <td style="text-align:center;padding:0.6rem 0.4rem;">${formatGregorianArabic(r.end)}</td>
+        <td style="text-align:center;padding:0.6rem 0.4rem;">${formatGregorianWithDay(r.end)}</td>
       </tr>
     `;
   });
@@ -10038,10 +10060,10 @@ function buildShareViewContent() {
       <tr style="${rowBg}${opacityStyle}">
         <td style="text-align:center;padding:0.5rem 0.3rem;font-size:0.72rem;">${r.type === 'course' ? '💡 دورة ' + (r.num?toEnDigits(r.num):'') : '🪫 إجازة'}</td>
         <td style="position:relative;text-align:center;padding:0.5rem 0.3rem;font-size:0.68rem;line-height:1.5;">
-          ${formatHijriGregorian(r.start)}<br><span style="color:${subColor};font-size:0.62rem;">${formatGregorianArabic(r.start)}</span>${stampHTML}
+          ${formatHijriGregorian(r.start)}<br><span style="color:${subColor};font-size:0.62rem;">${formatGregorianWithDay(r.start)}</span>${stampHTML}
         </td>
         <td style="text-align:center;padding:0.5rem 0.3rem;font-size:0.68rem;line-height:1.5;">
-          ${formatHijriGregorian(r.end)}<br><span style="color:${subColor};font-size:0.62rem;">${formatGregorianArabic(r.end)}</span>
+          ${formatHijriGregorian(r.end)}<br><span style="color:${subColor};font-size:0.62rem;">${formatGregorianWithDay(r.end)}</span>
         </td>
       </tr>
     `;
@@ -10818,7 +10840,7 @@ function tjsDateField(label, rowId, field, iso) {
   return `<div class="sched-date-field">
     <span class="sched-date-label">${label}</span>
     ${tjsDateSelects(rowId, field, iso)}
-    <div class="sched-hijri-display">${formatHijriGregorian(iso)}</div>
+    <div class="sched-hijri-display">${formatDayHijri(iso)}</div>
   </div>`;
 }
 
@@ -10872,11 +10894,11 @@ function tjsFinishedCard(r, idx, list) {
         <span class="sched-badge" style="background:var(--surface2);color:var(--muted);margin-right:auto;">✓ منتهي</span>
         <button class="sched-del" onclick="tjsDelete(${r.id})">✕</button>
       </div>
-      <div class="sched-finished-dates">📅 ${formatGregorianArabic(r.startDate)} ← ${formatGregorianArabic(r.endDate)}</div>
+      <div class="sched-finished-dates">📅 ${formatGregorianWithDay(r.startDate)} ← ${formatGregorianWithDay(r.endDate)}</div>
       <div class="sched-finished-dates">${formatHijriGregorian(r.startDate)} ← ${formatHijriGregorian(r.endDate)}</div>
       ${tjsCourseInfoHtml(r.startDate, r.endDate, false)}
       ${r.hasVacation ? `
-        <div class="sched-finished-dates" style="color:var(--muted);margin-top:0.5rem;">🪫 إجازة: ${formatGregorianArabic(r.vacStartDate)} ← ${formatGregorianArabic(r.vacEndDate)}</div>
+        <div class="sched-finished-dates" style="color:var(--muted);margin-top:0.5rem;">🪫 إجازة: ${formatGregorianWithDay(r.vacStartDate)} ← ${formatGregorianWithDay(r.vacEndDate)}</div>
         <div class="sched-finished-dates" style="color:var(--muted);">${formatHijriGregorian(r.vacStartDate)} ← ${formatHijriGregorian(r.vacEndDate)}</div>
       ` : ''}
       <div class="sched-finished-count">
