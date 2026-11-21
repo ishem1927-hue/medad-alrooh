@@ -5581,7 +5581,7 @@ supabaseClient
 
 // ===================== صفحة الطالبة: الرموز التعريفية + نشر البيانات + نتائج الاستبيان =====================
 const STORE_PORTAL_CODES = 'madad_portal_codes';
-const PORTAL_URL = 'https://ishem1927-hue.github.io/medad-alrooh/Medadalrooh.html';
+const PORTAL_URL = 'https://ishem1927-hue.github.io/medad-alrooh/';
 const PORTAL_CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // بدون حروف/أرقام تتشابه (0 O 1 I L)
 let portalCodes = { next: 1, map: {} }; // map: { رقم الطالبة: { seq: الرقم التسلسلي الثابت, ini: حروف الاسم، code: الرمز } }
 // حرف إنجليزي لكل حرف عربي (للتشابه ما يضر، لأن كلمة المرور فريدة لكل طالبة)
@@ -5685,7 +5685,7 @@ function copyPortalMessage(id) {
   const s = students.find(x => x.id === id);
   if (!e || !s) return;
   const parts = portalCodeParts(e);
-  const msg = `السلام عليكم ورحمة الله وبركاته 🤍\n\nأهلًا ${portalFirstName(s.name)}، صفحتك في بوابة طالبات مداد الروح جاهزة 🌿\n\nيمكنكِ الاطلاع على إنجازاتكِ وتحميل بطاقة التميز وشهادات ختم الأجزاء 🌟.\n\n🔗 رابط البوابة: ${PORTAL_URL}\n\n👤 اسم المستخدم: ${parts.user}\n\n🔑 كلمة المرور: ${parts.pass}\n\nبيانات الدخول خاصة بكِ فاحتفظي بها 🤍`;
+  const msg = `السلام عليكم ورحمة الله وبركاته 🤍\n\nأهلًا ${portalFirstName(s.name)}، صفحتك في بوابة طالبات مداد الروح جاهزة 🌿\n\n*يمكنكِ الاطلاع على إنجازاتكِ وتحميل بطاقة التميز وشهادات ختم الأجزاء 🌟.*\n\n🔗 رابط البوابة: ${PORTAL_URL}\n\n👤 اسم المستخدم: ${parts.user}\n\n🔑 كلمة المرور: ${parts.pass}\n\nبيانات الدخول خاصة بكِ فاحتفظي بها 🤍`;
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(msg).then(() => showToast('✅ تم نسخ رسالة ' + firstTwoWords(s.name))).catch(() => { prompt('انسخي الرسالة:', msg); });
   } else {
