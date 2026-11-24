@@ -317,7 +317,7 @@ function renderTabs() {
 
 function rect(id, icon, title, sub, locked, dot) {
   const open = !locked && S.open === id;
-  return `<button type="button" class="rect${open ? ' open' : ''}${locked ? ' lk' : ''}" ${locked ? '' : `data-act="fold" data-id="${id}"`}>${dot ? `<i class="dot ${dot}"></i>` : ''}${locked || icon ? `<span class="ri">${locked ? '🔒' : icon}</span>` : ''}<span class="rt">${title}</span>${sub ? `<span class="rs">${sub}</span>` : ''}</button>`;
+  return `<button type="button" class="rect${open ? ' open' : ''}${locked ? ' lk' : ''}" ${locked ? '' : `data-act="fold" data-id="${id}"`}>${dot ? `<i class="dot ${dot}"></i>` : ''}<span class="ri">${locked ? '🔒' : icon}</span><span class="rt">${title}</span>${sub ? `<span class="rs">${sub}</span>` : ''}</button>`;
 }
 
 // تسجيل اللقاء: الرابط ما يجي من الخادم إلا داخل أسبوعه. نعرضه داخل الصفحة بمشغّل درايف المضمّن
@@ -325,9 +325,9 @@ function rect(id, icon, title, sub, locked, dot) {
 const driveId = u => { const m = String(u || '').match(/drive\.google\.com\/(?:file\/(?:u\/\d+\/)?d\/|(?:open|uc)\?(?:[^#]*&)?id=)([\w-]{10,})/i); return m ? m[1] : null; };
 function meetRect() {
   const id = driveId(S.wk.meet);
-  if (!id) return rect('meet', '', 'تسجيل اللقاء 🎥', 'غير متاح', true);
+  if (!id) return '<button type="button" class="rect lk" disabled><span class="ri">🎥</span><span class="rt">تسجيل اللقاء</span><span class="rs">غير متاح 🔒</span></button>';
   const frame = S.open === 'meet' ? `<iframe class="player" src="https://drive.google.com/file/d/${id}/preview" sandbox="allow-scripts allow-same-origin" allow="autoplay; fullscreen" allowfullscreen></iframe>` : '';
-  return rect('meet', '', 'تسجيل اللقاء 🎥', '') + `<div class="card hidden" id="c_meet">${frame}</div>`;
+  return rect('meet', '🎥', 'تسجيل اللقاء', '') + `<div class="card hidden" id="c_meet">${frame}</div>`;
 }
 
 function lessonCard(l, idx) {
