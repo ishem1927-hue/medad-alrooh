@@ -59,7 +59,7 @@
   .rect .rt { font-size: 0.95rem; font-weight: 800; }
   .rect .rs { font-size: 0.72rem; color: var(--muted); }
   .rect.lk { opacity: 0.55; cursor: default; }
-  a.rect { text-decoration: none; }
+  .player { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 12px; background: #000; }
   .rect.open { height: 4.2rem; margin-bottom: 0; border-radius: 18px 18px 0 0; background: var(--gold); border-color: var(--gold); color: #fff; }
   .rect.open .rs { display: none; }
   .rect.open + .card { border-top: none; border-radius: 0 0 18px 18px; margin-bottom: 0.7rem; }
@@ -317,14 +317,17 @@ function renderTabs() {
 
 function rect(id, icon, title, sub, locked, dot) {
   const open = !locked && S.open === id;
-  return `<button type="button" class="rect${open ? ' open' : ''}${locked ? ' lk' : ''}" ${locked ? '' : `data-act="fold" data-id="${id}"`}>${dot ? `<i class="dot ${dot}"></i>` : ''}<span class="ri">${locked ? '🔒' : icon}</span><span class="rt">${title}</span>${sub ? `<span class="rs">${sub}</span>` : ''}</button>`;
+  return `<button type="button" class="rect${open ? ' open' : ''}${locked ? ' lk' : ''}" ${locked ? '' : `data-act="fold" data-id="${id}"`}>${dot ? `<i class="dot ${dot}"></i>` : ''}${locked || icon ? `<span class="ri">${locked ? '🔒' : icon}</span>` : ''}<span class="rt">${title}</span>${sub ? `<span class="rs">${sub}</span>` : ''}</button>`;
 }
 
-// تسجيل اللقاء: الرابط ما يجي من الخادم إلا داخل أسبوعه، وغير كذا «غير متاح»
+// تسجيل اللقاء: الرابط ما يجي من الخادم إلا داخل أسبوعه. نعرضه داخل الصفحة بمشغّل درايف المضمّن
+// (بدون allow-popups عشان زر فتح المشغّل في نافذة مستقلة ما يكشف الرابط)
+const driveId = u => { const m = String(u || '').match(/drive\.google\.com\/(?:file\/(?:u\/\d+\/)?d\/|(?:open|uc)\?(?:[^#]*&)?id=)([\w-]{10,})/i); return m ? m[1] : null; };
 function meetRect() {
-  const u = S.wk.meet;
-  if (u && /^https?:\/\//i.test(u)) return `<a class="rect" href="${esc(u)}" target="_blank" rel="noopener"><span class="rt">تسجيل اللقاء 🎥</span></a>`;
-  return '<button type="button" class="rect lk" disabled><span class="ri">🔒</span><span class="rt">تسجيل اللقاء 🎥</span><span class="rs">غير متاح</span></button>';
+  const id = driveId(S.wk.meet);
+  if (!id) return rect('meet', '', 'تسجيل اللقاء 🎥', 'غير متاح', true);
+  const frame = S.open === 'meet' ? `<iframe class="player" src="https://drive.google.com/file/d/${id}/preview" sandbox="allow-scripts allow-same-origin" allow="autoplay; fullscreen" allowfullscreen></iframe>` : '';
+  return rect('meet', '', 'تسجيل اللقاء 🎥', '') + `<div class="card hidden" id="c_meet">${frame}</div>`;
 }
 
 function lessonCard(l, idx) {
@@ -438,7 +441,7 @@ function renderWeek() {
     `<button type="button" class="btn" data-act="dl">⬇️ تحميل المذكرة</button>`;
   // القيم النصية
   body.querySelectorAll('textarea[data-q]').forEach(t => { t.value = S.answers[t.dataset.q] || ''; });
-  ['lesson', 'hw', 'fx'].forEach(id => { const c = $('c_' + id); if (c) c.classList.toggle('hidden', S.open !== id); });
+  ['lesson', 'meet', 'hw', 'fx'].forEach(id => { const c = $('c_' + id); if (c) c.classList.toggle('hidden', S.open !== id); });
 }
 
 /* ============ تفاعلات الصفحة ============ */

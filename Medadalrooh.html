@@ -11173,7 +11173,7 @@ async function tjfLoadMeet() {
 // حفظ رابط تسجيل اللقاء تلقائيًا: فاضي = حذف، وغير رابط = ما ينحفظ
 function tjfMeetInput(el) {
   const wk = TJF_WEEK, v = el.value.trim();
-  const ok = !v || /^https?:\/\//i.test(v);
+  const ok = !v || /drive\.google\.com\/(?:file\/(?:u\/\d+\/)?d\/|(?:open|uc)\?(?:[^#]*&)?id=)[\w-]{10,}/i.test(v);
   el.classList.remove('saved'); el.classList.toggle('bad', !ok);
   clearTimeout(tjfMeetT[wk]);
   if (!ok) return;
@@ -11241,7 +11241,7 @@ function tjfRender() {
   const fmt = sec => { const t = Math.round(sec || 0); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
   let h = '<div class="tjf-wkT">الأسبوع</div><div class="tjf-wkR">' + TJF_ORD.map((l, i) => `<button class="tjf-wk${TJF_WEEK === i + 1 ? ' on' : ''}" onclick="tjfSetWeek(${i + 1})">${l}</button>`).join('') + '</div>';
   if (TJF_WEEK > 5) { el.innerHTML = h; return; }
-  h += `<input id="tjfMeet" class="tjf-meet" type="url" placeholder="🎥 رابط تسجيل اللقاء" value="${tjEsc(TJF_MEET[TJF_WEEK] || '')}" oninput="tjfMeetInput(this)">`;
+  h += `<input id="tjfMeet" class="tjf-meet" type="url" placeholder="🎥 رابط درايف لتسجيل اللقاء" value="${tjEsc(TJF_MEET[TJF_WEEK] || '')}" oninput="tjfMeetInput(this)">`;
   if (!tjStudents.length) { el.innerHTML = h + '<div class="tj-empty">ما فيه طالبات بعد</div>'; return; }
   h += tjStudents.map(s => {
     const r = ((tjFollow[TJF_WEEK] || {})[s.id]) || {};
