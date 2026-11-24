@@ -59,6 +59,7 @@
   .rect .rt { font-size: 0.95rem; font-weight: 800; }
   .rect .rs { font-size: 0.72rem; color: var(--muted); }
   .rect.lk { opacity: 0.55; cursor: default; }
+  a.rect { text-decoration: none; }
   .rect.open { height: 4.2rem; margin-bottom: 0; border-radius: 18px 18px 0 0; background: var(--gold); border-color: var(--gold); color: #fff; }
   .rect.open .rs { display: none; }
   .rect.open + .card { border-top: none; border-radius: 0 0 18px 18px; margin-bottom: 0.7rem; }
@@ -319,6 +320,13 @@ function rect(id, icon, title, sub, locked, dot) {
   return `<button type="button" class="rect${open ? ' open' : ''}${locked ? ' lk' : ''}" ${locked ? '' : `data-act="fold" data-id="${id}"`}>${dot ? `<i class="dot ${dot}"></i>` : ''}<span class="ri">${locked ? '🔒' : icon}</span><span class="rt">${title}</span>${sub ? `<span class="rs">${sub}</span>` : ''}</button>`;
 }
 
+// تسجيل اللقاء: الرابط ما يجي من الخادم إلا داخل أسبوعه، وغير كذا «غير متاح»
+function meetRect() {
+  const u = S.wk.meet;
+  if (u && /^https?:\/\//i.test(u)) return `<a class="rect" href="${esc(u)}" target="_blank" rel="noopener"><span class="rt">تسجيل اللقاء 🎥</span></a>`;
+  return '<button type="button" class="rect lk" disabled><span class="ri">🔒</span><span class="rt">تسجيل اللقاء 🎥</span><span class="rs">غير متاح</span></button>';
+}
+
 function lessonCard(l, idx) {
   const multi = l.pages.length > 1;
   return `<div class="card hidden" id="c_lesson"><div class="book" id="book"><img id="bookImg" src="${l.pages[idx]}" alt="" data-act="zoom">${multi ? '<button class="nav r" data-act="prev" type="button">›</button><button class="nav l" data-act="next" type="button">‹</button>' : ''}</div>${multi ? `<div class="dots">${l.pages.map((_, i) => `<i class="${i === idx ? 'on' : ''}"></i>`).join('')}</div>` : ''}</div>`;
@@ -424,7 +432,7 @@ function renderWeek() {
   const l = LESSONS[S.week];
   const locked = hwState() === 'locked';
   body.innerHTML =
-    rect('lesson', '📖', l.title, l.sub) + lessonCard(l, S.page || 0) +
+    rect('lesson', '📖', l.title, l.sub) + lessonCard(l, S.page || 0) + meetRect() +
     rect('hw', '✍️', 'الواجب', '', locked, feedbackDot()) + (locked ? '' : homeworkCard()) + feedbackCard() +
     gradesCard() +
     `<button type="button" class="btn" data-act="dl">⬇️ تحميل المذكرة</button>`;
@@ -635,7 +643,7 @@ function openZoom(src) {
 /* تحديث البيانات تلقائيًا: فتح الواجب، الدرجات، الملاحظات */
 function stateSig() {
   const w = S.wk || {}, p = S.payload || {};
-  return JSON.stringify([p.start, p.grades, p.level, p.name, w.window, w.sub && w.sub.status, w.sub && w.sub.edit_used, w.feedback, w.recs, w.today, S.wk ? hwState() : '']);
+  return JSON.stringify([p.start, p.grades, p.level, p.name, w.window, w.sub && w.sub.status, w.sub && w.sub.edit_used, w.feedback, w.recs, w.meet, w.today, S.wk ? hwState() : '']);
 }
 async function refreshState() {
   if (!S.code || S.busy || document.hidden || S.rec || S.up !== null) return;

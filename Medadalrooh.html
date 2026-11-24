@@ -151,6 +151,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   #tajweed .tjf-wkT { margin-bottom: 0.4rem; padding: 0.4rem 0; border-radius: 12px; border: 1px solid #E8CD7A; background: #FBEBB5; color: #4A3F1E; text-align: center; font-weight: 800; font-size: 0.9rem; }
   #tajweed .tjf-wkR { display: flex; gap: 0.25rem; margin-bottom: 0.9rem; }
   #tajweed .tjf-wk { flex: 1; min-width: 0; padding: 0.25rem 0; border: 1px solid #F5EAC0; background: #FFF8E1; border-radius: 9px; font-family: inherit; font-size: 0.7rem; font-weight: 400; color: #8F8157; cursor: pointer; white-space: nowrap; }
+  #tajweed .tjf-meet { display: block; width: 100%; box-sizing: border-box; margin-bottom: 0.9rem; padding: 0.45rem 0.7rem; border: 1px solid #F5EAC0; border-radius: 12px; background: #FFF8E1; color: #4A3F1E; font-family: inherit; font-size: 0.8rem; direction: ltr; text-align: left; }
+  #tajweed .tjf-meet.bad { border-color: #D9534F; }
+  #tajweed .tjf-meet.saved { border-color: #5CB85C; }
   #tajweed .tjf-wk.on { background: #FBEBB5; border-color: #E8CD7A; color: #4A3F1E; font-weight: 800; }
   #tajweed .tjf-chip { font-size: 0.72rem; font-weight: 800; padding: 0.1rem 0.65rem; border-radius: 9px; background: #F5EAC0; color: #8F8157; }
   #tajweed .tjf-chip.red { background: #FBE0DC; color: #B3402F; }
@@ -11093,6 +11096,8 @@ let tjfDraft = {};   // الرمز -> رصد قيد الكتابة { marks, note
 let tjFollow = {};   // { "1": { "رقم الطالبة": { att, part, hw } } }
 let tjfSubs = {};    // الرمز -> التسليم
 let tjfRecs = {};    // الرمز -> التسجيلات (بدون الصوت نفسه)
+let TJF_MEET = {};   // الأسبوع -> رابط تسجيل اللقاء
+const tjfMeetT = {};  // مؤقّتات الحفظ لكل أسبوع
 
 function tjfLoad() {
   try { const v = JSON.parse(localStorage.getItem(TJF_KEY)); tjFollow = (v && typeof v === 'object') ? v : {}; }
@@ -11155,6 +11160,31 @@ function tjfShow() {
   tjfLoad(); tjLoadCodes();
   tjfRender();
   tjfLoadRemote();
+  tjfLoadMeet();
+}
+async function tjfLoadMeet() {
+  try {
+    const { data } = await supabaseClient.from('tajweed_meetings').select('week,url');
+    TJF_MEET = {}; (data || []).forEach(x => { TJF_MEET[x.week] = x.url; });
+  } catch (e) { return; }
+  const a = document.activeElement;
+  if (tajweedView === 'follow' && !(a && a.id === 'tjfMeet')) tjfRender();
+}
+// حفظ رابط تسجيل اللقاء تلقائيًا: فاضي = حذف، وغير رابط = ما ينحفظ
+function tjfMeetInput(el) {
+  const wk = TJF_WEEK, v = el.value.trim();
+  const ok = !v || /^https?:\/\//i.test(v);
+  el.classList.remove('saved'); el.classList.toggle('bad', !ok);
+  clearTimeout(tjfMeetT[wk]);
+  if (!ok) return;
+  if (v) TJF_MEET[wk] = v; else delete TJF_MEET[wk];
+  tjfMeetT[wk] = setTimeout(async () => {
+    const q = v ? supabaseClient.from('tajweed_meetings').upsert({ week: wk, url: v, updated_at: new Date().toISOString() })
+                : supabaseClient.from('tajweed_meetings').delete().eq('week', wk);
+    const { error } = await q;
+    el.classList.toggle('bad', !!error); el.classList.toggle('saved', !error);
+    if (!error) setTimeout(() => el.classList.remove('saved'), 1500);
+  }, 800);
 }
 async function tjfLoadRemote() {
   const wk = TJF_WEEK;
@@ -11211,6 +11241,7 @@ function tjfRender() {
   const fmt = sec => { const t = Math.round(sec || 0); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
   let h = '<div class="tjf-wkT">الأسبوع</div><div class="tjf-wkR">' + TJF_ORD.map((l, i) => `<button class="tjf-wk${TJF_WEEK === i + 1 ? ' on' : ''}" onclick="tjfSetWeek(${i + 1})">${l}</button>`).join('') + '</div>';
   if (TJF_WEEK > 5) { el.innerHTML = h; return; }
+  h += `<input id="tjfMeet" class="tjf-meet" type="url" placeholder="🎥 رابط تسجيل اللقاء" value="${tjEsc(TJF_MEET[TJF_WEEK] || '')}" oninput="tjfMeetInput(this)">`;
   if (!tjStudents.length) { el.innerHTML = h + '<div class="tj-empty">ما فيه طالبات بعد</div>'; return; }
   h += tjStudents.map(s => {
     const r = ((tjFollow[TJF_WEEK] || {})[s.id]) || {};
