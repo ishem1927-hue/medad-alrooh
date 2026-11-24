@@ -151,7 +151,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   #tajweed .tjf-wkT { margin-bottom: 0.4rem; padding: 0.4rem 0; border-radius: 12px; border: 1px solid #E8CD7A; background: #FBEBB5; color: #4A3F1E; text-align: center; font-weight: 800; font-size: 0.9rem; }
   #tajweed .tjf-wkR { display: flex; gap: 0.25rem; margin-bottom: 0.9rem; }
   #tajweed .tjf-wk { flex: 1; min-width: 0; padding: 0.25rem 0; border: 1px solid #F5EAC0; background: #FFF8E1; border-radius: 9px; font-family: inherit; font-size: 0.7rem; font-weight: 400; color: #8F8157; cursor: pointer; white-space: nowrap; }
-  #tajweed .tjf-meet { display: block; width: 100%; box-sizing: border-box; margin-bottom: 0.9rem; padding: 0.45rem 0.7rem; border: 1px solid #F5EAC0; border-radius: 12px; background: #FFF8E1; color: #4A3F1E; font-family: inherit; font-size: 0.8rem; direction: ltr; text-align: left; }
+  #tajweed .tjf-meetW { position: relative; margin-bottom: 0.9rem; }
+  #tajweed .tjf-meetW i { position: absolute; right: 0.8rem; top: 50%; transform: translateY(-50%); font-style: normal; pointer-events: none; }
+  #tajweed .tjf-meet { display: block; width: 100%; box-sizing: border-box; padding: 0.45rem 2.4rem 0.45rem 0.7rem; border: 1px solid #F5EAC0; border-radius: 12px; background: #FFF8E1; color: #4A3F1E; font-family: inherit; font-size: 0.8rem; direction: rtl; text-align: right; }
   #tajweed .tjf-meet.bad { border-color: #D9534F; }
   #tajweed .tjf-meet.saved { border-color: #5CB85C; }
   #tajweed .tjf-wk.on { background: #FBEBB5; border-color: #E8CD7A; color: #4A3F1E; font-weight: 800; }
@@ -11241,7 +11243,7 @@ function tjfRender() {
   const fmt = sec => { const t = Math.round(sec || 0); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
   let h = '<div class="tjf-wkT">الأسبوع</div><div class="tjf-wkR">' + TJF_ORD.map((l, i) => `<button class="tjf-wk${TJF_WEEK === i + 1 ? ' on' : ''}" onclick="tjfSetWeek(${i + 1})">${l}</button>`).join('') + '</div>';
   if (TJF_WEEK > 5) { el.innerHTML = h; return; }
-  h += `<input id="tjfMeet" class="tjf-meet" type="url" placeholder="🎥 رابط درايف لتسجيل اللقاء" value="${tjEsc(TJF_MEET[TJF_WEEK] || '')}" oninput="tjfMeetInput(this)">`;
+  h += `<div class="tjf-meetW"><i>🎥</i><input id="tjfMeet" class="tjf-meet" type="url" placeholder="رابط تسجيل اللقاء" value="${tjEsc(TJF_MEET[TJF_WEEK] || '')}" oninput="tjfMeetInput(this)"></div>`;
   if (!tjStudents.length) { el.innerHTML = h + '<div class="tj-empty">ما فيه طالبات بعد</div>'; return; }
   h += tjStudents.map(s => {
     const r = ((tjFollow[TJF_WEEK] || {})[s.id]) || {};
