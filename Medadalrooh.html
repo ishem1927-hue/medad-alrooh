@@ -1202,7 +1202,7 @@ var AUTH_STORAGE_KEY = 'sb-btosiqsrpvrjajwhyrph-auth-token';
               </span>
             </div>
             <div class="total-row">
-              <span class="total-label">📱 STC / Apple Pay</span>
+              <span class="total-label">📱 STC Pay</span>
               <span style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;">
                 <span class="total-value" id="countSTC" style="color:var(--muted);font-size:0.85rem;">0 طالبة</span>
                 <span class="total-value" id="totalSTC" style="color:var(--wine-light)">0 ر.س</span>
@@ -1529,14 +1529,7 @@ var AUTH_STORAGE_KEY = 'sb-btosiqsrpvrjajwhyrph-auth-token';
     <div class="totals-card">
       <div class="totals-grid">
         <div class="total-row">
-          <span class="total-label">🇴🇲 تحويل عُماني</span>
-          <span style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;">
-            <span class="total-value" id="tjc_countOMR" style="color:var(--muted);font-size:0.85rem;">0 طالبة</span>
-            <span class="total-value" id="tjc_totalOMR" style="color:var(--wine-light)">0 ر.ع</span>
-          </span>
-        </div>
-        <div class="total-row">
-          <span class="total-label">📱 STC / Apple Pay</span>
+          <span class="total-label">📱 STC Pay</span>
           <span style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;">
             <span class="total-value" id="tjc_countSTC" style="color:var(--muted);font-size:0.85rem;">0 طالبة</span>
             <span class="total-value" id="tjc_totalSTC" style="color:var(--wine-light)">0 ر.س</span>
@@ -1625,11 +1618,6 @@ var AUTH_STORAGE_KEY = 'sb-btosiqsrpvrjajwhyrph-auth-token';
     <div class="totals-card" style="text-align:center;background:linear-gradient(135deg,var(--wine),var(--wine-light));color:white;">
       <div class="totals-title" style="color:white;justify-content:center;">💰 الإجمالي الكلي</div>
       <div class="total-value green" id="tjc_grandTotal" style="font-size:1.6rem;font-weight:800;color:white;display:block;margin-top:0.4rem;">0 ر.ع</div>
-      <!-- العناصر التالية مخفية بصريًا، موجودة بس عشان الحسابات الداخلية تستمر تشتغل صحيح -->
-      <div style="display:none;">
-        <span id="tjc_grandOMR">0</span><span id="tjc_grandSARtoOMR">0</span>
-        <span id="tjc_grandBeforeOblig">0</span><span id="tjc_obligPaid">0</span>
-      </div>
     </div>
 
     
@@ -10388,16 +10376,15 @@ const TJC_PAY_KEY = 'madad_tajweed_calc_pay';
 const TJC_OBLIG_KEY = 'madad_tajweed_calc_oblig';
 const TJC_SAR_TO_OMR = 0.102561;
 const TJC_AMOUNTS = {
-  omani:   { amount: 10,    currency: 'ر.ع', type: 'omani' },
-  stc:     { amount: 92.23, currency: 'ر.س', type: 'saudi' },
-  mada:    { amount: 92.58, currency: 'ر.س', type: 'saudi' },
-  visa:    { amount: 91.14, currency: 'ر.س', type: 'saudi' },
+  stc:     { amount: 147.05, currency: 'ر.س', type: 'saudi' },
+  mada:    { amount: 147.5, currency: 'ر.س', type: 'saudi' },
+  visa:    { amount: 145.7, currency: 'ر.س', type: 'saudi' },
   custom:  { amount: 0,     currency: 'ر.س', type: 'saudi' },
   pending: { amount: 0,     currency: '',    type: 'pending' },
   kafala:  { amount: 0,     currency: '',    type: 'kafala' },
 };
 const TJC_LABELS = {
-  omani: '🇴🇲 تحويل عُماني', stc: '📱 STC / Apple Pay', mada: '💳 مدى',
+  stc: '📱 STC Pay', mada: '💳 مدى',
   visa: '💳 Visa / Mastercard', custom: '💳 طريقة دفع أخرى', pending: '⏳ لم تدفع بعد',
   kafala: '🪑 مجاني',
 };
@@ -10610,18 +10597,15 @@ function tjcRender() {
   tjc('sumFree').textContent = free.length;
   ['all', 'paid', 'pending', 'kafala'].forEach(f => tjc('sumChip_' + f).classList.toggle('active', tjcFilter === f));
 
-  const omrTotal = cnt('omani') * 10;
-  const stcTotal = cnt('stc') * 92.23;
-  const madaTotal = cnt('mada') * 92.58;
-  const visaTotal = cnt('visa') * 91.14;
+  const stcTotal = cnt('stc') * 147.05;
+  const madaTotal = cnt('mada') * 147.5;
+  const visaTotal = cnt('visa') * 145.7;
   const customTotal = cnt('custom') * (tjcCustomPay.amount || 0);
   const sarTotal = stcTotal + madaTotal + visaTotal + customTotal;
-  const grandBefore = omrTotal + sarTotal * TJC_SAR_TO_OMR;
+  const grandBefore = sarTotal * TJC_SAR_TO_OMR;
   const obligTotal = tjcObligTotalOMR();
   const grandTotal = grandBefore - obligTotal;
 
-  tjc('countOMR').textContent = cnt('omani') + ' طالبة';
-  tjc('totalOMR').textContent = omrTotal ? omrTotal.toFixed(3) + ' ر.ع' : '0 ر.ع';
   tjc('countSTC').textContent = cnt('stc') + ' طالبة';
   tjc('totalSTC').textContent = stcTotal ? stcTotal.toFixed(2) + ' ر.س' : '0 ر.س';
   tjc('countMada').textContent = cnt('mada') + ' طالبة';
@@ -10667,8 +10651,7 @@ function tjcRender() {
         <select class="inline-pay-select" id="tjc_paysel_${s.id}" onchange="tjcChangePay(${s.id}, this.value)">
           <option value="">— اختاري —</option>
           <optgroup label="💸 مدفوع">
-            <option value="omani" ${s.pay === 'omani' ? 'selected' : ''}>🇴🇲 تحويل عُماني</option>
-            <option value="stc" ${s.pay === 'stc' ? 'selected' : ''}>📱 STC / Apple Pay</option>
+            <option value="stc" ${s.pay === 'stc' ? 'selected' : ''}>📱 STC Pay</option>
             <option value="mada" ${s.pay === 'mada' ? 'selected' : ''}>💳 مدى</option>
             <option value="visa" ${s.pay === 'visa' ? 'selected' : ''}>💳 Visa / Mastercard</option>
             ${customOpt.replace('__SEL__', s.pay === 'custom' ? 'selected' : '')}
@@ -10684,7 +10667,7 @@ function tjcRender() {
     el.appendChild(card);
   };
   if (tjcFilter === 'paid') {
-    [{ title: 'المتجر', methods: ['stc', 'mada', 'visa'] }, { title: 'التحويل', methods: ['omani'] }, { title: 'طريقة أخرى', methods: ['custom'] }].forEach(g => {
+    [{ title: 'المتجر', methods: ['stc', 'mada', 'visa'] }, { title: 'طريقة أخرى', methods: ['custom'] }].forEach(g => {
       const members = list.filter(s => g.methods.includes(s.pay));
       if (!members.length) return;
       const header = document.createElement('div');
@@ -11445,15 +11428,15 @@ if (TEACHER_HALQA) {
 // ===================== قسم الحاسبة (نفس منطق hasibat-madad.html) =====================
 const AMOUNTS = {
   omani:   { amount: 10,    currency: 'ر.ع', type: 'omani' },
-  stc:     { amount: 92.23, currency: 'ر.س', type: 'saudi' },
-  mada:    { amount: 92.58, currency: 'ر.س', type: 'saudi' },
-  visa:    { amount: 91.14, currency: 'ر.س', type: 'saudi' },
+  stc:     { amount: 102.64, currency: 'ر.س', type: 'saudi' },
+  mada:    { amount: 102.95, currency: 'ر.س', type: 'saudi' },
+  visa:    { amount: 101.69, currency: 'ر.س', type: 'saudi' },
   custom:  { amount: 0,     currency: 'ر.س', type: 'saudi' },
   pending: { amount: 0,     currency: '',    type: 'pending' },
   kafala:  { amount: 0,     currency: '',    type: 'kafala' },
 };
 const PAY_LABELS = {
-  omani: '🇴🇲 تحويل عُماني', stc: '📱 STC / Apple Pay', mada: '💳 مدى',
+  omani: '🇴🇲 تحويل عُماني', stc: '📱 STC Pay', mada: '💳 مدى',
   visa: '💳 Visa / Mastercard', custom: '💳 طريقة دفع أخرى', pending: '⏳ لم تدفع بعد',
   kafala: '🪑 مجاني',
 };
@@ -12265,9 +12248,9 @@ function renderHasib() {
   });
 
   const omrTotal    = visibleHasibStudents.filter(s=>s.pay==='omani').length * 10;
-  const stcTotal    = visibleHasibStudents.filter(s=>s.pay==='stc').length   * 92.23;
-  const madaTotal   = visibleHasibStudents.filter(s=>s.pay==='mada').length  * 92.58;
-  const visaTotal   = visibleHasibStudents.filter(s=>s.pay==='visa').length  * 91.14;
+  const stcTotal    = visibleHasibStudents.filter(s=>s.pay==='stc').length   * 102.64;
+  const madaTotal   = visibleHasibStudents.filter(s=>s.pay==='mada').length  * 102.95;
+  const visaTotal   = visibleHasibStudents.filter(s=>s.pay==='visa').length  * 101.69;
   const customTotal = visibleHasibStudents.filter(s=>s.pay==='custom').length * (customPay.amount || 0);
   const sarTotal    = stcTotal + madaTotal + visaTotal + customTotal;
   const sarToOmr    = sarTotal * SAR_TO_OMR;
@@ -12342,7 +12325,7 @@ function renderHasib() {
           <option value="">— اختاري —</option>
           <optgroup label="💸 مدفوع">
             <option value="omani"   ${s.pay==='omani'  ?'selected':''}>🇴🇲 تحويل عُماني</option>
-            <option value="stc"     ${s.pay==='stc'    ?'selected':''}>📱 STC / Apple Pay</option>
+            <option value="stc"     ${s.pay==='stc'    ?'selected':''}>📱 STC Pay</option>
             <option value="mada"    ${s.pay==='mada'   ?'selected':''}>💳 مدى</option>
             <option value="visa"    ${s.pay==='visa'   ?'selected':''}>💳 Visa / Mastercard</option>
             ${customOptionHTML.replace('__SEL__', s.pay==='custom'?'selected':'')}
