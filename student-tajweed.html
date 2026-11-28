@@ -111,6 +111,8 @@
 
   .dov { position: fixed; inset: 0; background: rgba(74,63,30,0.35); display: flex; align-items: center; justify-content: center; padding: 1.2rem; z-index: 50; }
   .dbox { background: #fff; border-radius: 18px; padding: 1.4rem 1.2rem 1.2rem; width: 100%; max-width: 320px; text-align: center; }
+  .dbox:focus { outline: none; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .dbox p { font-size: 0.95rem; margin: 0.2rem 0 1rem; }
   .dbox p.dsub { font-size: 0.82rem; color: var(--muted); line-height: 1.8; margin: -0.4rem 0 1rem; }
   .dbtns { display: flex; gap: 0.6rem; }
@@ -144,6 +146,7 @@
     <div class="hdr"><div class="av" id="pAv"></div><div><div class="name" id="pName"></div><span class="level" id="pLevel"></span></div></div>
     <div class="tabs" id="tabs"></div>
     <div id="weekBody"></div>
+    <div id="srLive" class="sr" role="status" aria-live="polite"></div>
   </div>
 </div>
 
@@ -288,10 +291,11 @@ async function login(saved) {
 function askConfirm(text, onYes, sub) {
   const ov = document.createElement('div');
   ov.className = 'dov';
-  ov.innerHTML = '<div class="dbox"><p><b></b></p><div class="dbtns"><button type="button" class="go" id="cYes">تأكيد</button><button type="button" class="go alt" id="cNo">إلغاء</button></div></div>';
+  ov.innerHTML = '<div class="dbox" role="dialog" aria-modal="true" aria-labelledby="cTxt" tabindex="-1"><p><b id="cTxt"></b></p><div class="dbtns"><button type="button" class="go" id="cYes">تأكيد</button><button type="button" class="go alt" id="cNo">إلغاء</button></div></div>';
   ov.querySelector('b').textContent = text;
   if (sub) { const q = document.createElement('p'); q.className = 'dsub'; q.textContent = sub; ov.querySelector('p').after(q); }
   document.body.appendChild(ov);
+  ov.querySelector('.dbox').focus();
   ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
   ov.querySelector('#cNo').addEventListener('click', () => ov.remove());
   ov.querySelector('#cYes').addEventListener('click', () => { ov.remove(); onYes(); });
@@ -318,7 +322,7 @@ function renderTabs() {
 
 function rect(id, icon, title, sub, locked, dot) {
   const open = !locked && S.open === id;
-  return `<button type="button" class="rect${open ? ' open' : ''}${locked ? ' lk' : ''}" ${locked ? '' : `data-act="fold" data-id="${id}"`}>${dot ? `<i class="dot ${dot}"></i>` : ''}<span class="ri">${locked ? '🔒' : icon}</span><span class="rt">${title}</span>${sub ? `<span class="rs">${sub}</span>` : ''}</button>`;
+  return `<button type="button" class="rect${open ? ' open' : ''}${locked ? ' lk' : ''}" ${locked ? 'aria-disabled="true"' : `data-act="fold" data-id="${id}" aria-expanded="${open}"`}>${dot ? `<i class="dot ${dot}"></i>` : ''}<span class="ri">${locked ? '🔒' : icon}</span><span class="rt">${title}</span>${sub ? `<span class="rs">${sub}</span>` : ''}</button>`;
 }
 
 // تسجيل اللقاء: الرابط ما يجي من الخادم إلا داخل أسبوعه. نعرضه داخل الصفحة بمشغّل درايف المضمّن
@@ -341,9 +345,9 @@ function itemHtml(it, num, ro) {
   const mv = fb && fb.marks && fb.marks[it.id];
   let h = `<div class="q">${it.type === 'record' ? '' : toAr(num) + '. '}${it.text}</div>`;
   if (it.type === 'choice') {
-    h += `<div class="opts">${it.opts.map(o => `<button type="button" class="o${S.answers[it.id] === o ? ' on' : ''}" data-act="pick" data-q="${it.id}" data-v="${o}" ${ro ? 'disabled' : ''}>${o}</button>`).join('')}</div>`;
+    h += `<div class="opts">${it.opts.map(o => `<button type="button" class="o${S.answers[it.id] === o ? ' on' : ''}" data-act="pick" data-q="${it.id}" data-v="${o}" aria-pressed="${S.answers[it.id] === o}" ${ro ? 'disabled' : ''}>${o}</button>`).join('')}</div>`;
   } else if (it.type === 'text') {
-    h += `<textarea class="ta" rows="${it.rows}" data-q="${it.id}" ${ro ? 'disabled' : ''}></textarea>`;
+    h += `<textarea class="ta" rows="${it.rows}" data-q="${it.id}" aria-label="${feedbackLabel(it)}" ${ro ? 'disabled' : ''}></textarea>`;
   } else {
     h += it.slots.map((lb, i) => {
       const m = fb && fb.marks && fb.marks[it.id + (i + 1)];
@@ -383,6 +387,7 @@ function homeworkCard() {
     else if (S.editing) h += '<button type="button" class="btn" data-act="submit">تسليم التعديل</button>';
   }
   h += `<div class="msg" id="hwMsg">${S.note || ''}</div></div>`;
+  if (S.note) say(S.note);
   S.note = '';
   return h;
 }
@@ -435,6 +440,8 @@ function renderWeek() {
   if (!weekOpen(S.week) || S.week > WEEKS_READY) { body.innerHTML = ''; return; }
   const l = LESSONS[S.week];
   const locked = hwState() === 'locked';
+  // نحفظ الزر اللي عليه التركيز عشان قارئ الشاشة ما يرجع لأول الصفحة بعد كل إعادة رسم
+  const fa = document.activeElement, fk = fa && body.contains(fa) && fa.dataset.act ? ['act', 'id', 'q', 'v', 'slot'].filter(k => fa.dataset[k] !== undefined).map(k => `[data-${k}="${CSS.escape(fa.dataset[k])}"]`).join('') : '';
   body.innerHTML =
     rect('lesson', '📖', l.title, l.sub) + lessonCard(l, S.page || 0) + meetRect() +
     rect('hw', '✍️', 'الواجب', '', locked, feedbackDot()) + (locked ? '' : homeworkCard()) + feedbackCard() +
@@ -443,6 +450,7 @@ function renderWeek() {
   // القيم النصية
   body.querySelectorAll('textarea[data-q]').forEach(t => { t.value = S.answers[t.dataset.q] || ''; });
   ['lesson', 'meet', 'hw', 'fx'].forEach(id => { const c = $('c_' + id); if (c) c.classList.toggle('hidden', S.open !== id); });
+  if (fk) { const n = body.querySelector('button' + fk); if (n) n.focus({ preventScroll: true }); }
 }
 
 /* ============ تفاعلات الصفحة ============ */
@@ -455,7 +463,9 @@ function scheduleSave() {
     } catch (e) {}
   }, 800);
 }
-function hwMsg(t) { const m = $('hwMsg'); if (m) m.textContent = t || ''; }
+// إعلان صوتي لقارئ الشاشة (مخفي بصريًا)
+function say(t) { const r = $('srLive'); if (!r) return; r.textContent = ''; setTimeout(() => { r.textContent = t; }, 60); }
+function hwMsg(t) { const m = $('hwMsg'); if (m) m.textContent = t || ''; if (t) say(t); }
 
 // البنود الفاضية قبل التسليم (الأسئلة والمقاطع الثلاثة والنشاط كلها مطلوبة)
 function missingItems() {
@@ -487,7 +497,7 @@ async function submitHw() {
   try {
     clearTimeout(S.saveT);
     const r = await rpc('tajweed_submit', { p_code: S.code, p_week: S.week, p_answers: S.answers });
-    if (r.status === 'ok') { S.editing = false; await loadWeek(); renderAll(); return; }
+    if (r.status === 'ok') { S.editing = false; await loadWeek(); renderAll(); say('تم تسليم الواجب'); return; }
     await loadWeek(); S.editing = false; renderAll();
     hwMsg(r.status === 'closed' ? 'انتهت مهلة الواجب.' : 'تعذّر التسليم، حاولي مرة ثانية.');
   } catch (e) { hwMsg('تعذّر الاتصال، حاولي مرة ثانية.'); }
@@ -535,6 +545,7 @@ async function startMic(slot) {
   }, 120);
   S.rec = info;
   mr.start();
+  say('بدأ التسجيل');
   renderWeek();
   S.timer = setInterval(() => {
     const t = (Date.now() - info.t0) / 1000;
@@ -581,6 +592,7 @@ async function uploadClip(slot, blob, type, dur, fromMic) {
     if (r.status === 'ok') {
       if (S.local[slot]) URL.revokeObjectURL(S.local[slot]);
       S.local[slot] = URL.createObjectURL(blob);
+      say('تم حفظ التسجيل');
     } else hwMsg(r.status === 'closed' ? 'انتهت مهلة الواجب.' : 'تعذّر حفظ التسجيل، حاولي مرة ثانية.');
   } catch (e) { hwMsg('تعذّر الاتصال، حاولي مرة ثانية.'); }
   S.up = null;
@@ -591,7 +603,7 @@ async function deleteClip(slot) {
   hwMsg('');
   try {
     const r = await rpc('tajweed_delete_recording', { p_code: S.code, p_week: S.week, p_slot: slot });
-    if (r.status === 'ok') { if (S.local[slot]) URL.revokeObjectURL(S.local[slot]); delete S.local[slot]; }
+    if (r.status === 'ok') { if (S.local[slot]) URL.revokeObjectURL(S.local[slot]); delete S.local[slot]; say('تم حذف التسجيل'); }
     else if (r.status === 'closed') hwMsg('انتهت مهلة الواجب.');
   } catch (e) { hwMsg('تعذّر الاتصال، حاولي مرة ثانية.'); }
   try { await loadWeek(true); } catch (e) {}
