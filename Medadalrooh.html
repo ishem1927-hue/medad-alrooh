@@ -2188,6 +2188,8 @@ const ALL_DATA_KEYS = [
   'madad_halqa_dist', 'madad_event_participants', 'madad_kubra_splits', 'madad_archive', 'madad_teacher_notes', 'madad_portal_codes',
   'madad_wa_plan_approval_log', 'madad_wa_daily_approval_log', 'madad_no_challenge_days',
 ];
+// بصمة الدورة لبيانات الحضور (محلية فقط): تمنع رجوع بقايا دورة قديمة من جهاز ما حدّث بياناته
+const ATTEND_CYCLE_STAMP_KEY = 'madad_data_cycle';
 const MERGE_KEYS = ['madad_data', 'maqarrar_data', 'maqarrar_history', 'madad_halqa_dist', 'madad_event_participants', 'madad_kubra_splits', 'madad_archive', 'madad_teacher_notes'];
 
 
@@ -2256,6 +2258,8 @@ async function syncPullAll() {
       .in('key', SYNC_KEYS);
     if (error) { console.warn('syncPullAll error', error); return; }
     const returnedKeys = new Set(data.map(r => r.key));
+    const cycleRow = data.find(r => r.key === 'madad_cycle_number');
+    const cloudCycle = cycleRow && cycleRow.value !== null && cycleRow.value !== undefined ? String(cycleRow.value) : null;
     KEYS_CLEAR_IF_MISSING.forEach(k => {
       if (!returnedKeys.has(k)) localStorage.removeItem(k);
     });
@@ -2267,6 +2271,12 @@ async function syncPullAll() {
           return;
         }
         if (MERGE_KEYS.includes(row.key)) {
+          // الحضور يخص دورة وحدة: لو بصمة هذا الجهاز مو نفس دورة السحابة نعتمد السحابة كما هي بدل الدمج
+          if (row.key === 'madad_data' && cloudCycle !== null && localStorage.getItem(ATTEND_CYCLE_STAMP_KEY) !== cloudCycle) {
+            localStorage.setItem(row.key, JSON.stringify(row.value));
+            localStorage.setItem(ATTEND_CYCLE_STAMP_KEY, cloudCycle);
+            return;
+          }
           const existing = JSON.parse(localStorage.getItem(row.key) || '{}');
           const merged = Object.assign({}, existing, row.value);
           localStorage.setItem(row.key, JSON.stringify(merged));
@@ -5321,7 +5331,11 @@ async function manualRefreshCurriculum(btn) {
 }
 
 function saveAttendData() {
-  try { localStorage.setItem('madad_data', JSON.stringify(attendData)); } catch(e) {}
+  try {
+    localStorage.setItem('madad_data', JSON.stringify(attendData));
+    const cyc = localStorage.getItem('madad_cycle_number');
+    if (cyc) localStorage.setItem(ATTEND_CYCLE_STAMP_KEY, cyc);
+  } catch(e) {}
   syncPush('madad_data');
 }
 async function loadAttendData() {
@@ -5342,8 +5356,12 @@ supabaseClient
       const newVal = payload.new && payload.new.value;
       if (newVal) {
         const existing = JSON.parse(localStorage.getItem('madad_data') || '{}');
-        const merged = Object.assign({}, existing, newVal);
+        const localCycle = localStorage.getItem('madad_cycle_number');
+        // سحابة فاضية (إعادة ضبط دورة) أو بصمة الدورة مختلفة → نعتمد السحابة كما هي بدل الدمج مع بقايا قديمة
+        const replaceAll = Object.keys(newVal).length === 0 || localStorage.getItem(ATTEND_CYCLE_STAMP_KEY) !== localCycle;
+        const merged = replaceAll ? newVal : Object.assign({}, existing, newVal);
         localStorage.setItem('madad_data', JSON.stringify(merged));
+        if (localCycle) localStorage.setItem(ATTEND_CYCLE_STAMP_KEY, localCycle);
         attendData = merged;
         if (typeof renderDailyReportPanel === 'function') { try { renderDailyReportPanel(); } catch(e2) {} }
         if (typeof renderCurriculumTab === 'function') { try { renderCurriculumTab(); } catch(e2) {} }
