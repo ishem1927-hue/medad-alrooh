@@ -314,10 +314,12 @@ function logout() {
 function renderAll() { renderHeader(); renderTabs(); renderWeek(); }
 
 function renderTabs() {
+  const fa = document.activeElement, fk = fa && $('tabs').contains(fa) && fa.dataset.n ? fa.dataset.n : '';
   $('tabs').innerHTML = '<div class="tabsT">الأسبوع</div><div class="tabsR">' + ORD.map((l, i) => {
     const n = i + 1;
-    return weekOpen(n) ? `<button class="tab${n === S.week ? ' on' : ''}" data-act="tab" data-n="${n}">${l}</button>` : `<span class="tab lk">${l}<i>🔒</i></span>`;
+    return weekOpen(n) ? `<button class="tab${n === S.week ? ' on' : ''}" data-act="tab" data-n="${n}" aria-pressed="${n === S.week}">${l}</button>` : `<span class="tab lk">${l}<i>🔒</i></span>`;
   }).join('') + '</div>';
+  if (fk) { const b = $('tabs').querySelector(`[data-n="${fk}"]`); if (b) b.focus({ preventScroll: true }); }
 }
 
 function rect(id, icon, title, sub, locked, dot) {
