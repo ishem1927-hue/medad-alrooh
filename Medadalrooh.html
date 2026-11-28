@@ -10394,9 +10394,9 @@ const TJC_PAY_KEY = 'madad_tajweed_calc_pay';
 const TJC_OBLIG_KEY = 'madad_tajweed_calc_oblig';
 const TJC_SAR_TO_OMR = 0.102561;
 const TJC_AMOUNTS = {
-  stc:     { amount: 147.05, currency: 'ر.س', type: 'saudi' },
-  mada:    { amount: 147.5, currency: 'ر.س', type: 'saudi' },
-  visa:    { amount: 145.7, currency: 'ر.س', type: 'saudi' },
+  stc:     { amount: 146.61, currency: 'ر.س', type: 'saudi' },
+  mada:    { amount: 147.13, currency: 'ر.س', type: 'saudi' },
+  visa:    { amount: 145.06, currency: 'ر.س', type: 'saudi' },
   custom:  { amount: 0,     currency: 'ر.س', type: 'saudi' },
   pending: { amount: 0,     currency: '',    type: 'pending' },
   kafala:  { amount: 0,     currency: '',    type: 'kafala' },
@@ -10615,9 +10615,9 @@ function tjcRender() {
   tjc('sumFree').textContent = free.length;
   ['all', 'paid', 'pending', 'kafala'].forEach(f => tjc('sumChip_' + f).classList.toggle('active', tjcFilter === f));
 
-  const stcTotal = cnt('stc') * 147.05;
-  const madaTotal = cnt('mada') * 147.5;
-  const visaTotal = cnt('visa') * 145.7;
+  const stcTotal = cnt('stc') * 146.61;
+  const madaTotal = cnt('mada') * 147.13;
+  const visaTotal = cnt('visa') * 145.06;
   const customTotal = cnt('custom') * (tjcCustomPay.amount || 0);
   const sarTotal = stcTotal + madaTotal + visaTotal + customTotal;
   const grandBefore = sarTotal * TJC_SAR_TO_OMR;
@@ -11446,9 +11446,9 @@ if (TEACHER_HALQA) {
 // ===================== قسم الحاسبة (نفس منطق hasibat-madad.html) =====================
 const AMOUNTS = {
   omani:   { amount: 10,    currency: 'ر.ع', type: 'omani' },
-  stc:     { amount: 102.64, currency: 'ر.س', type: 'saudi' },
-  mada:    { amount: 102.95, currency: 'ر.س', type: 'saudi' },
-  visa:    { amount: 101.69, currency: 'ر.س', type: 'saudi' },
+  stc:     { amount: 102.28, currency: 'ر.س', type: 'saudi' },
+  mada:    { amount: 102.64, currency: 'ر.س', type: 'saudi' },
+  visa:    { amount: 101.19, currency: 'ر.س', type: 'saudi' },
   custom:  { amount: 0,     currency: 'ر.س', type: 'saudi' },
   pending: { amount: 0,     currency: '',    type: 'pending' },
   kafala:  { amount: 0,     currency: '',    type: 'kafala' },
@@ -12266,9 +12266,9 @@ function renderHasib() {
   });
 
   const omrTotal    = visibleHasibStudents.filter(s=>s.pay==='omani').length * 10;
-  const stcTotal    = visibleHasibStudents.filter(s=>s.pay==='stc').length   * 102.64;
-  const madaTotal   = visibleHasibStudents.filter(s=>s.pay==='mada').length  * 102.95;
-  const visaTotal   = visibleHasibStudents.filter(s=>s.pay==='visa').length  * 101.69;
+  const stcTotal    = visibleHasibStudents.filter(s=>s.pay==='stc').length   * 102.28;
+  const madaTotal   = visibleHasibStudents.filter(s=>s.pay==='mada').length  * 102.64;
+  const visaTotal   = visibleHasibStudents.filter(s=>s.pay==='visa').length  * 101.19;
   const customTotal = visibleHasibStudents.filter(s=>s.pay==='custom').length * (customPay.amount || 0);
   const sarTotal    = stcTotal + madaTotal + visaTotal + customTotal;
   const sarToOmr    = sarTotal * SAR_TO_OMR;
